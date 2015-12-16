@@ -386,7 +386,8 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('specific_humidity', 'm01s30i205'),                    
                     ('relative_humidity', 'm01s16i256'),                    
                     ('x_wind', 'm01s15i243'),
-                    ('y_wind', 'm01s15i244')]
+                    ('y_wind', 'm01s15i244'),
+                    ('upward_air_velocity', 'm01s15i242')]
         varLvls = 18
         # the cube contains Instantaneous data at every 3-hours.
         # but we need to extract only every 6th hours instantaneous.
@@ -672,8 +673,8 @@ def regridAnlFcstFiles(arg):
             # save the cube in append mode as a grib2 file       
             if _inDataPath_.endswith('00'):
                 if fcstTm.bounds is not None:
-                    # get the last hour bound ## need this for pf files.                
-                    hr = str(int(fcstTm.bounds[-1][-1]))     
+                    # get the first hour from bounds (need this for pf files)
+                    hr = str(int(fcstTm.bounds[-1][0]))
                     print "Bounds comes in ", hr, fcstTm.bounds, fileName       
                 else:
                     # get the fcst time point 
