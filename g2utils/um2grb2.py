@@ -91,8 +91,11 @@ import multiprocessing as mp
 import multiprocessing.pool as mppool       # We must import this explicitly, it is not imported by the top-level multiprocessing                                                 module.
 import types
 import datetime
+from iris.fileformats.grib._load_convert import _TIME_RANGE_UNITS
 # End of importing business
 iris.FUTURE.strict_grib_load = True
+# the below dictionary reguired in the tweaked_messages() function
+_TIME_RANGE_UNITS = {val: key for key, val in _TIME_RANGE_UNITS.items()}
 
 # -- Start coding
 # create global lock object
@@ -761,14 +764,22 @@ def tweaked_messages(cubeList):
             print "reset the centre as 28"
             if cube.coord("forecast_period").bounds is not None:        
                 # if we set bounds[0][0] = 0, wgrib2 gives error for 0 fcst time.
-                # so we need to set proper time intervals as 5 as per below table.
+                # so we need to set proper time intervals 
+                # (typeOfTimeIncrement) as 5 as per below table.
                 # http://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_table4-11.shtml
                 # fileformats/grib/_save_rules.py-> set_forecast_time() ->
                 # _non_missing_forecast_period() returns 'fp' as bounds[0][0]. 
                 # but mean while lets fix by setting int(points) 
-                fp = int(cube.coord("forecast_period").points[0]) #bounds[0]            
-                gribapi.grib_set(grib_message, "forecastTime", fp)
-                print 'reset forecastTime as', fp
+#                fp = int(cube.coord("forecast_period").points[0]) #bounds[0]            
+#                gribapi.grib_set(grib_message, "forecastTime", fp)
+                gribapi.grib_set(grib_message, "typeOfTimeIncrement", 5)
+                gribapi.grib_set(grib_message, 
+                                 "indicatorOfUnitForTimeIncrement",
+                                  _TIME_RANGE_UNITS['6 hours'])
+                gribapi.grib_set(grib_message, "timeIncrement", 1)
+                gribapi.grib_set(grib_message, "typeOfGeneratingProcess", 2)
+#                gribapi.grib_set(grib_message, "lengthOfTimeRange", 6)
+                print 'reset typeOfTimeIncrement as 5'
             # end of if cube.coord("forecast_period").bounds is not None:
             yield grib_message
         # end of for cube, grib_message in iris.fileformats.grib.as_pairs(cube):
