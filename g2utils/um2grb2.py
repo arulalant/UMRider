@@ -113,15 +113,16 @@ _orderedVars_ = {'PressureLevel': [
 ('specific_humidity', 'm01s30i205'),   
 ('air_temperature', 'm01s16i203'),
 ('x_wind', 'm01s15i243'), 
-('y_wind', 'm01s15i244')],
+('y_wind', 'm01s15i244'),
+('upward_air_velocity', 'm01s15i242')],
 
 ## Non Pressure Level Variable names & STASH codes
 'nonPressureLevel': [
 ('surface_air_pressure', 'm01s00i409'),
-('air_pressure', 'm01s00i409'),  # this 'air_pressure' is duplicate name of 
-# 'surface_air_pressure', why because after written into anl grib2, the 
-# standard_name gets changed from surface_air_pressure to air_pressure only
-# for analysis, not for fcst!  
+#('air_pressure', 'm01s00i409'),  # this 'air_pressure' is duplicate name of 
+## 'surface_air_pressure', why because after written into anl grib2, the 
+## standard_name gets changed from surface_air_pressure to air_pressure only
+## for analysis, not for fcst!  
 ('air_pressure_at_sea_level', 'm01s16i222'),
 ('surface_temperature', 'm01s00i024'),
 ('relative_humidity', 'm01s03i245'), 
@@ -132,7 +133,18 @@ _orderedVars_ = {'PressureLevel': [
 ('medium_type_cloud_area_fraction', 'm01s09i204'),
 ('low_type_cloud_area_fraction', 'm01s09i203'), 
 ('x_wind', 'm01s03i209'), 
-('y_wind', 'm01s03i210'),            
+('y_wind', 'm01s03i210'),           
+('stratiform_snowfall_amount', 'm01s04i202'),
+('convective_snowfall_amount', 'm01s05i202'),
+('rainfall_flux', 'm01s05i214'),
+('snowfall_flux', 'm01s05i215'),
+('precipitation_flux', 'm01s05i216'), 
+('surface_upward_latent_heat_flux', 'm01s03i234'),
+('surface_upward_sensible_heat_flux', 'm01s03i217'),
+('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'),
+('surface_net_downward_longwave_flux', 'm01s02i201'),
+# the below one is for orography which presents only in analysis 00 file.
+# so we must keep this as the last one in the ordered variables!
 ('surface_altitude', 'm01s00i033')],
 }
 
@@ -232,6 +244,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
             ('relative_humidity', 'm01s16i256'),
             ('x_wind', 'm01s15i243'), 
             ('y_wind', 'm01s15i244'),
+            ('upward_air_velocity', 'm01s15i242'),
             ('air_pressure_at_sea_level', 'm01s16i222'),
             ('surface_air_pressure', 'm01s00i409'),
             ('surface_altitude', 'm01s00i033')]
@@ -267,7 +280,8 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                        ('specific_humidity', 'm01s30i205'),
                        ('relative_humidity', 'm01s16i256'),                        
                        ('x_wind', 'm01s15i243'),
-                       ('y_wind', 'm01s15i244')]
+                       ('y_wind', 'm01s15i244'),
+                       ('upward_air_velocity', 'm01s15i242')]
                      
         # qwqg00 file variables are more correct than this short forecast vars.
         varLvls = 18
@@ -307,10 +321,18 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
 
     elif fname.startswith('umglca_pf'):             # umglca_pf
         # other vars (these vars will be created as 6-hourly averaged)
-        # varNamesSTASH = [4, 23, 24, 25, 26, 28, 31, 32, 33, 34, 35, 36]
+        varNamesSTASH = [('surface_upward_latent_heat_flux', 'm01s03i234'),
+                ('surface_upward_sensible_heat_flux', 'm01s03i217'),
+                ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'),
+                ('surface_net_downward_longwave_flux', 'm01s02i201')]
         # rain and snow vars (these vars will be created as 6-hourly accumutated)
-        varNamesSTASH2 = [12, 13, 17, 18, 20, 21]         # all vars
-        varNamesSTASH = varNamesSTASH2 #+ varNamesSTASH2
+        varNamesSTASH2 = [('stratiform_snowfall_amount', 'm01s04i202'),
+                            ('convective_snowfall_amount', 'm01s05i202'),
+                            ('rainfall_flux', 'm01s05i214'),
+                            ('snowfall_flux', 'm01s05i215'),
+                            ('precipitation_flux', 'm01s05i216')]  
+        # all vars       
+        varNamesSTASH = varNamesSTASH + varNamesSTASH2
         varLvls = 0        
         # the cube contains data of every 3-hourly average or accumutated.
         # but we need to make only every 6th hourly average or accumutated.
@@ -387,12 +409,20 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         fcstHours = numpy.array([6, 12, 18, 24]) + hr
         do6HourlyMean = False
 
-    elif fname.startswith('umglaa_pf'):             # umglaa_pf
+    elif fname.startswith('umglaa_pf'):             # umglaa_pf        
         # other vars (these vars will be created as 6-hourly averaged)
-        # varNamesSTASH = [4, 23, 24, 25, 26, 28, 31, 32, 33, 34, 35, 36]
+        varNamesSTASH = [('surface_upward_latent_heat_flux', 'm01s03i234'),
+                ('surface_upward_sensible_heat_flux', 'm01s03i217'),
+                ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'),
+                ('surface_net_downward_longwave_flux', 'm01s02i201')]
         # rain and snow vars (these vars will be created as 6-hourly accumutated)
-        varNamesSTASH2 = [12, 13, 17, 18, 20, 21]         # all vars
-        varNamesSTASH = varNamesSTASH2 #+ varNamesSTASH2
+        varNamesSTASH2 = [('stratiform_snowfall_amount', 'm01s04i202'),
+                            ('convective_snowfall_amount', 'm01s05i202'),
+                            ('rainfall_flux', 'm01s05i214'),
+                            ('snowfall_flux', 'm01s05i215'),
+                            ('precipitation_flux', 'm01s05i216')]  
+        # all vars       
+        varNamesSTASH = varNamesSTASH + varNamesSTASH2
         varLvls = 0        
         # the cube contains data of every 3-hourly average or accumutated.
         # but we need to make only every 6th hourly average or accumutated.
@@ -907,10 +937,8 @@ def convertFcstFiles(inPath, outPath, tmpPath, date=time.strftime('%Y%m%d'), hr=
     global _targetGrid_, _current_date_, _startT_, _tmpDir_, _inDataPath_, _opPath_
     
     # forecast filenames partial name
-    fcst_fnames = ['umglaa_pb','umglaa_pd', 'umglaa_pe'] 
-    
-    ## pf file is not working....
-    ###'umglaa_pf',
+    fcst_fnames = ['umglaa_pb','umglaa_pd', 'umglaa_pe', 'umglaa_pf'] 
+        
     # get the current date in YYYYMMDD format
     _tmpDir_ = tmpPath
     _current_date_ = date
@@ -952,12 +980,10 @@ def convertAnlFiles(inPath, outPath, tmpPath, date=time.strftime('%Y%m%d'), hr='
     global _targetGrid_, _current_date_, _startT_, _tmpDir_, _inDataPath_, _opPath_
     
     # analysis filenames partial name
-    anl_fnames = ['umglca_pb', 'umglca_pd', 'umglca_pe']
+    anl_fnames = ['umglca_pb', 'umglca_pd', 'umglca_pe', 'umglca_pf']
     
     if hr == '00': anl_fnames.insert(0, 'qwqg00.pp0')
     
-    ## pf file is not working....
-    ###'umglca_pf',
     # get the current date in YYYYMMDD format
     _tmpDir_ = tmpPath
     _current_date_ = date
