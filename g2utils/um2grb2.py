@@ -752,6 +752,25 @@ def regridAnlFcstFiles(arg):
     print " Finished converting file: %s into grib2 format for fcst file: %s \n" %(fileName,hr)
 # end of def regridAnlFcstFiles(fname):
 
+def tweaked_messages(cube):
+    for cube, grib_message in iris.fileformats.grib.as_pairs(cube):
+        # post process the GRIB2 message, prior to saving
+        gribapi.grib_set_long(grib_message, "centre", 28) # RMC of India
+        gribapi.grib_set_long(grib_message, "subCentre", 0) # No subcentre
+        
+        if cube.coord("forecast_period").bounds is not None:        
+            # if we set bounds[0][0] = 0, wgrib2 gives error for 0 fcst time.
+            # so we need to set proper time intervals as 5 as per below table.
+            # http://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_table4-11.shtml
+            # fileformats/grib/_save_rules.py-> set_forecast_time() ->
+            # _non_missing_forecast_period() returns 'fp' as bounds[0][0]. 
+            # but mean while lets fix by setting int(points) 
+            fp = int(cube.coord("forecast_period").points[0]) #bounds[0]            
+            gribapi.grib_set(grib, "forecastTime", fp)
+        # end of if cube.coord("forecast_period").bounds is not None:
+        yield message
+# end of def tweaked_messages(cube):
+
 def doShuffleVarsInOrder(fpath):
     """
     order the variables and create new grib2 files;
@@ -797,7 +816,8 @@ def doShuffleVarsInOrder(fpath):
     newfilefpath = fpath.split(_fext_)[0] + '.grib2'
     # now lets save the ordered variables into same file
     try:
-        iris.save(orderedVars, newfilefpath)
+        iris.fileformats.grib.save_messages(tweaked_messages(orderedVars), 
+                                                                newfilefpath)
     except Exception as e:
         print "ALERT !!! Error while saving orderd variables into grib2!! %s" % str(e)
         print " So skipping this without saving data"
