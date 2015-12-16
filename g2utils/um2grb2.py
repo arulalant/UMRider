@@ -597,6 +597,13 @@ def regridAnlFcstFiles(arg):
         print "The file doesn't exists: %s.. \n" %fname
         return  
     # end of if not os.path.isfile(fname): 
+    
+    if fpname.startswith('umglaa'):
+        dtype = 'ana' 
+    elif fpname.startswith(('umglca', 'qwqg00')):
+        dtype = 'fcst'
+    # end of if fpname.startswith('umglaa'):
+    
     print "Started Processing the file: %s.. \n" %fname
     
     # call definition to get cube data
@@ -673,16 +680,25 @@ def regridAnlFcstFiles(arg):
             # save the cube in append mode as a grib2 file       
             if _inDataPath_.endswith('00'):
                 if fcstTm.bounds is not None:
-                    # get the first hour from bounds (need this for pf files)
-                    hr = str(int(fcstTm.bounds[-1][0]))
-                    print "Bounds comes in ", hr, fcstTm.bounds, fileName       
+                    # (need this for pf files)
+                    if dtype == 'ana':
+                        # this is needed for analysis 00th simulated_hr
+                        # get the first hour from bounds
+                        hr = str(int(fcstTm.bounds[-1][0]))
+                    elif dtype == 'fcst':
+                        # this is needed for forecast 00th simulated_hr
+                        # get the last hour from bounds
+                        hr = str(int(fcstTm.bounds[-1][-1]))
+                    print "Bounds comes in ", hr, fcstTm.bounds, fileName                        
                 else:
                     # get the fcst time point 
+                    # this is needed for analysis/forecast 00th simulated_hr
                     hr = str(int(fcstTm.points))
                     print "points comes in ", hr, fileName 
                 # end of if fcstTm.bounds:
             else:
                 # get the hour from infile path as 'least dirname'
+                # this is needed for analysis 06, 12, 18th simulated_hr
                 hr = _inDataPath_.split('/')[-1]
             # end of if _inDataPath_.endswith('00'):
             
