@@ -823,7 +823,7 @@ def doShuffleVarsInOrder(fpath):
         # before save tweak the cubes by setting centre no and 
         # address other temporary issues before saving into grib2.
         iris.fileformats.grib.save_messages(tweaked_messages(orderedVars), 
-                                                                newfilefpath)
+                                                newfilefpath, append=True)
     except Exception as e:
         print "ALERT !!! Error while saving orderd variables into grib2!! %s" % str(e)
         print " So skipping this without saving data"
