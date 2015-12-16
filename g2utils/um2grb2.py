@@ -599,9 +599,9 @@ def regridAnlFcstFiles(arg):
     # end of if not os.path.isfile(fname): 
     
     if fpname.startswith('umglaa'):
-        dtype = 'ana' 
+        dtype = 'fcst' 
     elif fpname.startswith(('umglca', 'qwqg00')):
-        dtype = 'fcst'
+        dtype = 'ana'
     # end of if fpname.startswith('umglaa'):
     
     print "Started Processing the file: %s.. \n" %fname
