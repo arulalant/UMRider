@@ -766,9 +766,9 @@ def tweaked_messages(cube):
             # _non_missing_forecast_period() returns 'fp' as bounds[0][0]. 
             # but mean while lets fix by setting int(points) 
             fp = int(cube.coord("forecast_period").points[0]) #bounds[0]            
-            gribapi.grib_set(grib, "forecastTime", fp)
+            gribapi.grib_set(grib_message, "forecastTime", fp)
         # end of if cube.coord("forecast_period").bounds is not None:
-        yield message
+        yield grib_message
 # end of def tweaked_messages(cube):
 
 def doShuffleVarsInOrder(fpath):
