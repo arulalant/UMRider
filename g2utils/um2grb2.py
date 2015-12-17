@@ -463,7 +463,7 @@ def getCubeAttr(tmpCube):
 # end of definition #3
 
 # start definition #4
-def cubeAverager(tmpCube, action='mean', intervals='hourly'):
+def cubeAverager(tmpCube, action='mean', intervals=('1 hour',)):
     """
     This module was added by AAT to return a data variable depending on the nature of the field.
     :param tmpCube:     The temporary cube data (in Iris format) with non-singleton time dimension
@@ -529,11 +529,11 @@ def cubeAverager(tmpCube, action='mean', intervals='hourly'):
     
     # generate cell_methods
     if action == 'mean':
-        cm = iris.coords.CellMethod('mean', 'time', intervals, 
-                                     comments=intervals+' mean')
+        cm = iris.coords.CellMethod('mean', ('time',), intervals, 
+                                     comments=(intervals+' mean',))
     else:
-        cm = iris.coords.CellMethod('sum', 'time', intervals, 
-                                     comments=intervals+' accumutation')
+        cm = iris.coords.CellMethod('sum', ('time',), intervals, 
+                                     comments=(intervals+' accumutation',))
     # add cell_methods to the meanCube                                     
     meanCube.cell_methods = (cm,)
 
@@ -655,7 +655,7 @@ def regridAnlFcstFiles(arg):
                 # end of for acc in accumutationType:
 
                 # convert 3-hourly mean data into 6-hourly mean or accumutation
-                tmpCube = cubeAverager(tmpCube, action, intervals='6-hourly')            
+                tmpCube = cubeAverager(tmpCube, action, intervals=('6 hour',))            
             # end ofif do6HourlyMean and tmpCube.coords('forecast_period')[0].shape[0] > 1:     
 
             # interpolate it 0,25 deg resolution by setting up sample points based on coord
