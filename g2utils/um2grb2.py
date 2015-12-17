@@ -765,21 +765,17 @@ def tweaked_messages(cubeList):
             if cube.coord("forecast_period").bounds is not None:        
                 # if we set bounds[0][0] = 0, wgrib2 gives error for 0 fcst time.
                 # so we need to set proper time intervals 
-                # (typeOfTimeIncrement) as 5 as per below table.
+                # (typeOfTimeIncrement) as 2 as per below table.
                 # http://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_table4-11.shtml
                 # fileformats/grib/_save_rules.py-> set_forecast_time() ->
                 # _non_missing_forecast_period() returns 'fp' as bounds[0][0]. 
-                # but mean while lets fix by setting int(points) 
-#                fp = int(cube.coord("forecast_period").points[0]) #bounds[0]            
-#                gribapi.grib_set(grib_message, "forecastTime", fp)
-                gribapi.grib_set(grib_message, "typeOfTimeIncrement", 5)
+                # but mean while lets fix by setting typeOfTimeIncrement=2.
+                # http://www.cosmo-model.org/content/model/documentation/grib/pdtemplate_4.11.htm 
+                gribapi.grib_set(grib_message, "typeOfTimeIncrement", 2)
                 gribapi.grib_set(grib_message, 
                                  "indicatorOfUnitForTimeIncrement",
                                   _TIME_RANGE_UNITS['6 hours'])
-                gribapi.grib_set(grib_message, "timeIncrement", 1)
-                gribapi.grib_set(grib_message, "typeOfGeneratingProcess", 2)
-#                gribapi.grib_set(grib_message, "lengthOfTimeRange", 6)
-                print 'reset typeOfTimeIncrement as 5'
+                print 'reset typeOfTimeIncrement as 2'
             # end of if cube.coord("forecast_period").bounds is not None:
             yield grib_message
         # end of for cube, grib_message in iris.fileformats.grib.as_pairs(cube):
