@@ -527,10 +527,10 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour', actionIntervals='6 hour'):
     
     # generate cell_methods
     if action == 'mean':
-        cm = iris.coords.CellMethod('mean', ('time',), (dt,), 
+        cm = iris.coords.CellMethod('mean', ('time',), intervals=(dt,), 
                                      comments=(actionIntervals+' mean',))
     else:
-        cm = iris.coords.CellMethod('sum', ('time',), (dt,), 
+        cm = iris.coords.CellMethod('sum', ('time',), intervals=(dt,), 
                                      comments=(actionIntervals+' accumulation',))
     # add cell_methods to the meanCube                                     
     meanCube.cell_methods = (cm,)
