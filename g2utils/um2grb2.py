@@ -827,18 +827,17 @@ def doShuffleVarsInOrder(fpath):
     
     newfilefpath = fpath.split(_fext_)[0] + '.grib2'
     # now lets save the ordered variables into same file
-    # before save it, tweak the cubes by setting centre no and 
-    # address other temporary issues before saving into grib2.
-    for grib_message in tweaked_messages(orderedVars):    
-        try:        
-            iris.fileformats.grib.save_messages(grib_message, newfilefpath,
-                                                                 append=True)
-        except Exception as e:
-            print "ALERT !!! Error while saving orderd variables into grib2!! %s" % str(e)
-            print " So skipping this without saving data"
-            continue
-        # end of try:
-    # end of for grib_message in tweaked_messages(orderedVars):    
+    try:        
+        # before save it, tweak the cubes by setting centre no and 
+        # address other temporary issues before saving into grib2.
+        iris.fileformats.grib.save_messages(tweaked_messages(orderedVars), 
+                                                newfilefpath, append=True)
+    except Exception as e:
+        print "ALERT !!! Error while saving orderd variables into grib2!! %s" % str(e)
+        print " So skipping this without saving data"
+        continue
+    # end of try:
+
     # remove the older file 
     os.remove(fpath)
     
