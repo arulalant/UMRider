@@ -96,7 +96,7 @@ iris.FUTURE.strict_grib_load = True
 
 # -- Start coding
 # create global _lock_ object
-_lock_ = mp.lock()
+_lock_ = mp.Lock()
 # other global variables
 _current_date_ = None
 _startT_ = None
