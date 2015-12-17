@@ -95,8 +95,8 @@ import datetime
 iris.FUTURE.strict_grib_load = True
 
 # -- Start coding
-# create global lock object
-lock = mp.Lock()
+# create global _lock_ object
+_lock_ = mp._lock_()
 # other global variables
 _current_date_ = None
 _startT_ = None
@@ -147,6 +147,11 @@ _orderedVars_ = {'PressureLevel': [
 # so we must keep this as the last one in the ordered variables!
 ('surface_altitude', 'm01s00i033')],
 }
+
+# the following variables should be accumulated or already accumulated one.
+_accumutationVars_ = ['stratiform_snowfall_amount', 
+'convective_snowfall_amount',
+'stratiform_rainfall_amount', 'convective_rainfall_amount']
 
 # create a class #1 for capturing stdin, stdout and stderr
 class myLog():
@@ -580,7 +585,8 @@ def regridAnlFcstFiles(arg):
     This module has been entirely revamped & improved by AAT based on an older and
     serial version by MNRS on 11/16/2015.
     """
-    global _targetGrid_, _current_date_, _startT_, _inDataPath_, _opPath_, _fext_, lock
+    global _lock_, _targetGrid_, _current_date_, _startT_, _inDataPath_, \
+            _opPath_, _fext_, _accumutationVars_
     
     fpname, hr = arg 
     
@@ -609,8 +615,6 @@ def regridAnlFcstFiles(arg):
     # call definition to get cube data
     cubes = getCubeData(infile)
     nVars = len(cubes)
-    
-    accumutationType = ['rain', 'precip', 'snow']
            
     # open for-loop-1 -- for all the variables in the cube
     for varName, varSTASH in varNamesSTASH:
@@ -645,14 +649,17 @@ def regridAnlFcstFiles(arg):
                 action = 'mean'
                 cubeName = tmpCube.standard_name    
                 # to check either do we have to do accumutation or not.
-                for acc in accumutationType:
+                for acc in _accumutationVars_:
                     if cubeName and acc in cubeName:
                         action = 'sum'
                         break 
-                # end of for acc in accumutationType:
+                # end of for acc in _accumutationVars_:
 
                 # convert 3-hourly mean data into 6-hourly mean or accumutation
-                tmpCube = cubeAverager(tmpCube, action, intervals='6 hour')            
+                # here intervals meant to be forecast intervals, as per 
+                # model, it forecast every one hour. so we must pass as 
+                # '1 hour' to intervals argument. 
+                tmpCube = cubeAverager(tmpCube, action, intervals='1 hour')            
             # end ofif do6HourlyMean and tmpCube.coords('forecast_period')[0].shape[0] > 1:     
 
             # interpolate it 0,25 deg resolution by setting up sample points based on coord
@@ -707,24 +714,24 @@ def regridAnlFcstFiles(arg):
             print "Going to be save into ", outFn
                         
             try:                
-                # lock other threads / processors from being access same file 
+                # _lock_ other threads / processors from being access same file 
                 # to write other variables
-                lock.acquire()
+                _lock_.acquire()
                 iris.save(regdCube, outFn, append=True)
-                # release the lock, let other threads/processors access this file.
-                lock.release()
+                # release the _lock_, let other threads/processors access this file.
+                _lock_.release()
             except iris.exceptions.TranslationError as e:
                 if str(e) == "The vertical-axis coordinate(s) ('soil_model_level_number') are not recognised or handled.":  
                     regdCube.remove_coord('soil_model_level_number') 
                     print "Removed soil_model_level_number from cube, due to error %s" % str(e)
-                    # create lock object
-                    lock = mp.Lock()
-                    # lock other threads / processors from being access same file 
+                    # create _lock_ object
+                    _lock_ = mp._lock_()
+                    # _lock_ other threads / processors from being access same file 
                     # to write other variables
-                    lock.acquire()
+                    _lock_.acquire()
                     iris.save(regdCube, outFn, append=True)
-                    # release the lock, let other threads/processors access this file.
-                    lock.release()
+                    # release the _lock_, let other threads/processors access this file.
+                    _lock_.release()
                 else:
                     print "ALERT !!! Got error while saving, %s" % str(e)
                     print " So skipping this without saving data"
