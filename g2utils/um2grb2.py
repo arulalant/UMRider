@@ -149,6 +149,9 @@ _orderedVars_ = {'PressureLevel': [
 }
 
 # the following variables should be accumulated or already accumulated one.
+# rainfall_flux, snowfall_flux, precipitation_flux are not accumulated vars,
+# since those are averaged rain rate (kg m-2 s-1). 
+# But the following vars unit is (kg m-2), accumulated vars.  
 _accumutationVars_ = ['stratiform_snowfall_amount', 
 'convective_snowfall_amount',
 'stratiform_rainfall_amount', 'convective_rainfall_amount']
@@ -720,22 +723,22 @@ def regridAnlFcstFiles(arg):
                 iris.save(regdCube, outFn, append=True)
                 # release the _lock_, let other threads/processors access this file.
                 _lock_.release()
-            except iris.exceptions.TranslationError as e:
-                if str(e) == "The vertical-axis coordinate(s) ('soil_model_level_number') are not recognised or handled.":  
-                    regdCube.remove_coord('soil_model_level_number') 
-                    print "Removed soil_model_level_number from cube, due to error %s" % str(e)
-                    # create _lock_ object
-                    _lock_ = mp._lock_()
-                    # _lock_ other threads / processors from being access same file 
-                    # to write other variables
-                    _lock_.acquire()
-                    iris.save(regdCube, outFn, append=True)
-                    # release the _lock_, let other threads/processors access this file.
-                    _lock_.release()
-                else:
-                    print "ALERT !!! Got error while saving, %s" % str(e)
-                    print " So skipping this without saving data"
-                    continue
+#            except iris.exceptions.TranslationError as e:
+#                if str(e) == "The vertical-axis coordinate(s) ('soil_model_level_number') are not recognised or handled.":  
+#                    regdCube.remove_coord('soil_model_level_number') 
+#                    print "Removed soil_model_level_number from cube, due to error %s" % str(e)
+#                    # create _lock_ object
+#                    _lock_ = mp.Lock()
+#                    # _lock_ other threads / processors from being access same file 
+#                    # to write other variables
+#                    _lock_.acquire()
+#                    iris.save(regdCube, outFn, append=True)
+#                    # release the _lock_, let other threads/processors access this file.
+#                    _lock_.release()
+#                else:
+#                    print "ALERT !!! Got error while saving, %s" % str(e)
+#                    print " So skipping this without saving data"
+#                    continue
             except Exception as e:
                 print "ALERT !!! Error while saving!! %s" % str(e)
                 print " So skipping this without saving data"
@@ -821,16 +824,18 @@ def doShuffleVarsInOrder(fpath):
     
     newfilefpath = fpath.split(_fext_)[0] + '.grib2'
     # now lets save the ordered variables into same file
-    try:
-        # before save tweak the cubes by setting centre no and 
-        # address other temporary issues before saving into grib2.
-        iris.fileformats.grib.save_messages(tweaked_messages(orderedVars), 
-                                                newfilefpath, append=True)
-    except Exception as e:
-        print "ALERT !!! Error while saving orderd variables into grib2!! %s" % str(e)
-        print " So skipping this without saving data"
-        return
-    # end of try:
+    # before save it, tweak the cubes by setting centre no and 
+    # address other temporary issues before saving into grib2.
+    for grib_message in tweaked_messages(orderedVars):    
+        try:        
+            iris.fileformats.grib.save_messages(grib_message, newfilefpath,
+                                                                 append=True)
+        except Exception as e:
+            print "ALERT !!! Error while saving orderd variables into grib2!! %s" % str(e)
+            print " So skipping this without saving data"
+            continue
+        # end of try:
+    # end of for grib_message in tweaked_messages(orderedVars):    
     # remove the older file 
     os.remove(fpath)
     
