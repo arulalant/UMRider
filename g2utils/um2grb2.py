@@ -831,7 +831,7 @@ def doShuffleVarsInOrder(fpath):
     except Exception as e:
         print "ALERT !!! Error while saving orderd variables into grib2!! %s" % str(e)
         print " So skipping this without saving data"
-#        return 
+        return 
     # end of try:
 
     # remove the older file 
