@@ -489,9 +489,9 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour', actionIntervals='6 hour'):
     
     if action == 'mean':
         meanCube /= float(tlen)
-        print "Converted cube to %s mean" % intervals
+        print "Converted cube to %s mean" % dt
     else:
-        print "Converted cube to %s accumutation" % intervals
+        print "Converted cube to %s accumutation" % dt
     # end of if not isAccumulation:
 
     # get the time coord and set to mean
