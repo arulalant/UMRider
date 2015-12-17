@@ -148,14 +148,6 @@ _orderedVars_ = {'PressureLevel': [
 ('surface_altitude', 'm01s00i033')],
 }
 
-# the following variables should be accumulated or already accumulated one.
-# rainfall_flux, snowfall_flux, precipitation_flux are not accumulated vars,
-# since those are averaged rain rate (kg m-2 s-1). 
-# But the following vars unit is (kg m-2), accumulated vars.  
-_accumutationVars_ = ['stratiform_snowfall_amount', 
-'convective_snowfall_amount',
-'stratiform_rainfall_amount', 'convective_rainfall_amount']
-
 # create a class #1 for capturing stdin, stdout and stderr
 class myLog():
     """
@@ -491,7 +483,7 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour', actionIntervals='6 hour'):
         meanCube /= float(tlen)
         print "Converted cube to %s mean" % dt
     else:
-        print "Converted cube to %s accumutation" % dt
+        print "Converted cube to %s accumulation" % dt
     # end of if not isAccumulation:
 
     # get the time coord and set to mean
@@ -539,7 +531,7 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour', actionIntervals='6 hour'):
                                      comments=(actionIntervals+' mean',))
     else:
         cm = iris.coords.CellMethod('sum', ('time',), (dt,), 
-                                     comments=(actionIntervals+' accumutation',))
+                                     comments=(actionIntervals+' accumulation',))
     # add cell_methods to the meanCube                                     
     meanCube.cell_methods = (cm,)
 
@@ -590,8 +582,18 @@ def regridAnlFcstFiles(arg):
     serial version by MNRS on 11/16/2015.
     """
     global _lock_, _targetGrid_, _current_date_, _startT_, _inDataPath_, \
-            _opPath_, _fext_, _accumutationVars_
+            _opPath_, _fext_ 
     
+    # the following variables should be 6-hourly accumulated or already 
+    # 3-hourly accumulated one.
+    # rainfall_flux, snowfall_flux, precipitation_flux are not accumulated 
+    # vars, since those are averaged rain rate (kg m-2 s-1). 
+    # But the following vars unit is (kg m-2), accumulated vars.  
+    accumulationVars = ['stratiform_snowfall_amount', 
+                        'convective_snowfall_amount',
+                        'stratiform_rainfall_amount', 
+                        'convective_rainfall_amount']
+
     fpname, hr = arg 
     
     ### if fileName has some extension, then do not add hr to it.
@@ -650,22 +652,16 @@ def regridAnlFcstFiles(arg):
                 # grab the variable which is f(t,z,y,x)
                 # tmpCube corresponds to each variable for the SYNOP hours from
                 # start to end of short time period mean (say 3-hourly)                                
-                action = 'mean'
                 cubeName = tmpCube.standard_name    
-                # to check either do we have to do accumutation or not.
-                for acc in _accumutationVars_:
-                    if cubeName and acc in cubeName:
-                        action = 'sum'
-                        break 
-                # end of for acc in _accumutationVars_:
-
-                # convert 3-hourly mean data into 6-hourly mean or accumutation
-                # actionIntervals is 6 hourly mean or accumutation
+                # get action as either do we have to accumulation or mean.
+                action = 'sum' if cubeName in accumulationVars else 'mean'
+                # convert 3-hourly mean data into 6-hourly mean or accumulation
+                # actionIntervals is 6 hourly mean or accumulation
                 # here dt intervals meant to be forecast intervals, as per 
                 # model, it forecast every one hour. so we must pass as 
                 # '1 hour' to dt intervals argument. 
                 tmpCube = cubeAverager(tmpCube, action, dt='1 hour', 
-                                            actionIntervals='6 hourly')            
+                                            actionIntervals='6 hour')            
             # end ofif do6HourlyMean and tmpCube.coords('forecast_period')[0].shape[0] > 1:     
 
             # interpolate it 0,25 deg resolution by setting up sample points based on coord
