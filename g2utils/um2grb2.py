@@ -468,12 +468,13 @@ def getCubeAttr(tmpCube):
 # end of definition #3
 
 # start definition #4
-def cubeAverager(tmpCube, action='mean', intervals='1 hour'):
+def cubeAverager(tmpCube, action='mean', dt='1 hour', actionIntervals='6 hour'):
     """
     This module was added by AAT to return a data variable depending on the nature of the field.
     :param tmpCube:     The temporary cube data (in Iris format) with non-singleton time dimension
     :param action:      mean| sum (accumulated fields are summed and instantaneous are averaged).
-    :param intervals:   A simple string representing represting the time & binning aspect.
+    :param dt:   A standard string representing forecast step duration/intervals.
+    :param actionIntervals: A non standard string to add inside cell_methods comments section.
     :return: meanCube:  An Iris formatted cube date containing the resultant data either as
                         averaged or summed.
     ACK:
@@ -534,11 +535,11 @@ def cubeAverager(tmpCube, action='mean', intervals='1 hour'):
     
     # generate cell_methods
     if action == 'mean':
-        cm = iris.coords.CellMethod('mean', ('time',), (intervals,), 
-                                     comments=(intervals+' mean',))
+        cm = iris.coords.CellMethod('mean', ('time',), (dt,), 
+                                     comments=(actionIntervals+' mean',))
     else:
-        cm = iris.coords.CellMethod('sum', ('time',), (intervals,), 
-                                     comments=(intervals+' accumutation',))
+        cm = iris.coords.CellMethod('sum', ('time',), (dt,), 
+                                     comments=(actionIntervals+' accumutation',))
     # add cell_methods to the meanCube                                     
     meanCube.cell_methods = (cm,)
 
@@ -659,10 +660,12 @@ def regridAnlFcstFiles(arg):
                 # end of for acc in _accumutationVars_:
 
                 # convert 3-hourly mean data into 6-hourly mean or accumutation
-                # here intervals meant to be forecast intervals, as per 
+                # actionIntervals is 6 hourly mean or accumutation
+                # here dt intervals meant to be forecast intervals, as per 
                 # model, it forecast every one hour. so we must pass as 
-                # '1 hour' to intervals argument. 
-                tmpCube = cubeAverager(tmpCube, action, intervals='1 hour')            
+                # '1 hour' to dt intervals argument. 
+                tmpCube = cubeAverager(tmpCube, action, dt='1 hour', 
+                                            actionIntervals='6 hourly')            
             # end ofif do6HourlyMean and tmpCube.coords('forecast_period')[0].shape[0] > 1:     
 
             # interpolate it 0,25 deg resolution by setting up sample points based on coord
