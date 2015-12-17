@@ -899,7 +899,7 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
         ## generate the analysis filename w.r.t simulated_hr
         outfile = 'um_ana'
         outFn = outfile +'_'+ str(simulated_hr).zfill(3) +'hr'+ '_' + _current_date_ + _fext_ + '.grib2'
-        outFn = os.path.join(_opPath_, outFn)
+#        outFn = os.path.join(_opPath_, outFn)
         doShuffleVarsInOrder(outFn)
     # end of if ftype in ['fcst', 'forecast']: 
     print "Total time taken to convert and re-order all files was: %8.5f seconds \n" % (time.time()-_startT_)
