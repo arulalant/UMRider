@@ -869,14 +869,18 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
     #####
     ## 6-hourly Files have been created with extension.
     ## Now lets do re-order variables within those individual files, in parallel mode. 
-   
+    
+    # get current working directory
+    current_dir = os.getcwd()
+    # lets change current working directory as out path
+    os.chdir(_opPath_)
     if ftype in ['fcst', 'forecast']:
         ## generate all the forecast filenames w.r.t forecast hours 
         outfile = 'um_prg'
         fcstFiles = []
         for hr in range(6,241,6):
             outFn = outfile +'_'+ str(hr).zfill(3) +'hr'+ '_' + _current_date_ + _fext_ + '.grib2'
-            outFn = os.path.join(_opPath_, outFn)
+#            outFn = os.path.join(_opPath_, outFn)
             fcstFiles.append(outFn)
         # end of for hr in range(6,241,6):
          
@@ -899,7 +903,8 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
         doShuffleVarsInOrder(outFn)
     # end of if ftype in ['fcst', 'forecast']: 
     print "Total time taken to convert and re-order all files was: %8.5f seconds \n" % (time.time()-_startT_)
-    
+    # reset current working directory
+    os.chdir(current_dir)
     return 
 # end of def doShuffleVarsInOrderInParallel(arg):
     
