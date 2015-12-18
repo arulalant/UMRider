@@ -82,17 +82,20 @@ Copyright: ESSO-NCMRWF,MoES, 2015-2016.
 
 # -- Start importing necessary modules
 import os, sys, time, subprocess
-import numpy, scipy
+import numpy 
 import iris
 import gribapi
-import netCDF4
-import iris.unit as unit
 import multiprocessing as mp
-import multiprocessing.pool as mppool       # We must import this explicitly, it is not imported by the top-level multiprocessing                                                 module.
-import types
+import multiprocessing.pool as mppool       
+# We must import this multiprocessing.pool explicitly, it is not imported
+# by the top-level multiprocessing module.
 import datetime
 # End of importing business
-iris.FUTURE.strict_grib_load = True
+
+# We have to make sure that strict_grib_load as False, since we have to 
+# read the cubes from grib2 to re-order the variables. True throws an error
+# while reading for tweaked_messages (say pf varibles)
+iris.FUTURE.strict_grib_load = False
 
 # -- Start coding
 # create global _lock_ object
@@ -133,7 +136,7 @@ _orderedVars_ = {'PressureLevel': [
 ('medium_type_cloud_area_fraction', 'm01s09i204'),
 ('low_type_cloud_area_fraction', 'm01s09i203'), 
 ('x_wind', 'm01s03i209'), 
-('y_wind', 'm01s03i210'),           
+('y_wind', 'm01s03i210'),    
 ('stratiform_snowfall_amount', 'm01s04i202'),
 ('convective_snowfall_amount', 'm01s05i202'),
 ('rainfall_flux', 'm01s05i214'),
@@ -142,12 +145,23 @@ _orderedVars_ = {'PressureLevel': [
 ('surface_upward_latent_heat_flux', 'm01s03i234'),
 ('surface_upward_sensible_heat_flux', 'm01s03i217'),
 ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'),
-('surface_net_downward_longwave_flux', 'm01s02i201'),
+('surface_net_downward_longwave_flux', 'm01s02i201'),       
 # the below one is for orography which presents only in analysis 00 file.
 # so we must keep this as the last one in the ordered variables!
 ('surface_altitude', 'm01s00i033')],
 }
 
+# Define _accumulationVars_
+# The following variables should be 6-hourly accumulated or already 
+# 3-hourly accumulated one.
+# rainfall_flux, snowfall_flux, precipitation_flux are not accumulated 
+# vars, since those are averaged rain rate (kg m-2 s-1). 
+# But the following vars unit is (kg m-2), accumulated vars.  
+_accumulationVars_ = ['stratiform_snowfall_amount', 
+                    'convective_snowfall_amount',
+                    'stratiform_rainfall_amount', 
+                    'convective_rainfall_amount']
+                        
 # create a class #1 for capturing stdin, stdout and stderr
 class myLog():
     """
@@ -312,7 +326,6 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                         ('x_wind', 'm01s03i209'), 
                         ('y_wind', 'm01s03i210')]
                     
-        ### varIdx 10 is omited, since it has two zero. i think we need to take previous file average or current hour aver.
         varLvls = 0        
         # the cube contains Instantaneous data at every 1-hours.
         # but we need to extract only every 6th hours instantaneous.
@@ -326,11 +339,11 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                 ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'),
                 ('surface_net_downward_longwave_flux', 'm01s02i201')]
         # rain and snow vars (these vars will be created as 6-hourly accumutated)
-        varNamesSTASH2 = [('stratiform_snowfall_amount', 'm01s04i202'),
-                            ('convective_snowfall_amount', 'm01s05i202'),
-                            ('rainfall_flux', 'm01s05i214'),
-                            ('snowfall_flux', 'm01s05i215'),
-                            ('precipitation_flux', 'm01s05i216')]  
+        varNamesSTASH2 = [('snowfall_flux', 'm01s05i215'),
+                          ('precipitation_flux', 'm01s05i216'),
+                          ('stratiform_snowfall_amount', 'm01s04i202'),
+                          ('convective_snowfall_amount', 'm01s05i202'),
+                          ('rainfall_flux', 'm01s05i214'),]
         # all vars       
         varNamesSTASH = varNamesSTASH + varNamesSTASH2
         varLvls = 0        
@@ -417,11 +430,11 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                 ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'),
                 ('surface_net_downward_longwave_flux', 'm01s02i201')]
         # rain and snow vars (these vars will be created as 6-hourly accumutated)
-        varNamesSTASH2 = [('stratiform_snowfall_amount', 'm01s04i202'),
-                            ('convective_snowfall_amount', 'm01s05i202'),
-                            ('rainfall_flux', 'm01s05i214'),
-                            ('snowfall_flux', 'm01s05i215'),
-                            ('precipitation_flux', 'm01s05i216')]  
+        varNamesSTASH2 = [('snowfall_flux', 'm01s05i215'),
+                          ('precipitation_flux', 'm01s05i216'),
+                          ('stratiform_snowfall_amount', 'm01s04i202'),
+                          ('convective_snowfall_amount', 'm01s05i202'),
+                          ('rainfall_flux', 'm01s05i214'),]
         # all vars       
         varNamesSTASH = varNamesSTASH + varNamesSTASH2
         varLvls = 0        
@@ -521,17 +534,17 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour', actionIntervals='6 hour'):
         
     # add standard_name
     meanCube.standard_name = tmpCube.standard_name
-    meanCube.long_name = tmpCube.long_name
+    meanCube.long_name = tmpCube.long_name if tmpCube.long_name else tmpCube.standard_name
     
-    print meanCube.long_name, tmpCube.long_name
+    print meanCube.standard_name, tmpCube.standard_name
     
-    # generate cell_methods
     if action == 'mean':
         cm = iris.coords.CellMethod('mean', ('time',), intervals=(dt,), 
                                      comments=(actionIntervals+' mean',))
-    else:
+    elif action == 'sum':
         cm = iris.coords.CellMethod('sum', ('time',), intervals=(dt,), 
                                      comments=(actionIntervals+' accumulation',))
+                                     
     # add cell_methods to the meanCube                                     
     meanCube.cell_methods = (cm,)
 
@@ -582,18 +595,8 @@ def regridAnlFcstFiles(arg):
     serial version by MNRS on 11/16/2015.
     """
     global _lock_, _targetGrid_, _current_date_, _startT_, _inDataPath_, \
-            _opPath_, _fext_ 
-    
-    # the following variables should be 6-hourly accumulated or already 
-    # 3-hourly accumulated one.
-    # rainfall_flux, snowfall_flux, precipitation_flux are not accumulated 
-    # vars, since those are averaged rain rate (kg m-2 s-1). 
-    # But the following vars unit is (kg m-2), accumulated vars.  
-    accumulationVars = ['stratiform_snowfall_amount', 
-                        'convective_snowfall_amount',
-                        'stratiform_rainfall_amount', 
-                        'convective_rainfall_amount']
-
+            _opPath_, _fext_, _accumulationVars_    
+   
     fpname, hr = arg 
     
     ### if fileName has some extension, then do not add hr to it.
@@ -653,16 +656,18 @@ def regridAnlFcstFiles(arg):
                 # tmpCube corresponds to each variable for the SYNOP hours from
                 # start to end of short time period mean (say 3-hourly)                                
                 cubeName = tmpCube.standard_name    
+                cubeName = cubeName if cubeName else ''
                 # get action as either do we have to accumulation or mean.
-                action = 'sum' if cubeName in accumulationVars else 'mean'
+                action = 'sum' if cubeName in _accumulationVars_ else 'mean'
                 # convert 3-hourly mean data into 6-hourly mean or accumulation
                 # actionIntervals is 6 hourly mean or accumulation
                 # here dt intervals meant to be forecast intervals, as per 
                 # model, it forecast every one hour. so we must pass as 
                 # '1 hour' to dt intervals argument. 
+                print "action = ", action
                 tmpCube = cubeAverager(tmpCube, action, dt='1 hour', 
                                             actionIntervals='6 hour')            
-            # end ofif do6HourlyMean and tmpCube.coords('forecast_period')[0].shape[0] > 1:     
+            # end of if do6HourlyMean and tmpCube.coords('forecast_period')[0].shape[0] > 1:     
 
             # interpolate it 0,25 deg resolution by setting up sample points based on coord
             print "\n    Regridding data to 0.25x0.25 deg spatial resolution \n"
@@ -722,22 +727,6 @@ def regridAnlFcstFiles(arg):
                 iris.save(regdCube, outFn, append=True)
                 # release the _lock_, let other threads/processors access this file.
                 _lock_.release()
-#            except iris.exceptions.TranslationError as e:
-#                if str(e) == "The vertical-axis coordinate(s) ('soil_model_level_number') are not recognised or handled.":  
-#                    regdCube.remove_coord('soil_model_level_number') 
-#                    print "Removed soil_model_level_number from cube, due to error %s" % str(e)
-#                    # create _lock_ object
-#                    _lock_ = mp.Lock()
-#                    # _lock_ other threads / processors from being access same file 
-#                    # to write other variables
-#                    _lock_.acquire()
-#                    iris.save(regdCube, outFn, append=True)
-#                    # release the _lock_, let other threads/processors access this file.
-#                    _lock_.release()
-#                else:
-#                    print "ALERT !!! Got error while saving, %s" % str(e)
-#                    print " So skipping this without saving data"
-#                    continue
             except Exception as e:
                 print "ALERT !!! Error while saving!! %s" % str(e)
                 print " So skipping this without saving data"
@@ -771,8 +760,8 @@ def tweaked_messages(cubeList):
                 # _non_missing_forecast_period() returns 'fp' as bounds[0][0]. 
                 # but mean while lets fix by setting typeOfTimeIncrement=2.
                 # http://www.cosmo-model.org/content/model/documentation/grib/pdtemplate_4.11.htm 
-                gribapi.grib_set(grib_message, "typeOfTimeIncrement", 2)                
-                print 'reset typeOfTimeIncrement as 2'
+                gribapi.grib_set(grib_message, "typeOfTimeIncrement", 2)           
+                print 'reset typeOfTimeIncrement as 2 for', cube.standard_name
             # end of if cube.coord("forecast_period").bounds is not None:
             yield grib_message
         # end of for cube, grib_message in iris.fileformats.grib.as_pairs(cube):
@@ -823,7 +812,7 @@ def doShuffleVarsInOrder(fpath):
     
     newfilefpath = fpath.split(_fext_)[0] + '.grib2'
     # now lets save the ordered variables into same file
-    try:        
+    try:   
         # before save it, tweak the cubes by setting centre no and 
         # address other temporary issues before saving into grib2.
         iris.fileformats.grib.save_messages(tweaked_messages(orderedVars), 
@@ -876,9 +865,9 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
         ## generate all the forecast filenames w.r.t forecast hours 
         outfile = 'um_prg'
         fcstFiles = []
-        for hr in range(6,241,6):
+        for hr in range(6, 241, 6):
             outFn = outfile +'_'+ str(hr).zfill(3) +'hr'+ '_' + _current_date_ + _fext_ + '.grib2'
-#            outFn = os.path.join(_opPath_, outFn)
+            #outFn = os.path.join(_opPath_, outFn)
             fcstFiles.append(outFn)
         # end of for hr in range(6,241,6):
          
@@ -897,7 +886,7 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
         ## generate the analysis filename w.r.t simulated_hr
         outfile = 'um_ana'
         outFn = outfile +'_'+ str(simulated_hr).zfill(3) +'hr'+ '_' + _current_date_ + _fext_ + '.grib2'
-#        outFn = os.path.join(_opPath_, outFn)
+        #outFn = os.path.join(_opPath_, outFn)
         doShuffleVarsInOrder(outFn)
     # end of if ftype in ['fcst', 'forecast']: 
     print "Total time taken to convert and re-order all files was: %8.5f seconds \n" % (time.time()-_startT_)
