@@ -137,6 +137,7 @@ _orderedVars_ = {'PressureLevel': [
 ('low_type_cloud_area_fraction', 'm01s09i203'), 
 ('x_wind', 'm01s03i209'), 
 ('y_wind', 'm01s03i210'),    
+('visibility_in_air', 'm01s03i247'),
 ('stratiform_snowfall_amount', 'm01s04i202'),
 ('convective_snowfall_amount', 'm01s05i202'),
 ('rainfall_flux', 'm01s05i214'),
@@ -275,7 +276,8 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # available for use
         varNamesSTASH = [('dew_point_temperature', 'm01s03i250'),
                     ('surface_temperature', 'm01s00i024'),
-                    ('relative_humidity', 'm01s03i245')] # available for use
+                    ('relative_humidity', 'm01s03i245'),
+                    ('visibility_in_air', 'm01s03i247')] # available for use
         varLvls = 0        
         # the cube contains Instantaneous data at every 3-hours.        
         # but we need to extract every 6th hours instantaneous.
@@ -384,7 +386,8 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # varNamesSTASH = [19, 24, 26, 30, 31, 32, 33, 34] # needed        
         varNamesSTASH = [('dew_point_temperature', 'm01s03i250'),
                     ('surface_temperature', 'm01s00i024'),
-                    ('relative_humidity', 'm01s03i245')] 
+                    ('relative_humidity', 'm01s03i245'),
+                    ('visibility_in_air', 'm01s03i247')] 
         varLvls = 0        
         # the cube contains Instantaneous data at every 3-hours.        
         # but we need to extract every 6th hours instantaneous.

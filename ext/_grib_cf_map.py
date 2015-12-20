@@ -140,7 +140,7 @@ GRIB2_TO_CF = {
     G2Param(2, 0, 2, 9): CFName('upward_air_velocity', None, 'm s-1'), # 500032
     G2Param(2, 0, 6, 23): CFName(None, 'cloud_ice_mixing_ratio', 'kg kg-1'), # 260118
     G2Param(2, 0, 3, 10): CFName(None, 'density', 'kg m-3'), # 3089
-    G2Param(2, 0, 19, 0): CFName(None, 'visibility', '%'), # 3020
+    G2Param(2, 0, 19, 0): CFName('visibility_in_air', None, 'm'), # 3020
     G2Param(2, 0, 1, 8): CFName(None, 'total_precipitation_amount', 'kg m-2'), # 228228
     G2Param(2, 2, 0, 3): CFName(None, 'soil_moisture_content', 'kg m-2'), # 3086    
     G2Param(2, 192, 150, 129): CFName('sea_water_potential_temperature', 'ocean_potential_temperature', 'C'), # 150129
@@ -150,7 +150,8 @@ GRIB2_TO_CF = {
     G2Param(2, 192, 151, 154): CFName(None, 'v_stress', 'N m-2'), # 151154
     G2Param(2, 192, 151, 158): CFName(None, 'precipitation_minus_evaporation', 'kg m-2 s-1' ), # 151158
     G2Param(2, 0, 1, 65): CFName('rainfall_flux', 'rainfall_rate', 'kg m-2 s-1'), # 260058
-    
+    G2Param(2, 192, 128, 159): CFName('atmosphere_boundary_layer_thickness', None, 'm'),
+        
     # G2Param(grib version, discipline, parameter category, parameter no, typeOfFirstFixedSurface):
     G2Param(2, 0, 1, 60, 1): CFName(None, 'snow_depth_water_equivalent', 'kg m-2'), # 228141
 #    G2Param(2, 2, 0, 0, 1): CFName(None, 'land_sea_mask', '(0 - 1)'), # 172
@@ -261,7 +262,7 @@ CF_TO_GRIB2 = {
     CFName('upward_air_velocity', None, 'm s-1'): G2Param(2, 0, 2, 9), # 500032
     CFName(None, 'cloud_ice_mixing_ratio', 'kg kg-1'): G2Param(2, 0, 6, 23), # 260118
     CFName(None, 'density', 'kg m-3'): G2Param(2, 0, 3, 10), # 3089
-    CFName(None, 'visibility', '%'): G2Param(2, 0, 19, 0), # 3020   
+    CFName('visibility_in_air', None, 'm'): G2Param(2, 0, 19, 0), # 3020   
     CFName(None, 'total_precipitation_amount', 'kg m-2'): G2Param(2, 0, 1, 8), # 228228
     CFName(None, 'soil_moisture_content', 'kg m-2'): G2Param(2, 2, 0, 3), # 3086    
     CFName('sea_water_potential_temperature', 'ocean_potential_temperature', 'C'): G2Param(2, 192, 150, 129), # 150129
@@ -271,7 +272,7 @@ CF_TO_GRIB2 = {
     CFName(None, 'v_stress', 'N m-2'): G2Param(2, 192, 151, 154), # 151154
     CFName(None, 'precipitation_minus_evaporation', 'kg m-2 s-1' ): G2Param(2, 192, 151, 158), # 151158
     CFName('rainfall_flux', 'rainfall_rate', 'kg m-2 s-1'): G2Param(2, 0, 1, 65), # 260058
-    
+    CFName('atmosphere_boundary_layer_thickness', None, 'm'): G2Param(2, 192, 128, 159),
 
 ##    CFName('surface_downwelling_shortwave_flux_in_air_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 4, 196), #260342
 ##    CFName('surface_upwelling_shortwave_flux_in_air_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 4, 196), #260342
