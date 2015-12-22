@@ -85,6 +85,7 @@ import os, sys, time, subprocess
 import numpy 
 import iris
 import gribapi
+from cf_units import Unit
 import multiprocessing as mp
 import multiprocessing.pool as mppool       
 # We must import this multiprocessing.pool explicitly, it is not imported
@@ -96,7 +97,7 @@ import datetime
 # read the cubes from grib2 to re-order the variables. True throws an error
 # while reading for tweaked_messages (say pf varibles)
 iris.FUTURE.strict_grib_load = False
-
+iris.FUTURE.netcdf_promote = True
 # -- Start coding
 # create global _lock_ object
 _lock_ = mp.Lock()
@@ -121,11 +122,10 @@ _orderedVars_ = {'PressureLevel': [
 
 ## Non Pressure Level Variable names & STASH codes
 'nonPressureLevel': [
+('tropopause_altitude', 'm01s30i453'),
+('tropopause_air_temperature', 'm01s30i452'),
+('tropopause_air_pressure', 'm01s30i451'),
 ('surface_air_pressure', 'm01s00i409'),
-#('air_pressure', 'm01s00i409'),  # this 'air_pressure' is duplicate name of 
-## 'surface_air_pressure', why because after written into anl grib2, the 
-## standard_name gets changed from surface_air_pressure to air_pressure only
-## for analysis, not for fcst!  
 ('air_pressure_at_sea_level', 'm01s16i222'),
 ('surface_temperature', 'm01s00i024'),
 ('relative_humidity', 'm01s03i245'), 
@@ -140,13 +140,26 @@ _orderedVars_ = {'PressureLevel': [
 ('visibility_in_air', 'm01s03i247'),
 ('stratiform_snowfall_amount', 'm01s04i202'),
 ('convective_snowfall_amount', 'm01s05i202'),
+('stratiform_rainfall_amount', 'm01s04i201'),
+('convective_rainfall_amount', 'm01s05i201'),
 ('rainfall_flux', 'm01s05i214'),
 ('snowfall_flux', 'm01s05i215'),
 ('precipitation_flux', 'm01s05i216'), 
+('toa_incoming_shortwave_flux', 'm01s01i207'), 
+('toa_outgoing_shortwave_flux', 'm01s01i205'),
+('toa_outgoing_shortwave_flux_assuming_clear_sky', 'm01s01i209'),
+('toa_outgoing_longwave_flux', 'm01s02i205'),
+('toa_outgoing_longwave_flux_assuming_clear_sky', 'm01s02i206'),
 ('surface_upward_latent_heat_flux', 'm01s03i234'),
 ('surface_upward_sensible_heat_flux', 'm01s03i217'),
 ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'),
-('surface_net_downward_longwave_flux', 'm01s02i201'),       
+('surface_downwelling_longwave_flux', 'm01s02i207'),
+('surface_net_downward_longwave_flux', 'm01s02i201'), 
+('moisture_content_of_soil_layer', 'm01s08i223'),
+('soil_temperature', 'm01s03i238'),  
+#('atmosphere_optical_thickness_due_to_dust_ambient_aerosol', #forecast hour extract is not working!
+#                                                    'm01s02i422'),
+('atmosphere_boundary_layer_thickness', 'm01s00i025'),
 # the below one is for orography which presents only in analysis 00 file.
 # so we must keep this as the last one in the ordered variables!
 ('surface_altitude', 'm01s00i033')],
@@ -162,7 +175,24 @@ _accumulationVars_ = ['stratiform_snowfall_amount',
                     'convective_snowfall_amount',
                     'stratiform_rainfall_amount', 
                     'convective_rainfall_amount']
-                        
+
+## Define _ncfilesVars_
+## the following variables need to be written into nc file, initially for 
+## some reason (like either it may contain soil_model_level_number or 
+## duplicate grib param where typeOfFirstFixedSurface [i.e toa, tropopause]
+## is not implemented yet), but at the end of the program (after re-ordering)
+## these intermediate nc files will be deleted automatically! 
+## while storing into nc file, there wont be much problem and reading from
+## nc file also wont be problem to load cf_standard_name into cube and 
+## followed by storing into grib2 file. All because we need to write variables
+## in the way we need (i.e. ordered always)!!
+_ncfilesVars_ = [('moisture_content_of_soil_layer', 'm01s08i223'),
+                 ('soil_temperature', 'm01s03i238'),
+                 ('toa_incoming_shortwave_flux', 'm01s01i207'),
+                 ('tropopause_altitude', 'm01s30i453'),
+                 ('tropopause_air_temperature', 'm01s30i452'),
+                 ('tropopause_air_pressure', 'm01s30i451'),]
+                                            
 # create a class #1 for capturing stdin, stdout and stderr
 class myLog():
     """
@@ -225,7 +255,6 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
     :param fname: filename of the fieldsfile that has been passed as a string.
 
     :return: varNamesSTASH: a list of tuples (Variable name and its STASH code) 
-    :return: varLvls: No. of vertical levels in the cube as an array/scalar - integer (number)
     :return: fcstHours: Time slices of the cube as an array/scalar - integer (number)
     :return: do6HourlyMean: Logical expression as either True or False, indicating
                             whether the field is instantaneous or accumulated
@@ -263,9 +292,6 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
             ('air_pressure_at_sea_level', 'm01s16i222'),
             ('surface_air_pressure', 'm01s00i409'),
             ('surface_altitude', 'm01s00i033')]
-        ### need to add 'upward_air_velocity' , 
-        #### but its not working in wgrib2
-        varLvls = 0        
         # the cube contains Instantaneous data at every 3-hours.        
         # but we need to extract every 6th hours instantaneous.
         fcstHours = numpy.array([0,])     
@@ -275,10 +301,13 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # varNamesSTASH = [19, 24, 26, 30, 31, 32, 33, 34] # needed
         # available for use
         varNamesSTASH = [('dew_point_temperature', 'm01s03i250'),
+                    ('atmosphere_boundary_layer_thickness', 'm01s00i025'),
                     ('surface_temperature', 'm01s00i024'),
                     ('relative_humidity', 'm01s03i245'),
-                    ('visibility_in_air', 'm01s03i247')] # available for use
-        varLvls = 0        
+                    ('visibility_in_air', 'm01s03i247'),
+                    ('tropopause_altitude', 'm01s30i453'),
+                    ('tropopause_air_temperature', 'm01s30i452'),
+                    ('tropopause_air_pressure', 'm01s30i451'),] # available for use
         # the cube contains Instantaneous data at every 3-hours.        
         # but we need to extract every 6th hours instantaneous.
         fcstHours = numpy.array([0,])     
@@ -288,7 +317,9 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # consider variable
         if inDataPathHour == '00':
             varNamesSTASH = [('specific_humidity', 'm01s30i205'),] 
-            # rest of them (i.e 1,2,3,5,6,7) from taken already from qwqg00 file.
+            # rest of them (i.e 1,2,3,5,6,7) from taken already from qwqg00 
+            # file. qwqg00 file variables are more correct than this 
+            # short forecast vars.
         else:
             # upward wind is not working
            varNamesSTASH = [('geopotential_height', 'm01s16i202'),
@@ -298,9 +329,8 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                        ('x_wind', 'm01s15i243'),
                        ('y_wind', 'm01s15i244'),
                        ('upward_air_velocity', 'm01s15i242')]
-                     
-        # qwqg00 file variables are more correct than this short forecast vars.
-        varLvls = 18
+        # end of if inDataPathHour == '00':             
+        
         # the cube contains Instantaneous data at every 3-hours.
         # but we need to extract only every 6th hours instantaneous.
         fcstHours = numpy.array([0,])     
@@ -327,31 +357,46 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                         ('surface_air_pressure', 'm01s00i409'),
                         ('x_wind', 'm01s03i209'), 
                         ('y_wind', 'm01s03i210')]
-                    
-        varLvls = 0        
         # the cube contains Instantaneous data at every 1-hours.
         # but we need to extract only every 6th hours instantaneous.
         fcstHours = numpy.array([0,])     
         do6HourlyMean = False
 
-    elif fname.startswith('umglca_pf'):             # umglca_pf
-        # other vars (these vars will be created as 6-hourly averaged)
-        varNamesSTASH = [('surface_upward_latent_heat_flux', 'm01s03i234'),
-                ('surface_upward_sensible_heat_flux', 'm01s03i217'),
-                ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'),
-                ('surface_net_downward_longwave_flux', 'm01s02i201')]
-        # rain and snow vars (these vars will be created as 6-hourly accumutated)
-        varNamesSTASH2 = [('snowfall_flux', 'm01s05i215'),
-                          ('precipitation_flux', 'm01s05i216'),
-                          ('stratiform_snowfall_amount', 'm01s04i202'),
-                          ('convective_snowfall_amount', 'm01s05i202'),
-                          ('rainfall_flux', 'm01s05i214'),]
-        # all vars       
-        varNamesSTASH = varNamesSTASH + varNamesSTASH2
-        varLvls = 0        
+    elif fname.startswith(('umglca_pf', 'umglca_pi')):
+        if fname.startswith('umglca_pf'):         # umglca_pf
+            # other vars (these vars will be created as 6-hourly averaged)
+            varNamesSTASH1 = [('surface_upward_latent_heat_flux', 'm01s03i234'),
+                    ('surface_upward_sensible_heat_flux', 'm01s03i217'),
+                    ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'),
+                    ('surface_downwelling_longwave_flux', 'm01s02i207'),
+                    ('surface_net_downward_longwave_flux', 'm01s02i201'),
+                    ('toa_outgoing_longwave_flux', 'm01s02i205'),
+                    ('toa_outgoing_longwave_flux_assuming_clear_sky', 'm01s02i206'),
+                    ('toa_incoming_shortwave_flux', 'm01s01i207'), 
+                    ('toa_outgoing_shortwave_flux', 'm01s01i205'),
+                    ('toa_outgoing_shortwave_flux_assuming_clear_sky', 'm01s01i209'),]
+            # rain and snow vars (these vars will be created as 6-hourly accumutated)
+            varNamesSTASH2 = [('snowfall_flux', 'm01s05i215'),
+                              ('precipitation_flux', 'm01s05i216'),
+                              ('stratiform_snowfall_amount', 'm01s04i202'),
+                              ('convective_snowfall_amount', 'm01s05i202'),
+                              ('stratiform_rainfall_amount', 'm01s04i201'),
+                              ('convective_rainfall_amount', 'm01s05i201'),
+                              ('rainfall_flux', 'm01s05i214'),]
+            # all vars       
+            varNamesSTASH = varNamesSTASH1 + varNamesSTASH2               
+        elif fname.startswith('umglca_pi'):         # umglca_pi
+            # vars (these vars will be created as 6-hourly averaged)
+            varNamesSTASH = [('moisture_content_of_soil_layer', 'm01s08i223'),
+                ('soil_temperature', 'm01s03i238'),]
+#                ('atmosphere_optical_thickness_due_to_dust_ambient_aerosol', #forecast hour extract is not working!
+#                                                             'm01s02i422'),]
+            
+        # end of if fname.startswith('umglca_pf'):  
+            
         # the cube contains data of every 3-hourly average or accumutated.
         # but we need to make only every 6th hourly average or accumutated.
-        fcstHours = numpy.array([(1, 5)])   
+        fcstHours = numpy.array([(1, 5)])
         do6HourlyMean = True
         
         ipath = inDataPath.split('/')
@@ -378,17 +423,19 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # infile path (it could be current date and past 6 hour for 06,12,18 hours.  
         # but it set yesterday date and past 6 hour for 00 hour)
         infile = os.path.join(ipath, fname)    
-    
     ##### ANALYSIS FILE END
     
     ##### FORECAST FILE BEGIN
     elif fname.startswith('umglaa_pb'):              # umglaa_pb
         # varNamesSTASH = [19, 24, 26, 30, 31, 32, 33, 34] # needed        
         varNamesSTASH = [('dew_point_temperature', 'm01s03i250'),
+                    ('atmosphere_boundary_layer_thickness', 'm01s00i025'),
                     ('surface_temperature', 'm01s00i024'),
                     ('relative_humidity', 'm01s03i245'),
-                    ('visibility_in_air', 'm01s03i247')] 
-        varLvls = 0        
+                    ('visibility_in_air', 'm01s03i247'),
+                    ('tropopause_altitude', 'm01s30i453'),
+                    ('tropopause_air_temperature', 'm01s30i452'),
+                    ('tropopause_air_pressure', 'm01s30i451'),] 
         # the cube contains Instantaneous data at every 3-hours.        
         # but we need to extract every 6th hours instantaneous.
         fcstHours = numpy.array([6, 12, 18, 24]) + hr
@@ -404,7 +451,6 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('x_wind', 'm01s15i243'),
                     ('y_wind', 'm01s15i244'),
                     ('upward_air_velocity', 'm01s15i242')]
-        varLvls = 18
         # the cube contains Instantaneous data at every 3-hours.
         # but we need to extract only every 6th hours instantaneous.
         fcstHours = numpy.array([6, 12, 18, 24]) + hr
@@ -420,7 +466,6 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('surface_air_pressure', 'm01s00i409'),
                     ('x_wind', 'm01s03i209'), 
                     ('y_wind', 'm01s03i210')]
-        varLvls = 0        
         # the cube contains Instantaneous data at every 1-hours.
         # but we need to extract only every 6th hours instantaneous.
         fcstHours = numpy.array([6, 12, 18, 24]) + hr
@@ -428,19 +473,38 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
 
     elif fname.startswith('umglaa_pf'):             # umglaa_pf        
         # other vars (these vars will be created as 6-hourly averaged)
-        varNamesSTASH = [('surface_upward_latent_heat_flux', 'm01s03i234'),
+        varNamesSTASH1 = [('surface_upward_latent_heat_flux', 'm01s03i234'),
                 ('surface_upward_sensible_heat_flux', 'm01s03i217'),
                 ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'),
-                ('surface_net_downward_longwave_flux', 'm01s02i201')]
+                ('surface_downwelling_longwave_flux', 'm01s02i207'),
+                ('surface_net_downward_longwave_flux', 'm01s02i201'),
+                ('toa_outgoing_longwave_flux', 'm01s02i205'),
+                ('toa_outgoing_longwave_flux_assuming_clear_sky', 'm01s02i206'),
+                ('toa_incoming_shortwave_flux', 'm01s01i207'), 
+                ('toa_outgoing_shortwave_flux', 'm01s01i205'),
+                ('toa_outgoing_shortwave_flux_assuming_clear_sky', 'm01s01i209'),]
         # rain and snow vars (these vars will be created as 6-hourly accumutated)
         varNamesSTASH2 = [('snowfall_flux', 'm01s05i215'),
                           ('precipitation_flux', 'm01s05i216'),
                           ('stratiform_snowfall_amount', 'm01s04i202'),
                           ('convective_snowfall_amount', 'm01s05i202'),
+                          ('stratiform_rainfall_amount', 'm01s04i201'),
+                          ('convective_rainfall_amount', 'm01s05i201'),
                           ('rainfall_flux', 'm01s05i214'),]
         # all vars       
-        varNamesSTASH = varNamesSTASH + varNamesSTASH2
-        varLvls = 0        
+        varNamesSTASH = varNamesSTASH1 + varNamesSTASH2
+        # the cube contains data of every 3-hourly average or accumutated.
+        # but we need to make only every 6th hourly average or accumutated.
+        fcstHours = numpy.array([(1, 5), (7, 11), (13, 17), (19, 23)]) + hr    
+        do6HourlyMean = True    
+        
+    elif fname.startswith('umglaa_pi'):             # umglaa_pi        
+        # other vars (these vars will be created as 6-hourly averaged)
+        varNamesSTASH = [('moisture_content_of_soil_layer', 'm01s08i223'),
+            ('soil_temperature', 'm01s03i238'),]
+#            ('atmosphere_optical_thickness_due_to_dust_ambient_aerosol', #forecast hour extract is not working!
+#                                                    'm01s02i422'),]
+                
         # the cube contains data of every 3-hourly average or accumutated.
         # but we need to make only every 6th hourly average or accumutated.
         fcstHours = numpy.array([(1, 5), (7, 11), (13, 17), (19, 23)]) + hr    
@@ -451,7 +515,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         raise ValueError("Filename not implemented yet!")
     # end if-loop
 
-    return varNamesSTASH, varLvls, fcstHours, do6HourlyMean, infile, outfile
+    return varNamesSTASH, fcstHours, do6HourlyMean, infile, outfile
 # end of definition #2
 
 # start definition #3
@@ -598,7 +662,7 @@ def regridAnlFcstFiles(arg):
     serial version by MNRS on 11/16/2015.
     """
     global _lock_, _targetGrid_, _current_date_, _startT_, _inDataPath_, \
-            _opPath_, _fext_, _accumulationVars_    
+            _opPath_, _fext_, _accumulationVars_, _ncfilesVars_    
    
     fpname, hr = arg 
     
@@ -608,7 +672,7 @@ def regridAnlFcstFiles(arg):
     fname = os.path.join(_inDataPath_, fileName)        
     
     # call definition to get variable indices
-    varNamesSTASH, varLvls, fcstHours, do6HourlyMean, infile, outfile = getVarInOutFilesDetails(_inDataPath_,
+    varNamesSTASH, fcstHours, do6HourlyMean, infile, outfile = getVarInOutFilesDetails(_inDataPath_,
                                                                                              fileName, hr)
     
     if not os.path.isfile(fname): 
@@ -643,6 +707,21 @@ def regridAnlFcstFiles(arg):
         # end of if 'unknown' in stdNm: 
         print "  Working on variable: %s \n" %stdNm
         
+        if (varName, varSTASH) == ('soil_temperature', 'm01s03i238'):
+            # Within pi file, this variable has instantaneous time point,
+            # rest of other variables in pi file are 3-hr averaged.
+            # get an instantaneous forecast time for soil_temperature.
+            if dtype == 'ana':                
+                fcstHours -= 1  # adjust fcst hour by subtract 1  
+                idx = 0         # get first time in tuple 
+            elif dtype == 'fcst':
+                fcstHours += 1  # adjust fcst hour by add 1
+                idx = 1         # get second time in tuple 
+            # end of if dtype == 'ana':
+            # get instantaneous forecast hours to be extracted.
+            fcstHours = numpy.array([hr[idx] for hr in fcstHours])
+        # end of if (varName, varSTASH) == ('soil_temperature', 'm01s03i238'):
+        
         for fhr in fcstHours:
             # loop-2 -- runs through the selected time slices - synop hours                        
             print "   Working on forecast time: ", fhr            
@@ -652,7 +731,9 @@ def regridAnlFcstFiles(arg):
             
             # get the varibale iris cube by applying variable name constraint, 
             # variable stash code constraint and forecast hour 
-            tmpCube = cubes.extract(varConstraint & STASHConstraint & iris.Constraint(forecast_period=fhr))[0]
+            print varConstraint, STASHConstraint, fhr
+            tmpCube = cubes.extract(varConstraint & STASHConstraint & 
+                                    iris.Constraint(forecast_period=fhr))[0]
             print "extrad end", infile, fhr, varName
             if do6HourlyMean and (tmpCube.coords('forecast_period')[0].shape[0] > 1):              
                 # grab the variable which is f(t,z,y,x)
@@ -719,7 +800,54 @@ def regridAnlFcstFiles(arg):
                 hr = _inDataPath_.split('/')[-1]
             # end of if _inDataPath_.endswith('00'):
             
-            outFn = outfile +'_'+ hr.zfill(3) +'hr'+ '_' + _current_date_ + _fext_ + '.grib2'
+            ofname = outfile +'_'+ hr.zfill(3) +'hr'+ '_' + _current_date_ + _fext_ 
+            outFn =  ofname + '.grib2'
+            
+            ncfile = False
+            if regdCube.coords('soil_model_level_number'):
+                # Get soil_model_level_number coords from the cube.
+                # We need to update this variable, which will be replicated
+                # in the cube attributes. By default iris-1.9 will not 
+                # support to handle soil_model_level_number, so we need to 
+                # tweak it by following way.
+                soil_model_level_number = regdCube.coords('soil_model_level_number')[0]
+                # Dr. Saji / UM_Model_DOC suggested that UM produce soil model
+                # level number is equivalent to 10cm, 35cm, 1m & 2m. 
+                # So we kept here unit as 'cm'. But points are muliplied by
+                # 100 with its  corresponding cm values. Why because, that 
+                # 100 will be factorized (divied) in grib_message by setting 
+                # scaleFactorOfFirstFixedSurface as 2. So that in grib2 will
+                # be able to read as 0.1 m, 0.35m, 1m & 2m. Iris will convert 
+                # cm to m while saving into grib2 file. So we must follow 
+                # this procedure to get correct results.
+                soil_model_level_number.points = numpy.array([1000, 3500, 10000, 20000])
+                soil_model_level_number.units = Unit('cm')
+                print "soil_model_level_number", soil_model_level_number
+                # We need to save this variable into nc file, why because
+                # if we saved into grib2 and then re-read it while re-ordering
+                # variables, iris couldnt load variables with 
+                # soil_model_level_number properly. We need to touch the 
+                # _load_rules. So for timebeing, we saved it as seperate nc 
+                # file. In iris-1.9 we couldnt append more variables into 
+                # nc file. so we saved into muliple individual nc files, only
+                # those who have soil_model_level_number and will be deleted
+                # after inserted properly into orderd grib2 files.
+                outFn = varSTASH + '_'+ ofname + '.nc'
+                ncfile = True
+            # end of if regdCube.coords('soil_model_level_number'):
+            
+            if (varName, varSTASH) in _ncfilesVars_:
+                # other than soil_model_level_number, few variables may be 
+                # need to write into nc file and then convert to grib2. why 
+                # because of duplicate grib param id (but actually not, if 
+                # we implement typeOfFirstFixedSurface). so we are stoing into 
+                # nc file, then load into memory (cf_standard_name) while 
+                # re-ordering, followed by save into grib2 file. cf -> grib2 
+                # dictionary may not throw error, due to different key cfname.
+                ncfile = True
+                outFn = varSTASH + '_'+ ofname + '.nc'
+            # end of if (varName, varSTASH) in _ncfilesVars_:
+            
             outFn = os.path.join(_opPath_, outFn)
             print "Going to be save into ", outFn
                         
@@ -727,7 +855,10 @@ def regridAnlFcstFiles(arg):
                 # _lock_ other threads / processors from being access same file 
                 # to write other variables
                 _lock_.acquire()
-                iris.save(regdCube, outFn, append=True)
+                if ncfile:
+                    iris.save(regdCube, outFn)  # save nc file 
+                else:
+                    iris.save(regdCube, outFn, append=True) # save grib2 file 
                 # release the _lock_, let other threads/processors access this file.
                 _lock_.release()
             except Exception as e:
@@ -766,6 +897,25 @@ def tweaked_messages(cubeList):
                 gribapi.grib_set(grib_message, "typeOfTimeIncrement", 2)           
                 print 'reset typeOfTimeIncrement as 2 for', cube.standard_name
             # end of if cube.coord("forecast_period").bounds is not None:
+            if cube.coords('soil_model_level_number'):
+                # scaleFactorOfFirstFixedSurface as 2, equivalent to divide
+                # the soil_model_level_number.points by 100. So that we can 
+                # be sure that grib2 has 0.1m, 0.35m, 1m & 2m. Otherwise, we 
+                # will endup with 0m, 0m, 1m & 2m and finally will loose 
+                # information about decimal values of levels.
+                gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 2)
+                print "reset scaleFactorOfFirstFixedSurface as 2"
+            # end of if cube.coords('soil_model_level_number'):      
+            if cube.standard_name.startswith('toa'):
+                # we have to explicitly re-set the type of first surfcae
+                # as Nominal top of the atmosphere i.e. 8 (WMO standard)
+                gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 8) 
+            # end of if cube.standard_name.startswith('toa'): 
+            if cube.standard_name.startswith('tropopause'):
+                # we have to explicitly re-set the type of first surfcae
+                # as tropopause i.e. 7 (WMO standard)
+                gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 7) 
+            # end of if cube.standard_name.startswith('tropopause'):
             yield grib_message
         # end of for cube, grib_message in iris.fileformats.grib.as_pairs(cube):
     # end of for cube in cubeList:
@@ -780,9 +930,10 @@ def doShuffleVarsInOrder(fpath):
     Arulalan/T
     11-12-2015
     """
-    global _orderedVars_, _fext_
+    global _orderedVars_, _fext_, _ncfilesVars_
     
     try:
+        print "fpath ", fpath
         f = iris.load(fpath)
     except gribapi.GribInternalError as e:
         if str(e) == "Wrong message length":
@@ -805,12 +956,33 @@ def doShuffleVarsInOrder(fpath):
     
     # need to store the ordered variables in this empty list
     orderedVars = []
-    for name, STASH in _orderedVars_['PressureLevel']:
-        if name in unOrderedPressureLevelVars: orderedVars.append(unOrderedPressureLevelVars[name])
+    for varName, STASH in _orderedVars_['PressureLevel']:
+        if varName in unOrderedPressureLevelVars: orderedVars.append(unOrderedPressureLevelVars[varName])
     # end of for name, STASH in _orderedVars_['PressureLevel']:
     
-    for name, STASH in _orderedVars_['nonPressureLevel']:
-        if name in unOrderedNonPressureLevelVars: orderedVars.append(unOrderedNonPressureLevelVars[name])
+    ncloaddic = {}
+    ncloadedfiles = []
+    for varName, varSTASH in _orderedVars_['nonPressureLevel']:
+        if varName in unOrderedNonPressureLevelVars: 
+            orderedVars.append(unOrderedNonPressureLevelVars[varName])
+        elif (varName, varSTASH) in _ncfilesVars_:            
+            ## generate nc file name 
+            ncfpath = varSTASH + '_' + fpath.split('.grib2')[0] + '.nc'
+            if varSTASH not in ncloaddic:
+                try:
+                    ncloaddic['varSTASH'] = iris.load(ncfpath)
+                    ncloadedfiles.append(ncfpath)
+                except Exception as e:
+                    print "ALERT!!! ERROR!!! couldn't read nc file to re-order", e
+                    return 
+                # end of try:
+            # end of if varSTASH not in ncloaddic:
+            # define variable name constraint
+            varConstraint = iris.Constraint(name=varName)
+            # define varibale stash code constraint
+            STASHConstraint = iris.AttributeConstraint(STASH=varSTASH)
+            var = ncloaddic['varSTASH'].extract(varConstraint & STASHConstraint)
+            if var: orderedVars.append(var[0])
     # end of for name, STASH in _orderedVars_['PressureLevel']:
     
     newfilefpath = fpath.split(_fext_)[0] + '.grib2'
@@ -828,6 +1000,7 @@ def doShuffleVarsInOrder(fpath):
 
     # remove the older file 
     os.remove(fpath)
+    for ncf in ncloadedfiles: os.remove(ncf)
     
     print "Created the variables in ordered fassion and saved into", newfilefpath
     
@@ -982,7 +1155,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, date=time.strftime('%Y%m%d'), hr=
     global _targetGrid_, _current_date_, _startT_, _tmpDir_, _inDataPath_, _opPath_
     
     # forecast filenames partial name
-    fcst_fnames = ['umglaa_pb','umglaa_pd', 'umglaa_pe', 'umglaa_pf'] 
+    fcst_fnames = ['umglaa_pb','umglaa_pd', 'umglaa_pe', 'umglaa_pf', 'umglaa_pi'] 
         
     # get the current date in YYYYMMDD format
     _tmpDir_ = tmpPath
@@ -1025,10 +1198,10 @@ def convertAnlFiles(inPath, outPath, tmpPath, date=time.strftime('%Y%m%d'), hr='
     global _targetGrid_, _current_date_, _startT_, _tmpDir_, _inDataPath_, _opPath_
     
     # analysis filenames partial name
-    anl_fnames = ['umglca_pb', 'umglca_pd', 'umglca_pe', 'umglca_pf']
+    anl_fnames = ['umglca_pb', 'umglca_pd', 'umglca_pe', 'umglca_pf', 'umglca_pi']
     
     if hr == '00': anl_fnames.insert(0, 'qwqg00.pp0')
-    
+
     # get the current date in YYYYMMDD format
     _tmpDir_ = tmpPath
     _current_date_ = date
