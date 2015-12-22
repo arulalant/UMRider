@@ -111,7 +111,7 @@ GRIB2_TO_CF = {
     G2Param(2, 0, 3, 9): CFName('geopotential_height_anomaly', None, 'm'),
     G2Param(2, 0, 4, 7): CFName('surface_downwelling_shortwave_flux_in_air', None, 'W m-2'),
     G2Param(2, 0, 4, 9): CFName('surface_net_downward_shortwave_flux', None, 'W m-2'),
-    G2Param(2, 0, 5, 3): CFName('surface_downwelling_longwave_flux_in_air', None, 'W m-2'),
+    G2Param(2, 0, 5, 3): CFName('surface_downwelling_longwave_flux', None, 'W m-2'),
     G2Param(2, 0, 5, 5): CFName('surface_net_downward_longwave_flux', None, 'W m-2'),
     
     G2Param(2, 0, 6, 1): CFName('cloud_area_fraction', None, '%'),
@@ -150,7 +150,7 @@ GRIB2_TO_CF = {
     G2Param(2, 192, 151, 154): CFName(None, 'v_stress', 'N m-2'), # 151154
     G2Param(2, 192, 151, 158): CFName(None, 'precipitation_minus_evaporation', 'kg m-2 s-1' ), # 151158
     G2Param(2, 0, 1, 65): CFName('rainfall_flux', 'rainfall_rate', 'kg m-2 s-1'), # 260058
-    G2Param(2, 192, 128, 159): CFName('atmosphere_boundary_layer_thickness', None, 'm'),
+    G2Param(2, 0, 3, 18): CFName('atmosphere_boundary_layer_thickness', None, 'm'), # WMO
         
     # G2Param(grib version, discipline, parameter category, parameter no, typeOfFirstFixedSurface):
     G2Param(2, 0, 1, 60, 1): CFName(None, 'snow_depth_water_equivalent', 'kg m-2'), # 228141
@@ -168,7 +168,26 @@ GRIB2_TO_CF = {
     G2Param(2, 0, 1, 15): CFName('stratiform_snowfall_amount', None, 'kg m-2'), # 260012    
     G2Param(2, 0, 1, 14): CFName('convective_snowfall_amount', None, 'kg m-2'), # 260011
     G2Param(2, 2, 0, 13): CFName('canopy_water_amount', None, 'kg m-2'), # 260189   
-    ### NCEP map end ###    	
+    ### NCEP map end ###    
+    
+	G2Param(2, 0, 1, 47): CFName('stratiform_rainfall_amount', None, 'kg m-2'), # WMO    
+    G2Param(2, 0, 1, 48): CFName('convective_rainfall_amount', None, 'kg m-2'), # WMO    
+    #WMO need to set surface level type as toa (Nominal top of the atmosphere, 8)
+    G2Param(2, 0, 5, 4, 8): CFName('toa_outgoing_longwave_flux', None, 'W m-2'),   # WMO
+    G2Param(2, 0, 4, 8, 8): CFName('toa_outgoing_shortwave_flux', None, 'W m-2'),  # WMO    
+    G2Param(2, 0, 4, 11, 8): CFName('toa_outgoing_shortwave_flux_assuming_clear_sky', None, 'W m-2'), # WMO
+    G2Param(2, 0, 5, 6, 8): CFName('toa_outgoing_longwave_flux_assuming_clear_sky', None, 'W m-2'), # WMO
+#    G2Param(2, 0, 4, 7, 8): CFName('toa_incoming_shortwave_flux', None, 'W m-2'), # WMO
+     # the above one gets conflicts with surface_downwelling_shortwave_flux_in_air while loading from iris, because of same key in this dictionary (we didnt implement typeOfFirstFixedSurface in grib1_phenom_to_cf_info)
+    
+#    #WMO need to set  surface level type as tropopause (7)
+#    G2Param(2, 0, 3, 0, 7): CFName('tropopause_air_pressure', None, 'Pa'), # WMO
+#    G2Param(2, 0, 0, 0, 7): CFName('tropopause_air_temperature', None, 'K'),  # WMO
+#    G2Param(2, 0, 3, 6, 7): CFName('tropopause_altitude', None, 'm'), # WMO 
+     
+     # the above 3 gets conflicts with surface_air_temperature, surface_air_pressure, surface_altitude while loading from iris, because of same key in this dictionary (we didnt implement typeOfFirstFixedSurface in grib1_phenom_to_cf_info)
+      
+     
     }
 
 CF_CONSTRAINED_TO_GRIB1_LOCAL = {
@@ -242,8 +261,8 @@ CF_TO_GRIB2 = {
     CFName('specific_humidity', None, 'kg kg-1'): G2Param(2, 0, 1, 0),
     CFName('surface_air_pressure', None, 'Pa'): G2Param(2, 0, 3, 0),
     CFName('surface_altitude', None, 'm'): G2Param(2, 2, 0, 7),
-    CFName('surface_downwelling_longwave_flux_in_air', None, 'W m-2'): G2Param(2, 0, 5, 3),
-    CFName('surface_downwelling_shortwave_flux_in_air', None, 'W m-2'): G2Param(2, 0, 4, 7),
+    CFName('surface_downwelling_longwave_flux', None, 'W m-2'): G2Param(2, 0, 5, 3),
+    CFName('surface_downwelling_shortwave_flux_in_air', None, 'W m-2'): G2Param(2, 0, 4, 7),    
     CFName('surface_net_downward_longwave_flux', None, 'W m-2'): G2Param(2, 0, 5, 5),
     CFName('surface_net_downward_shortwave_flux', None, 'W m-2'): G2Param(2, 0, 4, 9),
     CFName('surface_roughness_length', None, 'm'): G2Param(2, 2, 0, 1),
@@ -272,12 +291,29 @@ CF_TO_GRIB2 = {
     CFName(None, 'v_stress', 'N m-2'): G2Param(2, 192, 151, 154), # 151154
     CFName(None, 'precipitation_minus_evaporation', 'kg m-2 s-1' ): G2Param(2, 192, 151, 158), # 151158
     CFName('rainfall_flux', 'rainfall_rate', 'kg m-2 s-1'): G2Param(2, 0, 1, 65), # 260058
-    CFName('atmosphere_boundary_layer_thickness', None, 'm'): G2Param(2, 192, 128, 159),
+    CFName('atmosphere_boundary_layer_thickness', None, 'm'): G2Param(2, 0, 3, 18), # WMO
 
 ##    CFName('surface_downwelling_shortwave_flux_in_air_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 4, 196), #260342
 ##    CFName('surface_upwelling_shortwave_flux_in_air_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 4, 196), #260342
-##    CFName('toa_outgoing_shortwave_flux_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 4, 198), #260344
-#    CFName('toa_outgoing_longwave_flux_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 5, 195), #260355
+    
+    
+    #WMO need to set surface level type as toa (Nominal top of the atmosphere, 8)
+    CFName('toa_outgoing_longwave_flux', None, 'W m-2'): G2Param(2, 0, 5, 4, 8),  # WMO
+    CFName('toa_outgoing_shortwave_flux', None, 'W m-2'): G2Param(2, 0, 4, 8, 8), # WMO    
+    CFName('toa_outgoing_shortwave_flux_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 4, 11, 8), #WMO
+    CFName('toa_outgoing_longwave_flux_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 5, 6, 8), #WMO
+    CFName('toa_incoming_shortwave_flux', None, 'W m-2'): G2Param(2, 0, 4, 7, 8), # WMO
+    
+    #WMO need to set  surface level type as tropopause (7)
+    CFName('tropopause_air_pressure', None, 'Pa'): G2Param(2, 0, 3, 0, 7), # WMO
+    CFName('tropopause_air_temperature', None, 'K'): G2Param(2, 0, 0, 0, 7), # WMO
+    CFName('tropopause_altitude', None, 'm'): G2Param(2, 0, 3, 6, 7), # WMO
+    
+    ### though we made duplicate Grib param in the above 4 variables, but 
+    ### since we made cf_standard_name as unique. so while writing into grib2 
+    ### will not throw any error and for timebeing we are tweaking grib messages
+    ### to set typeOfFirstFixedSurface for the above said varibles.
+    
     
     # G2Param(grib version, discipline, parameter category, parameter no, typeOfFirstFixedSurface):
     CFName(None, 'snow_depth_water_equivalent', 'kg m-2'): G2Param(2, 0, 1, 60, 1), # 228141
@@ -295,4 +331,8 @@ CF_TO_GRIB2 = {
     CFName('stratiform_snowfall_amount', None, 'kg m-2'): G2Param(2, 0, 1, 15), # 260012  
     CFName('convective_snowfall_amount', None, 'kg m-2'): G2Param(2, 0, 1, 14), # 260011
     CFName('canopy_water_amount', None, 'kg m-2'): G2Param(2, 2, 0, 13), # 260189   
+    ### NCEP map end ###
+    
+    CFName('stratiform_rainfall_amount', None, 'kg m-2'): G2Param(2, 0, 1, 47), # WMO    
+    CFName('convective_rainfall_amount', None, 'kg m-2'): G2Param(2, 0, 1, 48), # WMO
     }
