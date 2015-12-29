@@ -91,6 +91,7 @@ import multiprocessing.pool as mppool
 # We must import this multiprocessing.pool explicitly, it is not imported
 # by the top-level multiprocessing module.
 import datetime
+from iris.time import PartialDateTime
 # End of importing business
 
 # We have to make sure that strict_grib_load as False, since we have to 
@@ -98,6 +99,8 @@ import datetime
 # while reading for tweaked_messages (say pf varibles)
 iris.FUTURE.strict_grib_load = False
 iris.FUTURE.netcdf_promote = True
+iris.FUTURE.netcdf_no_unlimited = True
+iris.FUTURE.cell_datetime_objects = True
 # -- Start coding
 # create global _lock_ object
 _lock_ = mp.Lock()
@@ -145,6 +148,7 @@ _orderedVars_ = {'PressureLevel': [
 ('rainfall_flux', 'm01s05i214'),
 ('snowfall_flux', 'm01s05i215'),
 ('precipitation_flux', 'm01s05i216'), 
+('precipitation_amount', 'm01s05i226'),
 ('toa_incoming_shortwave_flux', 'm01s01i207'), 
 ('toa_outgoing_shortwave_flux', 'm01s01i205'),
 ('toa_outgoing_shortwave_flux_assuming_clear_sky', 'm01s01i209'),
@@ -172,9 +176,10 @@ _orderedVars_ = {'PressureLevel': [
 # vars, since those are averaged rain rate (kg m-2 s-1). 
 # But the following vars unit is (kg m-2), accumulated vars.  
 _accumulationVars_ = ['stratiform_snowfall_amount', 
-                    'convective_snowfall_amount',
-                    'stratiform_rainfall_amount', 
-                    'convective_rainfall_amount']
+                      'convective_snowfall_amount',
+                      'stratiform_rainfall_amount', 
+                      'convective_rainfall_amount',
+                      'precipitation_amount',]
 
 ## Define _ncfilesVars_
 ## the following variables need to be written into nc file, initially for 
@@ -244,6 +249,35 @@ def getYdayStr(today):
     return yDay
 # end of def getYdayStr(today):
 
+def __getTodayOrYesterdayInfile__(ipath, fname):
+    ipath = ipath.split('/')
+    hr = ipath[-1]
+    today_date = ipath[-2]
+    
+    if hr in ['06', '12', '18']:
+        hr = str(int(hr) - 6).zfill(2)
+        print "Taken analysis past 6 hour data", hr
+    elif hr == '00':           
+        # actually it returns yesterday's date.
+        today_date = getYdayStr(today_date)
+        # set yesterday's 18z hour.
+        hr = '18'
+        print "Taken analysis yesterday's date and 18z hour", today_date
+    else:
+        raise ValueError("hour %s method not implemented" % hr)
+    # end of if hr in ['06', '12', '18']:            
+        
+    ## update the hour, date 
+    ipath[-1] = hr
+    ipath[-2] = today_date
+    ipath = os.path.join('/', *ipath)
+    # infile path (it could be current date and past 6 hour for 06,12,18 hours.  
+    # but it set yesterday date and past 6 hour for 00 hour)
+    infile = os.path.join(ipath, fname)  
+    return infile
+# end of def __getTodayOrYesterdayInfile__(ipath):
+
+
 # start definition #2
 def getVarInOutFilesDetails(inDataPath, fname, hr):
     """
@@ -282,7 +316,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
     # end of if fname.startswith('umglaa'):
     
     ##### ANALYSIS FILE BEGIN     
-    if fname.startswith('qwqg00'):                   # qwqg00
+    if fname.startswith('qwqg00.pp0'):                   # qwqg00.pp0
         varNamesSTASH = [('geopotential_height', 'm01s16i202'),
             ('air_temperature', 'm01s16i203'),
             ('relative_humidity', 'm01s16i256'),
@@ -292,8 +326,8 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
             ('air_pressure_at_sea_level', 'm01s16i222'),
             ('surface_air_pressure', 'm01s00i409'),
             ('surface_altitude', 'm01s00i033')]
-        # the cube contains Instantaneous data at every 3-hours.        
-        # but we need to extract every 6th hours instantaneous.
+        # the cube contains Instantaneous data at every 24-hours.        
+        # but we need to extract every 0th hours instantaneous.
         fcstHours = numpy.array([0,])     
         do6HourlyMean = False
             
@@ -344,9 +378,9 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                         ('air_temperature', 'm01s03i236'),                    
                         ('specific_humidity', 'm01s03i237'),                        
                         ('x_wind', 'm01s03i209'), 
-                        ('y_wind', 'm01s03i210')]
+                        ('y_wind', 'm01s03i210'),]
             # rest of them (i.e 'air_pressure_at_sea_level', 
-            #'surface_air_pressure') from taken already from qwqg00 file.
+            #'surface_air_pressure') taken already from qwqg00.pp0 file.
         else:
             varNamesSTASH = [('high_type_cloud_area_fraction', 'm01s09i205'), 
                         ('medium_type_cloud_area_fraction', 'm01s09i204'),
@@ -356,7 +390,18 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                         ('specific_humidity', 'm01s03i237'),
                         ('surface_air_pressure', 'm01s00i409'),
                         ('x_wind', 'm01s03i209'), 
-                        ('y_wind', 'm01s03i210')]
+                        ('y_wind', 'm01s03i210'),]
+        
+        # The precipitation_amount variable must be at the last
+        # in the above list for all simulated_hrs. we will have to do 6 hourly accumulation
+        # instead of taking an instantaneous fileds. so we need 
+        # to change do6HourlyMean as True, but rest of the other 
+        # above variables are instantaneous fileds, so we cant
+        # simply make do6HourlyMean as True. Here we will make 
+        # do6HourlyMean as False, but while extrating this 
+        # variable we will change do6HourlyMean as True. For this
+        # purpose we must keep this variable at the last in this!
+        varNamesSTASH.append(('precipitation_amount', 'm01s05i226'))
         # the cube contains Instantaneous data at every 1-hours.
         # but we need to extract only every 6th hours instantaneous.
         fcstHours = numpy.array([0,])     
@@ -399,30 +444,8 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         fcstHours = numpy.array([(1, 5)])
         do6HourlyMean = True
         
-        ipath = inDataPath.split('/')
-        hr = ipath[-1]
-        today_date = ipath[-2]
-        
-        if hr in ['06', '12', '18']:
-            hr = str(int(hr) - 6).zfill(2)
-            print "Taken analysis past 6 hour data", hr
-        elif hr == '00':           
-            # actually it returns yesterday's date.
-            today_date = getYdayStr(today_date)
-            # set yesterday's 18z hour.
-            hr = '18'
-            print "Taken analysis yesterday's date and 18z hour", today_date
-        else:
-            raise ValueError("hour %s method not implemented" % hr)
-        # end of if hr in ['06', '12', '18']:            
-            
-        ## update the hour, date 
-        ipath[-1] = hr
-        ipath[-2] = today_date
-        ipath = os.path.join('/', *ipath)
-        # infile path (it could be current date and past 6 hour for 06,12,18 hours.  
-        # but it set yesterday date and past 6 hour for 00 hour)
-        infile = os.path.join(ipath, fname)    
+        infile = __getTodayOrYesterdayInfile__(inDataPath, fname)
+          
     ##### ANALYSIS FILE END
     
     ##### FORECAST FILE BEGIN
@@ -465,7 +488,17 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('specific_humidity', 'm01s03i237'),
                     ('surface_air_pressure', 'm01s00i409'),
                     ('x_wind', 'm01s03i209'), 
-                    ('y_wind', 'm01s03i210')]
+                    ('y_wind', 'm01s03i210'),
+                    # The precipitation_amount variable must be at the last
+                    # in this list. we will have to do 6 hourly accumulation
+                    # instead of taking an instantaneous fileds. so we need 
+                    # to change do6HourlyMean as True, but rest of the other 
+                    # above variables are instantaneous fileds, so we cant
+                    # simply make do6HourlyMean as True. Here we will make 
+                    # do6HourlyMean as False, but while extrating this 
+                    # variable we will change do6HourlyMean as True. For this
+                    # purpose we must keep this variable at the last in this!
+                    ('precipitation_amount', 'm01s05i226'),]
         # the cube contains Instantaneous data at every 1-hours.
         # but we need to extract only every 6th hours instantaneous.
         fcstHours = numpy.array([6, 12, 18, 24]) + hr
@@ -561,9 +594,9 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour', actionIntervals='6 hour'):
     
     if action == 'mean':
         meanCube /= float(tlen)
-        print "Converted cube to %s mean" % dt
+        print "Converted cube to %s mean" % actionIntervals
     else:
-        print "Converted cube to %s accumulation" % dt
+        print "Converted cube to %s accumulation" % actionIntervals
     # end of if not isAccumulation:
 
     # get the time coord and set to mean
@@ -691,7 +724,8 @@ def regridAnlFcstFiles(arg):
     # call definition to get cube data
     cubes = getCubeData(infile)
     nVars = len(cubes)
-           
+    simulated_hr = int(infile.split('/')[-2])
+    print "simulated_hr = ", simulated_hr
     # open for-loop-1 -- for all the variables in the cube
     for varName, varSTASH in varNamesSTASH:
         # define variable name constraint
@@ -719,9 +753,42 @@ def regridAnlFcstFiles(arg):
                 idx = 1         # get second time in tuple 
             # end of if dtype == 'ana':
             # get instantaneous forecast hours to be extracted.
-            fcstHours = numpy.array([hr[idx] for hr in fcstHours])
+            fcstHours = numpy.array([fhr[idx] for fhr in fcstHours])
         # end of if (varName, varSTASH) == ('soil_temperature', 'm01s03i238'):
         
+        if (varName, varSTASH) == ('precipitation_amount', 'm01s05i226'):
+            # From pe files, we need to extract precipitation_amount fileds
+            # as 6 hourly accumulation, but other variables from pe files
+            # are instantaneous fileds (no need to 6 hourly mean/sum).
+            # both analysis & forecast need to be accumulation.
+            do6HourlyMean = True
+            if dtype == 'fcst':
+                # for forecast pe file, and this varibale we need to set the 
+                # extract time as follows. 
+                # the cube contains data of every 1-hourly accumutated.
+                # but we need to make only every 6th hourly accumutated.
+                # fileName[-3:] is equivalent to hr. but hr had updated in 
+                # filename extension for some case. So it better extract 
+                # forecast hour from the fileName itself.                
+                fcstHours = numpy.arange(24).reshape(4, 6) + int(fileName[-3:])
+                print "precipitation_amount fcstHours ", fcstHours, int(fileName[-3:])
+            elif dtype == 'ana':
+                # for analysis pe file, and this varibale we need to set the 
+                # extract time as follows. 
+                # the cube contains data of every 1-hourly accumutated.
+                # but we need to make only every 6th hourly accumutated.
+                fcstHours = numpy.array([(1, 2, 3, 4, 5, 6)])
+                ana_infile = __getTodayOrYesterdayInfile__(_inDataPath_, fileName)    
+                if ana_infile != infile: 
+                    cubes = getCubeData(ana_infile)   
+                    simulated_hr = int(ana_infile.split('/')[-2])
+                    print "simulated_hr = ", simulated_hr
+                # end of if ana_infile != infile:               
+        # end of if (varName, varSTASH) == ('precipitation_amount', 'm01s05i226'):
+        
+        # define (simulated_hr) forecast_reference_time constraint
+        fcstRefTimeConstraint = iris.Constraint(forecast_reference_time=PartialDateTime(hour=simulated_hr))
+        print fcstRefTimeConstraint
         for fhr in fcstHours:
             # loop-2 -- runs through the selected time slices - synop hours                        
             print "   Working on forecast time: ", fhr            
@@ -730,11 +797,14 @@ def regridAnlFcstFiles(arg):
             print "extract start", infile, fhr, varName
             
             # get the varibale iris cube by applying variable name constraint, 
-            # variable stash code constraint and forecast hour 
-            print varConstraint, STASHConstraint, fhr
+            # variable name, stash code, forecast_reference_time constraints
+            # and forecast hour constraint
+            print varConstraint, STASHConstraint, fcstRefTimeConstraint, fhr
             tmpCube = cubes.extract(varConstraint & STASHConstraint & 
+                                    fcstRefTimeConstraint &
                                     iris.Constraint(forecast_period=fhr))[0]
             print "extrad end", infile, fhr, varName
+            print "tmpCube =>", tmpCube
             if do6HourlyMean and (tmpCube.coords('forecast_period')[0].shape[0] > 1):              
                 # grab the variable which is f(t,z,y,x)
                 # tmpCube corresponds to each variable for the SYNOP hours from
@@ -768,13 +838,14 @@ def regridAnlFcstFiles(arg):
             
             # reset the attributes 
             regdCube.attributes = tmpCube.attributes
-              
+            print "set the attributes back to regdCube"  
             # make memory free 
             del tmpCube
             
+            print "regdCube => ", regdCube
             # get the regridded lat/lons
             stdNm, fcstTm, refTm, lat1, lon1 = getCubeAttr(regdCube)
-
+            print "Got attributes from regdCube"
             # save the cube in append mode as a grib2 file       
             if _inDataPath_.endswith('00'):
                 if fcstTm.bounds is not None:
@@ -836,6 +907,22 @@ def regridAnlFcstFiles(arg):
                 ncfile = True
             # end of if regdCube.coords('soil_model_level_number'):
             
+            if regdCube.coords('height'):
+                # Get height coords from the cube.
+                # We need to update this variable, which will be replicated
+                # in the cube attributes. By default iris-1.9 will not 
+                # support to handle height as floating point, so we need to 
+                # tweak it by following way.
+                height = regdCube.coords('height')[0]
+                height.points = height.points * 10
+                height.units = Unit('m')   
+                # Now we updated the cube height coords from 1.5 metre into 
+                # 15 meter. while re-ordering / saving to final grib2 file, 
+                # we need to tweaked_messages by setting the 
+                # scaleFactorOfFirstFixedSurface as 1 (i.e divied by 10)
+                # So that in grib2 we will have 1.5 metre instead of 1 meter.
+            # end of if regdCube.coords('height'):
+                
             if (varName, varSTASH) in _ncfilesVars_:
                 # other than soil_model_level_number, few variables may be 
                 # need to write into nc file and then convert to grib2. why 
@@ -905,7 +992,15 @@ def tweaked_messages(cubeList):
                 # information about decimal values of levels.
                 gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 2)
                 print "reset scaleFactorOfFirstFixedSurface as 2"
-            # end of if cube.coords('soil_model_level_number'):      
+            # end of if cube.coords('soil_model_level_number'):   
+            if cube.coords('height'):                
+                # scaleFactorOfFirstFixedSurface as 1, equivalent to divide
+                # the height.points by 10. So that we can be sure that grib2
+                # has 1.5 meter. Otherwise, we will endup with 1 metre and
+                # finally will loose information about decimal value of height.
+                gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 1)
+                print "reset scaleFactorOfFirstFixedSurface as 1"                
+            # end of if cube.coords('height'):   
             if cube.standard_name.startswith('toa'):
                 # we have to explicitly re-set the type of first surfcae
                 # as Nominal top of the atmosphere i.e. 8 (WMO standard)
@@ -916,6 +1011,7 @@ def tweaked_messages(cubeList):
                 # as tropopause i.e. 7 (WMO standard)
                 gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 7) 
             # end of if cube.standard_name.startswith('tropopause'):
+            
             yield grib_message
         # end of for cube, grib_message in iris.fileformats.grib.as_pairs(cube):
     # end of for cube in cubeList:
@@ -1156,7 +1252,6 @@ def convertFcstFiles(inPath, outPath, tmpPath, date=time.strftime('%Y%m%d'), hr=
     
     # forecast filenames partial name
     fcst_fnames = ['umglaa_pb','umglaa_pd', 'umglaa_pe', 'umglaa_pf', 'umglaa_pi'] 
-        
     # get the current date in YYYYMMDD format
     _tmpDir_ = tmpPath
     _current_date_ = date
