@@ -620,6 +620,13 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour', actionIntervals='6 hour'):
 
     # get the bounds and time points from two extremes
     bounds = [fcstAxFirst.bounds[0][0], fcstAxLast.bounds[-1][-1]]
+    
+    if tmpCube.standard_name == 'precipitation_amount' and bounds[0] != 0:
+        # this change is required only for this varibale, since its hourly
+        # accumulation, which we converting to 6-hourly accumulation.
+        bounds = [fcstAxFirst.bounds[0][1], fcstAxLast.bounds[-1][-1]]
+    # end of if tmpCube.standard_name == 'precipitation_amount' and bounds[0] != 0:
+    
     fcstpoint = [bounds[0] + ((bounds[-1] - bounds[0]) / 2.0)]
 
     # update the time coordinate with new fcst time point and fcst time bounds
