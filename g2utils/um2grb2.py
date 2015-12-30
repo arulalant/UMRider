@@ -827,7 +827,10 @@ def regridAnlFcstFiles(arg):
             print "\n    Regridding data to 0.25x0.25 deg spatial resolution \n"
             print "From shape", tmpCube.shape
             try:            
-                regdCube = tmpCube.interpolate(_targetGrid_, iris.analysis.Linear())
+                # This interpolate will do extra polate over ocean also even 
+                # though original data doesnt have values over ocean and wise versa.
+                # So lets be aware of this and fix it by masking 1e-10 and 1e+10.
+                regdCube = tmpCube.interpolate(_targetGrid_, iris.analysis.Linear(extrapolation_mode='mask'))
             except Exception as e:
                 print "ALERT !!! Error while regridding!! %s" % str(e)
                 print " So skipping this without saving data"
@@ -839,6 +842,16 @@ def regridAnlFcstFiles(arg):
             # reset the attributes 
             regdCube.attributes = tmpCube.attributes
             print "set the attributes back to regdCube"  
+            
+            if varName in ['moisture_content_of_soil_layer', 'soil_temperature']:
+                # Lets mask only for the soil variables, for rest of the 
+                # variables, we need to do investigation (it throws error)
+                # mask out values less then 1e-10
+                regdCube.data = numpy.ma.masked_less(regdCube.data, 1e-10)
+                # mask out values greater than 1e+10
+                regdCube.data = numpy.ma.masked_greater(regdCube.data, 1e+10)
+            # end of if varName in ['moisture_content_of_soil_layer', 'soil_temperature']:
+            
             # make memory free 
             del tmpCube
             
@@ -968,6 +981,7 @@ def regridAnlFcstFiles(arg):
 def tweaked_messages(cubeList):
     for cube in cubeList:
         for cube, grib_message in iris.fileformats.grib.as_pairs(cube):
+            print "Tweaking begin ", cube.standard_name
             # post process the GRIB2 message, prior to saving
             gribapi.grib_set_long(grib_message, "centre", 28) # RMC of India
             gribapi.grib_set_long(grib_message, "subCentre", 0) # No subcentre
@@ -1011,7 +1025,7 @@ def tweaked_messages(cubeList):
                 # as tropopause i.e. 7 (WMO standard)
                 gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 7) 
             # end of if cube.standard_name.startswith('tropopause'):
-            
+            print "Tweaking end ", cube.standard_name
             yield grib_message
         # end of for cube, grib_message in iris.fileformats.grib.as_pairs(cube):
     # end of for cube in cubeList:
