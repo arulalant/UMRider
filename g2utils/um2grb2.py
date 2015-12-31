@@ -105,6 +105,7 @@ iris.FUTURE.cell_datetime_objects = True
 # create global _lock_ object
 _lock_ = mp.Lock()
 # other global variables
+__LPRINT__ = False
 _current_date_ = None
 _startT_ = None
 _tmpDir_ = None
@@ -250,6 +251,7 @@ def getYdayStr(today):
 # end of def getYdayStr(today):
 
 def __getTodayOrYesterdayInfile__(ipath, fname):
+    
     ipath = ipath.split('/')
     hr = ipath[-1]
     today_date = ipath[-2]
@@ -429,7 +431,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                               ('convective_rainfall_amount', 'm01s05i201'),
                               ('rainfall_flux', 'm01s05i214'),]
             # all vars       
-            varNamesSTASH = varNamesSTASH1 + varNamesSTASH2               
+            varNamesSTASH = varNamesSTASH1 + varNamesSTASH2 
         elif fname.startswith('umglca_pi'):         # umglca_pi
             # vars (these vars will be created as 6-hourly averaged)
             varNamesSTASH = [('moisture_content_of_soil_layer', 'm01s08i223'),
@@ -586,6 +588,7 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour', actionIntervals='6 hour'):
     Started and initiated by AAT on 11/16/2015 and minor correction & standardization by MNRS on
     11/29/15.
     """
+    
     meanCube = tmpCube[0]
     tlen = len(tmpCube.coord('time').points)
     for ti in range(1, tlen):
@@ -593,7 +596,7 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour', actionIntervals='6 hour'):
     # end of for ti in range(1, len(tmpCube)):
     
     if action == 'mean':
-        meanCube /= float(tlen)
+        meanCube *= (1.0 / float(tlen))
         print "Converted cube to %s mean" % actionIntervals
     else:
         print "Converted cube to %s accumulation" % actionIntervals
@@ -702,7 +705,7 @@ def regridAnlFcstFiles(arg):
     serial version by MNRS on 11/16/2015.
     """
     global _lock_, _targetGrid_, _current_date_, _startT_, _inDataPath_, \
-            _opPath_, _fext_, _accumulationVars_, _ncfilesVars_    
+            _opPath_, _fext_, _accumulationVars_, _ncfilesVars_, __LPRINT__   
    
     fpname, hr = arg 
     
@@ -726,13 +729,13 @@ def regridAnlFcstFiles(arg):
         dtype = 'ana'
     # end of if fpname.startswith('umglaa'):
     
-    print "Started Processing the file: %s.. \n" %fname
+    print "Started Processing the file: %s.. \n" %infile
     
     # call definition to get cube data
     cubes = getCubeData(infile)
     nVars = len(cubes)
     simulated_hr = int(infile.split('/')[-2])
-    print "simulated_hr = ", simulated_hr
+    if __LPRINT__: print "simulated_hr = ", simulated_hr
     # open for-loop-1 -- for all the variables in the cube
     for varName, varSTASH in varNamesSTASH:
         # define variable name constraint
@@ -741,9 +744,9 @@ def regridAnlFcstFiles(arg):
         STASHConstraint = iris.AttributeConstraint(STASH=varSTASH)
         # get the standard_name of variable 
         stdNm = cubes.extract(varConstraint & STASHConstraint)[0].standard_name
-        print "stdNm", stdNm, fileName
+        print "stdNm", stdNm, infile
         if stdNm is None:
-            print "Unknown variable standard_name for '%s' of %s. So skipping it" % (varName, fileName)
+            print "Unknown variable standard_name for '%s' of %s. So skipping it" % (varName, infile)
             continue
         # end of if 'unknown' in stdNm: 
         print "  Working on variable: %s \n" %stdNm
@@ -789,29 +792,30 @@ def regridAnlFcstFiles(arg):
                 if ana_infile != infile: 
                     cubes = getCubeData(ana_infile)   
                     simulated_hr = int(ana_infile.split('/')[-2])
+                    print "precipitation_amount loaded from file, ", ana_infile
                     print "simulated_hr = ", simulated_hr
                 # end of if ana_infile != infile:               
         # end of if (varName, varSTASH) == ('precipitation_amount', 'm01s05i226'):
         
         # define (simulated_hr) forecast_reference_time constraint
         fcstRefTimeConstraint = iris.Constraint(forecast_reference_time=PartialDateTime(hour=simulated_hr))
-        print fcstRefTimeConstraint
+        if __LPRINT__: print fcstRefTimeConstraint
         for fhr in fcstHours:
             # loop-2 -- runs through the selected time slices - synop hours                        
-            print "   Working on forecast time: ", fhr            
+            if __LPRINT__: print "   Working on forecast time: ", fhr            
             # grab the variable which is f(t,z,y,x)
             # tmpCube corresponds to each variable for the SYNOP hours
-            print "extract start", infile, fhr, varName
+            if __LPRINT__: print "extract start", infile, fhr, varName
             
             # get the varibale iris cube by applying variable name constraint, 
             # variable name, stash code, forecast_reference_time constraints
             # and forecast hour constraint
-            print varConstraint, STASHConstraint, fcstRefTimeConstraint, fhr
+            if __LPRINT__: print varConstraint, STASHConstraint, fcstRefTimeConstraint, fhr
             tmpCube = cubes.extract(varConstraint & STASHConstraint & 
                                     fcstRefTimeConstraint &
                                     iris.Constraint(forecast_period=fhr))[0]
-            print "extrad end", infile, fhr, varName
-            print "tmpCube =>", tmpCube
+            if __LPRINT__: print "extrad end", infile, fhr, varName
+            if __LPRINT__: print "tmpCube =>", tmpCube
             if do6HourlyMean and (tmpCube.coords('forecast_period')[0].shape[0] > 1):              
                 # grab the variable which is f(t,z,y,x)
                 # tmpCube corresponds to each variable for the SYNOP hours from
@@ -825,47 +829,54 @@ def regridAnlFcstFiles(arg):
                 # here dt intervals meant to be forecast intervals, as per 
                 # model, it forecast every one hour. so we must pass as 
                 # '1 hour' to dt intervals argument. 
-                print "action = ", action
+                if __LPRINT__: print "action = ", action
                 tmpCube = cubeAverager(tmpCube, action, dt='1 hour', 
                                             actionIntervals='6 hour')            
             # end of if do6HourlyMean and tmpCube.coords('forecast_period')[0].shape[0] > 1:     
 
             # interpolate it 0,25 deg resolution by setting up sample points based on coord
             print "\n    Regridding data to 0.25x0.25 deg spatial resolution \n"
-            print "From shape", tmpCube.shape
+            if __LPRINT__: print "From shape", tmpCube.shape
             try:            
                 # This interpolate will do extra polate over ocean also even 
                 # though original data doesnt have values over ocean and wise versa.
-                # So lets be aware of this and fix it by masking 1e-10 and 1e+10.
-                regdCube = tmpCube.interpolate(_targetGrid_, iris.analysis.Linear(extrapolation_mode='mask'))
+                # So lets be aware of this and fix it by masking 1e-15 and 1e+15.
+                # DO NOT APPLY iris.analysis.Linear(extrapolation_mode='mask'), 
+                # which writes nan every where for the snowfall_flux,  
+                # rainfall_flux, precipitation_flux. So donot apply that.
+                regdCube = tmpCube.interpolate(_targetGrid_, iris.analysis.Linear())
             except Exception as e:
                 print "ALERT !!! Error while regridding!! %s" % str(e)
                 print " So skipping this without saving data"
                 continue
             # end of try:   
             print "regrid done"
-            print "To shape", regdCube.shape  
+            if __LPRINT__: print "To shape", regdCube.shape  
             
             # reset the attributes 
             regdCube.attributes = tmpCube.attributes
-            print "set the attributes back to regdCube"  
+            if __LPRINT__: print "set the attributes back to regdCube"  
             
-            if varName in ['moisture_content_of_soil_layer', 'soil_temperature']:
-                # Lets mask only for the soil variables, for rest of the 
-                # variables, we need to do investigation (it throws error)
-                # mask out values less then 1e-10
-                regdCube.data = numpy.ma.masked_less(regdCube.data, 1e-10)
-                # mask out values greater than 1e+10
-                regdCube.data = numpy.ma.masked_greater(regdCube.data, 1e+10)
-            # end of if varName in ['moisture_content_of_soil_layer', 'soil_temperature']:
+            if (varName, varSTASH) not in [('snowfall_flux', 'm01s05i215'),
+                          ('precipitation_flux', 'm01s05i216'),
+                          ('stratiform_snowfall_amount', 'm01s04i202'),
+                          ('convective_snowfall_amount', 'm01s05i202'),
+                          ('stratiform_rainfall_amount', 'm01s04i201'),
+                          ('convective_rainfall_amount', 'm01s05i201'),
+                          ('rainfall_flux', 'm01s05i214'),]:
+                # mask out values less then 1e-15
+                regdCube.data = numpy.ma.masked_less(regdCube.data, 1e-15)
+                # mask out values greater than 1e+15
+                regdCube.data = numpy.ma.masked_greater(regdCube.data, 1e+15)
+            # end of if varName not in ['rainfall_flux', 'precipitation_flux', 'snowfall_flux']:
             
             # make memory free 
             del tmpCube
             
-            print "regdCube => ", regdCube
+            if __LPRINT__: print "regdCube => ", regdCube
             # get the regridded lat/lons
             stdNm, fcstTm, refTm, lat1, lon1 = getCubeAttr(regdCube)
-            print "Got attributes from regdCube"
+            if __LPRINT__: print "Got attributes from regdCube"
             # save the cube in append mode as a grib2 file       
             if _inDataPath_.endswith('00'):
                 if fcstTm.bounds is not None:
@@ -878,12 +889,12 @@ def regridAnlFcstFiles(arg):
                         # this is needed for forecast 00th simulated_hr
                         # get the last hour from bounds
                         hr = str(int(fcstTm.bounds[-1][-1]))
-                    print "Bounds comes in ", hr, fcstTm.bounds, fileName                        
+                    if __LPRINT__: print "Bounds comes in ", hr, fcstTm.bounds, fileName                        
                 else:
                     # get the fcst time point 
                     # this is needed for analysis/forecast 00th simulated_hr
                     hr = str(int(fcstTm.points))
-                    print "points comes in ", hr, fileName 
+                    if __LPRINT__: print "points comes in ", hr, fileName 
                 # end of if fcstTm.bounds:
             else:
                 # get the hour from infile path as 'least dirname'
@@ -913,7 +924,7 @@ def regridAnlFcstFiles(arg):
                 # this procedure to get correct results.
                 soil_model_level_number.points = numpy.array([1000, 3500, 10000, 20000])
                 soil_model_level_number.units = Unit('cm')
-                print "soil_model_level_number", soil_model_level_number
+                if __LPRINT__: print "soil_model_level_number", soil_model_level_number
                 # We need to save this variable into nc file, why because
                 # if we saved into grib2 and then re-read it while re-ordering
                 # variables, iris couldnt load variables with 
@@ -1049,8 +1060,7 @@ def doShuffleVarsInOrder(fpath):
     """
     global _orderedVars_, _fext_, _ncfilesVars_
     
-    try:
-        print "fpath ", fpath
+    try:        
         f = iris.load(fpath)
     except gribapi.GribInternalError as e:
         if str(e) == "Wrong message length":
@@ -1085,6 +1095,7 @@ def doShuffleVarsInOrder(fpath):
         elif (varName, varSTASH) in _ncfilesVars_:            
             ## generate nc file name 
             ncfpath = varSTASH + '_' + fpath.split('.grib2')[0] + '.nc'
+            if not os.path.isfile(ncfpath): continue
             if varSTASH not in ncloaddic:
                 try:
                     ncloaddic['varSTASH'] = iris.load(ncfpath)
@@ -1248,7 +1259,6 @@ def convertFilesInParallel(fnames, ftype):
     print "Creating %d (non-daemon) workers and jobs in convertFilesInParallel process." % nprocesses
     
     if ftype in ['anl', 'analysis']:
-        print "fnames ++++++++", fnames
         results = pool.map(doAnlConvert, fnames)
     elif ftype in ['fcst', 'forecast']:
         results = pool.map(doFcstConvert, fnames)
@@ -1314,10 +1324,10 @@ def convertAnlFiles(inPath, outPath, tmpPath, date=time.strftime('%Y%m%d'), hr='
     global _targetGrid_, _current_date_, _startT_, _tmpDir_, _inDataPath_, _opPath_
     
     # analysis filenames partial name
-    anl_fnames = ['umglca_pb', 'umglca_pd', 'umglca_pe', 'umglca_pf', 'umglca_pi']
+    anl_fnames = ['umglca_pb', 'umglca_pd', 'umglca_pe', 'umglca_pf', 'umglca_pi'] 
     
     if hr == '00': anl_fnames.insert(0, 'qwqg00.pp0')
-
+    anl_fnames = ['umglca_pf',]
     # get the current date in YYYYMMDD format
     _tmpDir_ = tmpPath
     _current_date_ = date
