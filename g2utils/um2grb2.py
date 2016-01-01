@@ -165,6 +165,8 @@ _orderedVars_ = {'PressureLevel': [
 #('atmosphere_optical_thickness_due_to_dust_ambient_aerosol', #forecast hour extract is not working!
 #                                                    'm01s02i422'),
 ('atmosphere_boundary_layer_thickness', 'm01s00i025'),
+('sea_ice_area_fraction', 'm01s00i031'),
+('sea_ice_thickness', 'm01s00i032'),
 # the below one is for orography which presents only in analysis 00 file.
 # so we must keep this as the last one in the ordered variables!
 ('surface_altitude', 'm01s00i033')],
@@ -343,7 +345,9 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('visibility_in_air', 'm01s03i247'),
                     ('tropopause_altitude', 'm01s30i453'),
                     ('tropopause_air_temperature', 'm01s30i452'),
-                    ('tropopause_air_pressure', 'm01s30i451'),] # available for use
+                    ('tropopause_air_pressure', 'm01s30i451'),
+                    ('sea_ice_area_fraction', 'm01s00i031'),
+                    ('sea_ice_thickness', 'm01s00i032'),] # available for use
         # the cube contains Instantaneous data at every 3-hours.        
         # but we need to extract every 6th hours instantaneous.
         fcstHours = numpy.array([0,])     
@@ -409,45 +413,47 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         fcstHours = numpy.array([0,])     
         do6HourlyMean = False
 
-    elif fname.startswith(('umglca_pf', 'umglca_pi')):
-        if fname.startswith('umglca_pf'):         # umglca_pf
-            # other vars (these vars will be created as 6-hourly averaged)
-            varNamesSTASH1 = [('surface_upward_latent_heat_flux', 'm01s03i234'),
-                    ('surface_upward_sensible_heat_flux', 'm01s03i217'),
-                    ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'),
-                    ('surface_downwelling_longwave_flux', 'm01s02i207'),
-                    ('surface_net_downward_longwave_flux', 'm01s02i201'),
-                    ('toa_outgoing_longwave_flux', 'm01s02i205'),
-                    ('toa_outgoing_longwave_flux_assuming_clear_sky', 'm01s02i206'),
-                    ('toa_incoming_shortwave_flux', 'm01s01i207'), 
-                    ('toa_outgoing_shortwave_flux', 'm01s01i205'),
-                    ('toa_outgoing_shortwave_flux_assuming_clear_sky', 'm01s01i209'),]
-            # rain and snow vars (these vars will be created as 6-hourly accumutated)
-            varNamesSTASH2 = [('snowfall_flux', 'm01s05i215'),
-                              ('precipitation_flux', 'm01s05i216'),
-                              ('stratiform_snowfall_amount', 'm01s04i202'),
-                              ('convective_snowfall_amount', 'm01s05i202'),
-                              ('stratiform_rainfall_amount', 'm01s04i201'),
-                              ('convective_rainfall_amount', 'm01s05i201'),
-                              ('rainfall_flux', 'm01s05i214'),]
-            # all vars       
-            varNamesSTASH = varNamesSTASH1 + varNamesSTASH2 
-        elif fname.startswith('umglca_pi'):         # umglca_pi
-            # vars (these vars will be created as 6-hourly averaged)
-            varNamesSTASH = [('moisture_content_of_soil_layer', 'm01s08i223'),
-                ('soil_temperature', 'm01s03i238'),]
-#                ('atmosphere_optical_thickness_due_to_dust_ambient_aerosol', #forecast hour extract is not working!
-#                                                             'm01s02i422'),]
-            
-        # end of if fname.startswith('umglca_pf'):  
+    elif fname.startswith('umglca_pf'):         # umglca_pf
+        # other vars (these vars will be created as 6-hourly averaged)
+        varNamesSTASH1 = [('surface_upward_latent_heat_flux', 'm01s03i234'),
+                ('surface_upward_sensible_heat_flux', 'm01s03i217'),
+                ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'),
+                ('surface_downwelling_longwave_flux', 'm01s02i207'),
+                ('surface_net_downward_longwave_flux', 'm01s02i201'),
+                ('toa_outgoing_longwave_flux', 'm01s02i205'),
+                ('toa_outgoing_longwave_flux_assuming_clear_sky', 'm01s02i206'),
+                ('toa_incoming_shortwave_flux', 'm01s01i207'), 
+                ('toa_outgoing_shortwave_flux', 'm01s01i205'),
+                ('toa_outgoing_shortwave_flux_assuming_clear_sky', 'm01s01i209'),]
+        # rain and snow vars (these vars will be created as 6-hourly accumutated)
+        varNamesSTASH2 = [('snowfall_flux', 'm01s05i215'),
+                          ('precipitation_flux', 'm01s05i216'),
+                          ('stratiform_snowfall_amount', 'm01s04i202'),
+                          ('convective_snowfall_amount', 'm01s05i202'),
+                          ('stratiform_rainfall_amount', 'm01s04i201'),
+                          ('convective_rainfall_amount', 'm01s05i201'),
+                          ('rainfall_flux', 'm01s05i214'),]
+        # all vars       
+        varNamesSTASH = varNamesSTASH1 + varNamesSTASH2 
             
         # the cube contains data of every 3-hourly average or accumutated.
         # but we need to make only every 6th hourly average or accumutated.
         fcstHours = numpy.array([(1, 5)])
         do6HourlyMean = True
-        
+        # get the updated infile w.r.t analysis 00 simulated_hr or 06,12,18hr
         infile = __getTodayOrYesterdayInfile__(inDataPath, fname)
-          
+        
+    elif fname.startswith('umglca_pi'):         # umglca_pi
+        # vars (these vars will be created as 6-hourly averaged)
+        varNamesSTASH = [('moisture_content_of_soil_layer', 'm01s08i223'),
+            ('soil_temperature', 'm01s03i238'),]
+#                ('atmosphere_optical_thickness_due_to_dust_ambient_aerosol', #forecast hour extract is not working!
+#                                                             'm01s02i422'),]
+        # the cube contains data of every 3-hourly average or accumutated.
+        # but we need to make only every 6th hourly average or accumutated.
+        fcstHours = numpy.array([(1, 5)])
+        do6HourlyMean = True
+        
     ##### ANALYSIS FILE END
     
     ##### FORECAST FILE BEGIN
@@ -460,7 +466,9 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('visibility_in_air', 'm01s03i247'),
                     ('tropopause_altitude', 'm01s30i453'),
                     ('tropopause_air_temperature', 'm01s30i452'),
-                    ('tropopause_air_pressure', 'm01s30i451'),] 
+                    ('tropopause_air_pressure', 'm01s30i451'),
+                    ('sea_ice_area_fraction', 'm01s00i031'),
+                    ('sea_ice_thickness', 'm01s00i032'),] 
         # the cube contains Instantaneous data at every 3-hours.        
         # but we need to extract every 6th hours instantaneous.
         fcstHours = numpy.array([6, 12, 18, 24]) + hr
@@ -1042,7 +1050,7 @@ def tweaked_messages(cubeList):
                 # we have to explicitly re-set the type of first surfcae
                 # as tropopause i.e. 7 (WMO standard)
                 gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 7) 
-            # end of if cube.standard_name.startswith('tropopause'):
+            # end of if cube.standard_name.startswith('tropopause'):                        
             print "Tweaking end ", cube.standard_name
             yield grib_message
         # end of for cube, grib_message in iris.fileformats.grib.as_pairs(cube):
@@ -1327,7 +1335,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, date=time.strftime('%Y%m%d'), hr='
     anl_fnames = ['umglca_pb', 'umglca_pd', 'umglca_pe', 'umglca_pf', 'umglca_pi'] 
     
     if hr == '00': anl_fnames.insert(0, 'qwqg00.pp0')
-    anl_fnames = ['umglca_pf',]
+    
     # get the current date in YYYYMMDD format
     _tmpDir_ = tmpPath
     _current_date_ = date
