@@ -134,6 +134,7 @@ GRIB2_TO_CF = {
     G2Param(2, 10, 1, 2): CFName('sea_water_x_velocity', None, 'm s-1'),
     G2Param(2, 10, 1, 3): CFName('sea_water_y_velocity', None, 'm s-1'),
     G2Param(2, 10, 2, 0): CFName('sea_ice_area_fraction', None, '1'),
+    G2Param(2, 10, 2, 1): CFName('sea_ice_thickness', None, 'm'),
     G2Param(2, 10, 3, 0): CFName('sea_surface_temperature', None, 'K'),        
     
     # G2Param(grib version, discipline, parameter category, parameter no): CFName('standard_name', 'long_name', 'units') # paramid
@@ -151,7 +152,9 @@ GRIB2_TO_CF = {
     G2Param(2, 192, 151, 158): CFName(None, 'precipitation_minus_evaporation', 'kg m-2 s-1' ), # 151158
     G2Param(2, 0, 1, 65): CFName('rainfall_flux', 'rainfall_rate', 'kg m-2 s-1'), # 260058
     G2Param(2, 0, 3, 18): CFName('atmosphere_boundary_layer_thickness', None, 'm'), # WMO
-        
+#    G2Param(2, 0, 1, 13): CFName('snowfall_amount', None, 'kg m-2'), # WMO  
+    G2Param(2, 192, 201, 56): CFName('fog_area_fraction', None, '1'), # 201056
+    G2Param(2, 0, 20, 102): CFName('atmosphere_optical_thickness_due_to_dust_ambient_aerosol', None, '1'), # WMO
     # G2Param(grib version, discipline, parameter category, parameter no, typeOfFirstFixedSurface):
     G2Param(2, 0, 1, 60, 1): CFName(None, 'snow_depth_water_equivalent', 'kg m-2'), # 228141
 #    G2Param(2, 2, 0, 0, 1): CFName(None, 'land_sea_mask', '(0 - 1)'), # 172
@@ -253,6 +256,7 @@ CF_TO_GRIB2 = {
     CFName('precipitation_flux', 'precipitation_rate', 'kg m-2 s-1'): G2Param(2, 0, 1, 7),
     CFName('relative_humidity', None, '%'): G2Param(2, 0, 1, 1),
     CFName('sea_ice_area_fraction', None, '1'): G2Param(2, 10, 2, 0),
+    CFName('sea_ice_thickness', None, 'm'): G2Param(2, 10, 2, 1),
     CFName('sea_surface_temperature', None, 'K'): G2Param(2, 10, 3, 0),
     CFName('sea_water_x_velocity', None, 'm s-1'): G2Param(2, 10, 1, 2),
     CFName('sea_water_y_velocity', None, 'm s-1'): G2Param(2, 10, 1, 3),
@@ -292,6 +296,9 @@ CF_TO_GRIB2 = {
     CFName(None, 'precipitation_minus_evaporation', 'kg m-2 s-1' ): G2Param(2, 192, 151, 158), # 151158
     CFName('rainfall_flux', 'rainfall_rate', 'kg m-2 s-1'): G2Param(2, 0, 1, 65), # 260058
     CFName('atmosphere_boundary_layer_thickness', None, 'm'): G2Param(2, 0, 3, 18), # WMO
+    CFName('fog_area_fraction', None, '1'): G2Param(2, 192, 201, 56), # 201056
+    CFName('atmosphere_optical_thickness_due_to_dust_ambient_aerosol', None, '1'): G2Param(2, 0, 20, 102), # WMO
+#    CFName('snowfall_amount', None, 'kg m-2'): G2Param(2, 0, 1, 13), # WMO  
 
 ##    CFName('surface_downwelling_shortwave_flux_in_air_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 4, 196), #260342
 ##    CFName('surface_upwelling_shortwave_flux_in_air_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 4, 196), #260342
