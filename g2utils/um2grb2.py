@@ -604,7 +604,7 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour', actionIntervals='6 hour'):
     # end of for ti in range(1, len(tmpCube)):
     
     if action == 'mean':
-        meanCube *= (1.0 / float(tlen))
+        meanCube = iris.analysis.maths.divide(meanCube, float(tlen))
         print "Converted cube to %s mean" % actionIntervals
     else:
         print "Converted cube to %s accumulation" % actionIntervals
@@ -616,8 +616,14 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour', actionIntervals='6 hour'):
 
     # get the bounds and time points from two extremes    
     bounds = [timeAxFirst.bounds[0][0], timeAxLast.bounds[-1][-1]]
-    timepoint = [bounds[0] + ((bounds[-1] - bounds[0]) / 2.0)]
-
+    
+    if tmpCube.standard_name in ['moisture_content_of_soil_layer']:
+        ###### JUST KEEP THE BEGINNING OF REFERENCE TIME POINT
+        ###### So that grads able to read it properly. 
+        timepoint = [bounds[0]]
+    else:
+        #### THE CENTRE POINT OF REFERENCE TIME BOUNDS,
+        timepoint = [bounds[-1] + ((bounds[-1] - bounds[0]) / 2.0)]
     # update the time coordinate with new time point and time bounds
     timeAxFirst.points = timepoint
     timeAxFirst.bounds = bounds
@@ -638,12 +644,24 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour', actionIntervals='6 hour'):
         bounds = [fcstAxFirst.bounds[0][1], fcstAxLast.bounds[-1][-1]]
     # end of if tmpCube.standard_name == 'precipitation_amount' and bounds[0] != 0:
     
-    fcstpoint = [bounds[0] + ((bounds[-1] - bounds[0]) / 2.0)]
-
+    
+    #####
+    ####    INSTEAD OF KEEP THE CENTRE POINT OF FORECAST TIME BOUNDS,
+    ####
+    ####
+    ####    fcstpoint = [bounds[0] + ((bounds[-1] - bounds[0]) / 2.0)]
+    ####
+    ###### JUST KEEP THE BEGINNING OF FORECAST TIME POINT
+    ###### So that grads able to read it properly. 
+    
+    if tmpCube.standard_name in ['moisture_content_of_soil_layer']:
+        fcstpoint = [bounds[0]] # make it more generic way of instead of variable wise.
+    else:
+        fcstpoint = [((bounds[-1] - bounds[0]) / 2.0)]
     # update the time coordinate with new fcst time point and fcst time bounds
     fcstAxFirst.points = fcstpoint
     fcstAxFirst.bounds = bounds
-    
+    print fcstpoint, bounds 
     # add the updated fcst time coordinate to the meanCube
     meanCube.add_aux_coord(fcstAxFirst)
 
@@ -844,7 +862,8 @@ def regridAnlFcstFiles(arg):
 
             # interpolate it 0,25 deg resolution by setting up sample points based on coord
             print "\n    Regridding data to 0.25x0.25 deg spatial resolution \n"
-            if __LPRINT__: print "From shape", tmpCube.shape
+            if __LPRINT__: print "From shape", tmpCube.shape            
+            
             try:            
                 # This interpolate will do extra polate over ocean also even 
                 # though original data doesnt have values over ocean and wise versa.
@@ -857,13 +876,7 @@ def regridAnlFcstFiles(arg):
                 print "ALERT !!! Error while regridding!! %s" % str(e)
                 print " So skipping this without saving data"
                 continue
-            # end of try:   
-            print "regrid done"
-            if __LPRINT__: print "To shape", regdCube.shape  
-            
-            # reset the attributes 
-            regdCube.attributes = tmpCube.attributes
-            if __LPRINT__: print "set the attributes back to regdCube"  
+            # end of try:                   
             
             if (varName, varSTASH) not in [('snowfall_flux', 'm01s05i215'),
                           ('precipitation_flux', 'm01s05i216'),
@@ -872,12 +885,24 @@ def regridAnlFcstFiles(arg):
                           ('stratiform_rainfall_amount', 'm01s04i201'),
                           ('convective_rainfall_amount', 'm01s05i201'),
                           ('rainfall_flux', 'm01s05i214'),]:
+                          
+                regdCube.data = numpy.ma.masked_array(regdCube.data)
                 # mask out values less then 1e-15
-                regdCube.data = numpy.ma.masked_less(regdCube.data, 1e-15)
+                regdCube.data = numpy.ma.masked_less(regdCube.data , 1e-10)
                 # mask out values greater than 1e+15
-                regdCube.data = numpy.ma.masked_greater(regdCube.data, 1e+15)
+                regdCube.data  = numpy.ma.masked_greater(regdCube.data , 1e+10)               
+                # http://www.cpc.ncep.noaa.gov/products/wesley/g2grb.html
+                # Says that 9.999e+20 value indicates as missingValue in grib2
+                numpy.ma.set_fill_value(regdCube.data, 9.999e+20)             
             # end of if varName not in ['rainfall_flux', 'precipitation_flux', 'snowfall_flux']:
             
+            print "regrid done", regdCube
+             
+            if __LPRINT__: print "To shape", regdCube.shape  
+                
+            regdCube.attributes = tmpCube.attributes
+            if __LPRINT__: print "set the attributes back to regdCube"  
+
             # make memory free 
             del tmpCube
             
@@ -1050,8 +1075,9 @@ def tweaked_messages(cubeList):
                 # we have to explicitly re-set the type of first surfcae
                 # as tropopause i.e. 7 (WMO standard)
                 gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 7) 
-            # end of if cube.standard_name.startswith('tropopause'):                        
+            # end of if cube.standard_name.startswith('tropopause'):                    
             print "Tweaking end ", cube.standard_name
+            
             yield grib_message
         # end of for cube, grib_message in iris.fileformats.grib.as_pairs(cube):
     # end of for cube in cubeList:
@@ -1333,9 +1359,9 @@ def convertAnlFiles(inPath, outPath, tmpPath, date=time.strftime('%Y%m%d'), hr='
     
     # analysis filenames partial name
     anl_fnames = ['umglca_pb', 'umglca_pd', 'umglca_pe', 'umglca_pf', 'umglca_pi'] 
-    
+
     if hr == '00': anl_fnames.insert(0, 'qwqg00.pp0')
-    
+     
     # get the current date in YYYYMMDD format
     _tmpDir_ = tmpPath
     _current_date_ = date
