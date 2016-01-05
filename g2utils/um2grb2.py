@@ -916,12 +916,22 @@ def regridAnlFcstFiles(arg):
                           ('stratiform_rainfall_amount', 'm01s04i201'),
                           ('convective_rainfall_amount', 'm01s05i201'),
                           ('rainfall_flux', 'm01s05i214'),]:
-                          
+                # For the above set of variables we shouldnot convert into 
+                # masked array. Otherwise its full data goes as nan.
+                
+                # convert data into masked array
                 regdCube.data = numpy.ma.masked_array(regdCube.data)
-                # mask out values less then 1e-15
-                regdCube.data = numpy.ma.masked_less(regdCube.data , 1e-10)
-                # mask out values greater than 1e+15
-                regdCube.data  = numpy.ma.masked_greater(regdCube.data , 1e+10)               
+                
+                if (varName, varSTASH) in [('moisture_content_of_soil_layer', 'm01s08i223'),
+                        ('soil_temperature', 'm01s03i238')]:
+                    # We should mask 1e15 only for these variables!!!
+                    # If do it for other variables, then it maskes even 
+                    # smaller -ve values also.!!! 
+                    # mask out values less then 1e-15
+                    regdCube.data = numpy.ma.masked_less(regdCube.data , 1e-15)
+                    # mask out values greater than 1e+15
+                    regdCube.data  = numpy.ma.masked_greater(regdCube.data , 1e+15)      
+                # end of if ...:         
                 # http://www.cpc.ncep.noaa.gov/products/wesley/g2grb.html
                 # Says that 9.999e+20 value indicates as missingValue in grib2
                 # by default g2ctl.pl generate "undefr 9.999e+20", so we must 
