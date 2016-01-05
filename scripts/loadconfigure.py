@@ -22,6 +22,8 @@ inPath = cdic.get('inPath', None)
 outPath = cdic.get('outPath', None)
 tmpPath = cdic.get('tmpPath', None)
 date = cdic.get('date', 'YYYYMMDD')
+loadg2utils = cdic.get('loadg2utils', 'system')
+debug = cdic.get('debug', False)
 
 # check the variable's path 
 for name, path in [('inPath', inPath), ('outPath', outPath), ('tmpPath', tmpPath)]:
@@ -35,4 +37,6 @@ for name, path in [('inPath', inPath), ('outPath', outPath), ('tmpPath', tmpPath
 # get the current date if not specified
 if date == 'YYYYMMDD': date=time.strftime('%Y%m%d')
 print "date = ", date
+print "loadg2utils = ", loadg2utils
+print "debug = ", debug
 print "Successfully loaded the above params from configure file!"

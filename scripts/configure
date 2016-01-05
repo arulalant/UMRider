@@ -24,4 +24,14 @@ tmpPath = /gpfs4/home/umtid/tmp/um2grb2/logs/
 ## date = YYYYMMDD # then it will execute the scripts for today's date.
 date = YYYYMMDD
 
+## Load g2utils from 'system' python which has installed through setup.py (OR)
+## Load g2utils from 'local' previous directory for the operational purpose, 
+## where normal user don't have write permission to change the g2utils!
+## So loadg2utils argument should be either system (default) or local.  
+loadg2utils = local
+
+## This debug option should be either True or False. This will just print 
+## extra informations like varibles details, shape, execution process, etc.,
+debug = False
+
 ##### END OF SETUP CONFIGURE FOR um2grb2 SCRIPTS ######

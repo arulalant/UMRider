@@ -12,7 +12,22 @@ Date : 07.Dec.2015
 import os, sys
 from g2utils.um2grb2 import convertFcstFiles
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-from loadconfigure import inPath, outPath, tmpPath, date
+from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, debug
+
+if loadg2utils == 'system':
+    # Load g2utils from system python which has installed through setup.py
+    from g2utils.um2grb2 import convertAnlFiles
+    print "INFO : imported g2utils.um2grb2 from system python"
+elif loadg2utils == 'local':
+    # Load g2utils from previous directory for the operational purpose, 
+    # where normal user don't have write permission to change the g2utils!
+    g2utils_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                                            '../g2utils'))
+    sys.path.append(g2utils_path)
+    from um2grb2 import convertAnlFiles
+    print "INFO : imported g2utils.um2grb2 from local previous directory"
+    print "loaded from g2utils_path : ", g2utils_path
+
     
 ### call forecast conversion function w.r.t data assimilated at 00z long forecast hour.
-convertFcstFiles(inPath, outPath, tmpPath, date, hr='00')
+convertFcstFiles(inPath, outPath, tmpPath, date, hr='00', lprint=debug)
