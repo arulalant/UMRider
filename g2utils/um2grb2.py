@@ -1354,9 +1354,14 @@ def convertFilesInParallel(fnames, ftype):
 # end of def convertFilesInParallel(fnames):
 
 
-def convertFcstFiles(inPath, outPath, tmpPath, date=time.strftime('%Y%m%d'), hr='00'):
+def convertFcstFiles(inPath, outPath, tmpPath, date=time.strftime('%Y%m%d'), 
+                                                      hr='00', lprint=False):
        
-    global _targetGrid_, _current_date_, _startT_, _tmpDir_, _inDataPath_, _opPath_
+    global _targetGrid_, _current_date_, _startT_, _tmpDir_, \
+            _inDataPath_, _opPath_, __LPRINT__
+    
+    # set print variables details options
+    __LPRINT__ = lprint
     
     # forecast filenames partial name
     fcst_fnames = ['umglaa_pb','umglaa_pd', 'umglaa_pe', 'umglaa_pf', 'umglaa_pi'] 
@@ -1397,10 +1402,14 @@ def convertFcstFiles(inPath, outPath, tmpPath, date=time.strftime('%Y%m%d'), hr=
 # end of def convertFcstFiles(...):
 
 
-def convertAnlFiles(inPath, outPath, tmpPath, date=time.strftime('%Y%m%d'), hr='00'):
+def convertAnlFiles(inPath, outPath, tmpPath, date=time.strftime('%Y%m%d'), 
+                                                     hr='00', lprint=False):
        
-    global _targetGrid_, _current_date_, _startT_, _tmpDir_, _inDataPath_, _opPath_
+    global _targetGrid_, _current_date_, _startT_, _tmpDir_, \
+                _inDataPath_, _opPath_, __LPRINT__
     
+    # set print variables details options
+    __LPRINT__ = lprint
     # analysis filenames partial name
     anl_fnames = ['umglca_pb', 'umglca_pd', 'umglca_pe', 'umglca_pf', 'umglca_pi']  
 
