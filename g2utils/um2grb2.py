@@ -260,13 +260,13 @@ def __getTodayOrYesterdayInfile__(ipath, fname):
     
     if hr in ['06', '12', '18']:
         hr = str(int(hr) - 6).zfill(2)
-        print "Taken analysis past 6 hour data", hr
+        print "Taken analysis past 6 hour data", hr, fname
     elif hr == '00':           
         # actually it returns yesterday's date.
         today_date = getYdayStr(today_date)
         # set yesterday's 18z hour.
         hr = '18'
-        print "Taken analysis yesterday's date and 18z hour", today_date
+        print "Taken analysis yesterday's date and 18z hour", today_date, fname 
     else:
         raise ValueError("hour %s method not implemented" % hr)
     # end of if hr in ['06', '12', '18']:            
@@ -280,7 +280,6 @@ def __getTodayOrYesterdayInfile__(ipath, fname):
     infile = os.path.join(ipath, fname)  
     return infile
 # end of def __getTodayOrYesterdayInfile__(ipath):
-
 
 # start definition #2
 def getVarInOutFilesDetails(inDataPath, fname, hr):
@@ -453,6 +452,10 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # but we need to make only every 6th hourly average or accumutated.
         fcstHours = numpy.array([(1, 5)])
         do6HourlyMean = True
+        # get the updated infile w.r.t analysis 00 simulated_hr or 06,12,18hr
+        # needed for moisture_content_of_soil_layer, but for soil_temperature
+        # we need to get current simulated_hr. WE FIXED THAT before extract it
+        infile = __getTodayOrYesterdayInfile__(inDataPath, fname)
         
     ##### ANALYSIS FILE END
     
@@ -583,13 +586,16 @@ def getCubeAttr(tmpCube):
 # end of definition #3
 
 # start definition #4
-def cubeAverager(tmpCube, action='mean', dt='1 hour', actionIntervals='6 hour'):
+def cubeAverager(tmpCube, action='mean', dt='1 hour', 
+                actionIntervals='6 hour', tpoint='cbound', fpoint='cbound'):
     """
     This module was added by AAT to return a data variable depending on the nature of the field.
     :param tmpCube:     The temporary cube data (in Iris format) with non-singleton time dimension
     :param action:      mean| sum (accumulated fields are summed and instantaneous are averaged).
     :param dt:   A standard string representing forecast step duration/intervals.
     :param actionIntervals: A non standard string to add inside cell_methods comments section.
+    :param tpoint: cbound | lbound | rbound time point 
+    :param fpoint: cbound | lbound | rbound forecast period
     :return: meanCube:  An Iris formatted cube date containing the resultant data either as
                         averaged or summed.
     ACK:
@@ -617,13 +623,17 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour', actionIntervals='6 hour'):
     # get the bounds and time points from two extremes    
     bounds = [timeAxFirst.bounds[0][0], timeAxLast.bounds[-1][-1]]
     
-    if tmpCube.standard_name in ['moisture_content_of_soil_layer']:
-        ###### JUST KEEP THE BEGINNING OF REFERENCE TIME POINT
-        ###### So that grads able to read it properly. 
-        timepoint = [bounds[0]]
-    else:
-        #### THE CENTRE POINT OF REFERENCE TIME BOUNDS,
+    if tpoint == 'cbound':
+        #### THE CENTRE POINT OF REFERENCE TIME BOUNDS
         timepoint = [bounds[-1] + ((bounds[-1] - bounds[0]) / 2.0)]
+    elif tpoint == 'lbound':
+       ###### THE START BOUNDS OF REFERENCE TIME POINT
+        timepoint = [bounds[0]]        
+    elif tpoint == 'rbound':    
+        ###### THE END BOUNDS OF REFERENCE TIME POINT
+        timepoint = [bounds[-1]]   
+    # end of if tpoint == 'cbound':
+        
     # update the time coordinate with new time point and time bounds
     timeAxFirst.points = timepoint
     timeAxFirst.bounds = bounds
@@ -642,26 +652,23 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour', actionIntervals='6 hour'):
         # this change is required only for this varibale, since its hourly
         # accumulation, which we converting to 6-hourly accumulation.
         bounds = [fcstAxFirst.bounds[0][1], fcstAxLast.bounds[-1][-1]]
-    # end of if tmpCube.standard_name == 'precipitation_amount' and bounds[0] != 0:
+    # end of if ...:    
     
+    if fpoint == 'cbound':
+        #### THE CENTRE POINT OF FORECAST TIME BOUNDS
+        fcstpoint = [bounds[0] + ((bounds[-1] - bounds[0]) / 2.0)]
+    elif fpoint == 'lbound':           
+        ###### THE START BOUNDS OF FORECAST TIME POINT
+        fcstpoint = [bounds[0]]         
+    elif fpoint == 'rbound':           
+        ###### THE END BOUNDS OF FORECAST TIME POINT
+        fcstpoint = [bounds[-1]] 
+    # end of if fpoint == 'cbound':   
     
-    #####
-    ####    INSTEAD OF KEEP THE CENTRE POINT OF FORECAST TIME BOUNDS,
-    ####
-    ####
-    ####    fcstpoint = [bounds[0] + ((bounds[-1] - bounds[0]) / 2.0)]
-    ####
-    ###### JUST KEEP THE BEGINNING OF FORECAST TIME POINT
-    ###### So that grads able to read it properly. 
-    
-    if tmpCube.standard_name in ['moisture_content_of_soil_layer']:
-        fcstpoint = [bounds[0]] # make it more generic way of instead of variable wise.
-    else:
-        fcstpoint = [((bounds[-1] - bounds[0]) / 2.0)]
     # update the time coordinate with new fcst time point and fcst time bounds
     fcstAxFirst.points = fcstpoint
     fcstAxFirst.bounds = bounds
-    print fcstpoint, bounds 
+
     # add the updated fcst time coordinate to the meanCube
     meanCube.add_aux_coord(fcstAxFirst)
 
@@ -683,8 +690,6 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour', actionIntervals='6 hour'):
                                      
     # add cell_methods to the meanCube                                     
     meanCube.cell_methods = (cm,)
-
-    print meanCube
 
     # make memory free
     del tmpCube
@@ -749,11 +754,6 @@ def regridAnlFcstFiles(arg):
         return  
     # end of if not os.path.isfile(fname): 
     
-    if fpname.startswith('umglaa'):
-        dtype = 'fcst' 
-    elif fpname.startswith(('umglca', 'qwqg00')):
-        dtype = 'ana'
-    # end of if fpname.startswith('umglaa'):
     
     print "Started Processing the file: %s.. \n" %infile
     
@@ -762,6 +762,33 @@ def regridAnlFcstFiles(arg):
     nVars = len(cubes)
     simulated_hr = int(infile.split('/')[-2])
     if __LPRINT__: print "simulated_hr = ", simulated_hr
+    print "simulated_hr = ", simulated_hr
+    
+    if fpname.startswith('umglaa'):
+        dtype = 'fcst' 
+    elif fpname.startswith(('umglca', 'qwqg00')):
+        dtype = 'ana'
+    # end of if fpname.startswith('umglaa'):
+    #####
+    ### setting timebound, fcstbound as 'centre' bounds, will not affect
+    ### in g2ctl.pl because it uses flag -verf by default which will set 
+    ### access time point as end bound time. 
+    timebound = 'cbound'            # TESTED, OK, on 05-01-2016
+    fcstbound = 'cbound'            # TESTED, OK, on 05-01-2016
+    if dtype == 'fcst':        
+        ### But if we want to set access time point as per out file hour's
+        ### ref time, then we can enable the following options. otherwise 
+        ### diable it, because 'cbound' will works for ctl file.
+        timebound = 'rbound'        # TESTED, OK, on 05-01-2016
+        fcstbound = 'rbound'        # TESTED, OK, on 05-01-2016
+    elif dtype == 'ana':        
+        ### But if we want to set access time point as per out file hour's
+        ### ref time, then we can enable the following options. otherwise 
+        ### diable it, because 'cbound' will works for ctl file.
+        timebound = 'rbound'        # TESTED, OK, on 05-01-2016
+        fcstbound = 'lbound'        # TESTED, OK, on 05-01-2016
+    # end of if dtype == 'fcst':
+    
     # open for-loop-1 -- for all the variables in the cube
     for varName, varSTASH in varNamesSTASH:
         # define variable name constraint
@@ -780,16 +807,20 @@ def regridAnlFcstFiles(arg):
         if (varName, varSTASH) == ('soil_temperature', 'm01s03i238'):
             # Within pi file, this variable has instantaneous time point,
             # rest of other variables in pi file are 3-hr averaged.
-            # get an instantaneous forecast time for soil_temperature.
-            if dtype == 'ana':                
-                fcstHours -= 1  # adjust fcst hour by subtract 1  
-                idx = 0         # get first time in tuple 
+            # get an instantaneous forecast time for soil_temperature. 
+            if dtype == 'ana':
+                ana_soil_infile = os.path.join(_inDataPath_, fileName)
+                cubes = getCubeData(ana_soil_infile)   
+                simulated_hr = int(ana_soil_infile.split('/')[-2])                
+                # get instantaneous forecast hours to be extracted.
+                fcstHours = numpy.array([0,])
+                print "soil_temperature loaded from file, ", ana_soil_infile
+                print "simulated_hr = ", simulated_hr
             elif dtype == 'fcst':
                 fcstHours += 1  # adjust fcst hour by add 1
                 idx = 1         # get second time in tuple 
-            # end of if dtype == 'ana':
-            # get instantaneous forecast hours to be extracted.
-            fcstHours = numpy.array([fhr[idx] for fhr in fcstHours])
+                # get instantaneous forecast hours to be extracted.
+                fcstHours = numpy.array([fhr[idx] for fhr in fcstHours])
         # end of if (varName, varSTASH) == ('soil_temperature', 'm01s03i238'):
         
         if (varName, varSTASH) == ('precipitation_amount', 'm01s05i226'):
@@ -814,11 +845,11 @@ def regridAnlFcstFiles(arg):
                 # the cube contains data of every 1-hourly accumutated.
                 # but we need to make only every 6th hourly accumutated.
                 fcstHours = numpy.array([(1, 2, 3, 4, 5, 6)])
-                ana_infile = __getTodayOrYesterdayInfile__(_inDataPath_, fileName)    
-                if ana_infile != infile: 
-                    cubes = getCubeData(ana_infile)   
-                    simulated_hr = int(ana_infile.split('/')[-2])
-                    print "precipitation_amount loaded from file, ", ana_infile
+                ana_precip_infile = __getTodayOrYesterdayInfile__(_inDataPath_, fileName)    
+                if ana_precip_infile != infile: 
+                    cubes = getCubeData(ana_precip_infile)   
+                    simulated_hr = int(ana_precip_infile.split('/')[-2])
+                    print "precipitation_amount loaded from file, ", ana_precip_infile
                     print "simulated_hr = ", simulated_hr
                 # end of if ana_infile != infile:               
         # end of if (varName, varSTASH) == ('precipitation_amount', 'm01s05i226'):
@@ -832,7 +863,6 @@ def regridAnlFcstFiles(arg):
             # grab the variable which is f(t,z,y,x)
             # tmpCube corresponds to each variable for the SYNOP hours
             if __LPRINT__: print "extract start", infile, fhr, varName
-            
             # get the varibale iris cube by applying variable name constraint, 
             # variable name, stash code, forecast_reference_time constraints
             # and forecast hour constraint
@@ -857,7 +887,8 @@ def regridAnlFcstFiles(arg):
                 # '1 hour' to dt intervals argument. 
                 if __LPRINT__: print "action = ", action
                 tmpCube = cubeAverager(tmpCube, action, dt='1 hour', 
-                                            actionIntervals='6 hour')            
+                                           actionIntervals='6 hour', 
+                                  tpoint=timebound, fpoint=fcstbound)            
             # end of if do6HourlyMean and tmpCube.coords('forecast_period')[0].shape[0] > 1:     
 
             # interpolate it 0,25 deg resolution by setting up sample points based on coord
@@ -893,10 +924,12 @@ def regridAnlFcstFiles(arg):
                 regdCube.data  = numpy.ma.masked_greater(regdCube.data , 1e+10)               
                 # http://www.cpc.ncep.noaa.gov/products/wesley/g2grb.html
                 # Says that 9.999e+20 value indicates as missingValue in grib2
+                # by default g2ctl.pl generate "undefr 9.999e+20", so we must 
+                # keep the fill_value / missingValue as 9.999e+20 only.
                 numpy.ma.set_fill_value(regdCube.data, 9.999e+20)             
             # end of if varName not in ['rainfall_flux', 'precipitation_flux', 'snowfall_flux']:
             
-            print "regrid done", regdCube
+            print "regrid done"
              
             if __LPRINT__: print "To shape", regdCube.shape  
                 
@@ -1317,6 +1350,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, date=time.strftime('%Y%m%d'), hr=
     
     # forecast filenames partial name
     fcst_fnames = ['umglaa_pb','umglaa_pd', 'umglaa_pe', 'umglaa_pf', 'umglaa_pi'] 
+
     # get the current date in YYYYMMDD format
     _tmpDir_ = tmpPath
     _current_date_ = date
@@ -1358,10 +1392,10 @@ def convertAnlFiles(inPath, outPath, tmpPath, date=time.strftime('%Y%m%d'), hr='
     global _targetGrid_, _current_date_, _startT_, _tmpDir_, _inDataPath_, _opPath_
     
     # analysis filenames partial name
-    anl_fnames = ['umglca_pb', 'umglca_pd', 'umglca_pe', 'umglca_pf', 'umglca_pi'] 
+    anl_fnames = ['umglca_pb', 'umglca_pd', 'umglca_pe', 'umglca_pf', 'umglca_pi']  
 
     if hr == '00': anl_fnames.insert(0, 'qwqg00.pp0')
-     
+
     # get the current date in YYYYMMDD format
     _tmpDir_ = tmpPath
     _current_date_ = date
