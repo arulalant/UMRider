@@ -24,6 +24,7 @@ tmpPath = cdic.get('tmpPath', None)
 date = cdic.get('date', 'YYYYMMDD')
 loadg2utils = cdic.get('loadg2utils', 'system')
 debug = cdic.get('debug', False)
+debug = True if debug == 'True' else False
 
 # check the variable's path 
 for name, path in [('inPath', inPath), ('outPath', outPath), ('tmpPath', tmpPath)]:
