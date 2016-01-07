@@ -988,7 +988,7 @@ def regridAnlFcstFiles(arg):
                 # in the cube attributes. By default iris-1.9 will not 
                 # support to handle soil_model_level_number, so we need to 
                 # tweak it by following way.
-                soil_model_level_number = regdCube.coords('soil_model_level_number')[0]
+                depth_below_land_surface = regdCube.coords('soil_model_level_number')[0]
                 # Dr. Saji / UM_Model_DOC suggested that UM produce soil model
                 # level number is equivalent to 10cm, 35cm, 1m & 2m. 
                 # So we kept here unit as 'cm'. But points are muliplied by
@@ -998,17 +998,18 @@ def regridAnlFcstFiles(arg):
                 # be able to read as 0.1 m, 0.35m, 1m & 2m. Iris will convert 
                 # cm to m while saving into grib2 file. So we must follow 
                 # this procedure to get correct results.
-                soil_model_level_number.points = numpy.array([1000, 3500, 10000, 20000])
-                soil_model_level_number.units = Unit('cm')
-                if __LPRINT__: print "soil_model_level_number", soil_model_level_number
+                depth_below_land_surface.points = numpy.array([1000, 3500, 10000, 20000])
+                depth_below_land_surface.units = Unit('cm')
+                depth_below_land_surface.long_name = 'depth_below_land_surface'
+                if __LPRINT__: print "depth_below_land_surface", depth_below_land_surface
                 # We need to save this variable into nc file, why because
                 # if we saved into grib2 and then re-read it while re-ordering
                 # variables, iris couldnt load variables with 
-                # soil_model_level_number properly. We need to touch the 
+                # depth_below_land_surfacer properly. We need to touch the 
                 # _load_rules. So for timebeing, we saved it as seperate nc 
                 # file. In iris-1.9 we couldnt append more variables into 
                 # nc file. so we saved into muliple individual nc files, only
-                # those who have soil_model_level_number and will be deleted
+                # those who have depth_below_land_surface and will be deleted
                 # after inserted properly into orderd grib2 files.
                 outFn = varSTASH + '_'+ ofname + '.nc'
                 ncfile = True
@@ -1092,15 +1093,15 @@ def tweaked_messages(cubeList):
                 gribapi.grib_set(grib_message, "typeOfTimeIncrement", 2)           
                 print 'reset typeOfTimeIncrement as 2 for', cube.standard_name
             # end of if cube.coord("forecast_period").bounds is not None:
-            if cube.coords('soil_model_level_number'):
+            if cube.coords('depth_below_land_surface'):
                 # scaleFactorOfFirstFixedSurface as 2, equivalent to divide
-                # the soil_model_level_number.points by 100. So that we can 
+                # the depth_below_land_surface.points by 100. So that we can 
                 # be sure that grib2 has 0.1m, 0.35m, 1m & 2m. Otherwise, we 
                 # will endup with 0m, 0m, 1m & 2m and finally will loose 
                 # information about decimal values of levels.
                 gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 2)
                 print "reset scaleFactorOfFirstFixedSurface as 2"
-            # end of if cube.coords('soil_model_level_number'):   
+            # end of if cube.coords('depth_below_land_surface'):   
             if cube.coords('height'):                
                 # scaleFactorOfFirstFixedSurface as 1, equivalent to divide
                 # the height.points by 10. So that we can be sure that grib2

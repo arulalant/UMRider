@@ -671,11 +671,11 @@ def set_fixed_surfaces(cube, grib):
         output_unit = cf_units.Unit("m")
         v_coord = cube.coord("height")
 
-    # soil_model_level_number	##EDIT
-    elif cube.coords("soil_model_level_number"):
+    # soil_model_level_number	##EDIT    
+    elif cube.coords("depth_below_land_surface"):
         grib_v_code = 106
         output_unit = cf_units.Unit("m")
-        v_coord = cube.coord("soil_model_level_number")
+        v_coord = cube.coord("depth_below_land_surface")
 
     elif cube.coords("air_potential_temperature"):
         grib_v_code = 107
