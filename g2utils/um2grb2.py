@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
-__author__ = 'raghav, arulalant'
-__version__ = 'v6.0'
-__release_version__ = 'v1.0b'
-__release_name__ = 'beta'
+__author__ = 'arulalant, raghav'
+__version__ = 'v1.0'
+__release_name__ = 'UM Parallel Rider'
 
 """
 What does this code piece do?
