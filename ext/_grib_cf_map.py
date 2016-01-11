@@ -179,8 +179,10 @@ GRIB2_TO_CF = {
     #WMO need to set surface level type as toa (Nominal top of the atmosphere, 8)
     G2Param(2, 0, 5, 4, 8): CFName('toa_outgoing_longwave_flux', None, 'W m-2'),   # WMO
     G2Param(2, 0, 4, 8, 8): CFName('toa_outgoing_shortwave_flux', None, 'W m-2'),  # WMO    
-    G2Param(2, 0, 4, 11, 8): CFName('toa_outgoing_shortwave_flux_assuming_clear_sky', None, 'W m-2'), # WMO
-    G2Param(2, 0, 5, 6, 8): CFName('toa_outgoing_longwave_flux_assuming_clear_sky', None, 'W m-2'), # WMO
+    
+    G2Param(2, 0, 4, 198): CFName('toa_outgoing_shortwave_flux_assuming_clear_sky', None, 'W m-2'), # NCEP
+    G2Param(2, 0, 5, 195): CFName('toa_outgoing_longwave_flux_assuming_clear_sky', None, 'W m-2'), # NCEP
+    
 #    G2Param(2, 0, 4, 7, 8): CFName('toa_incoming_shortwave_flux', None, 'W m-2'), # WMO
      # the above one gets conflicts with surface_downwelling_shortwave_flux_in_air while loading from iris, because of same key in this dictionary (we didnt implement typeOfFirstFixedSurface in grib1_phenom_to_cf_info)
     
@@ -309,9 +311,9 @@ CF_TO_GRIB2 = {
     #WMO need to set surface level type as toa (Nominal top of the atmosphere, 8)
     CFName('toa_outgoing_longwave_flux', None, 'W m-2'): G2Param(2, 0, 5, 4, 8),  # WMO
     CFName('toa_outgoing_shortwave_flux', None, 'W m-2'): G2Param(2, 0, 4, 8, 8), # WMO    
-    CFName('toa_outgoing_shortwave_flux_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 4, 11, 8), #WMO
-    CFName('toa_outgoing_longwave_flux_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 5, 6, 8), #WMO
-    CFName('toa_incoming_shortwave_flux', None, 'W m-2'): G2Param(2, 0, 4, 7, 8), # WMO
+    CFName('toa_outgoing_shortwave_flux_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 4, 11, 8), #WMO    
+    CFName('toa_outgoing_shortwave_flux_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 4, 198), # NCEP
+    CFName('toa_outgoing_longwave_flux_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 5, 195), # NCEP
     
     #WMO need to set  surface level type as tropopause (7)
     CFName('tropopause_air_pressure', None, 'Pa'): G2Param(2, 0, 3, 0, 7), # WMO
