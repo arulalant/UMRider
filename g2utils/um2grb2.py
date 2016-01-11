@@ -2,7 +2,7 @@
 
 __author__ = 'arulalant, raghav'
 __version__ = 'v1.0'
-__release_name__ = 'UM Parallel Rider'
+__long_name__ = 'NCUM Parallel Rider'
 
 """
 What does this code piece do?
@@ -160,6 +160,9 @@ _orderedVars_ = {'PressureLevel': [
 ('surface_downwelling_longwave_flux', 'm01s02i207'),
 ('surface_net_downward_longwave_flux', 'm01s02i201'), 
 ('moisture_content_of_soil_layer', 'm01s08i223'),
+## though moisture_content_of_soil_layer and volumetric_moisture_of_soil_layer
+## has same STASH code, but we must include seperate entry here.
+('volumetric_moisture_of_soil_layer', 'm01s08i223'),
 ('soil_temperature', 'm01s03i238'),  
 #('atmosphere_optical_thickness_due_to_dust_ambient_aerosol', #forecast hour extract is not working!
 #                                                    'm01s02i422'),
@@ -193,7 +196,9 @@ _accumulationVars_ = ['stratiform_snowfall_amount',
 ## nc file also wont be problem to load cf_standard_name into cube and 
 ## followed by storing into grib2 file. All because we need to write variables
 ## in the way we need (i.e. ordered always)!!
-_ncfilesVars_ = [('moisture_content_of_soil_layer', 'm01s08i223'),
+_ncfilesVars_ = [('volumetric_moisture_of_soil_layer', 'm01s08i223'), 
+        # 'moisture_content_of_soil_layer' renamed as  
+        # 'volumetric_moisture_of_soil_layer', but same STASH m01s08i223 code.
                  ('soil_temperature', 'm01s03i238'),
                  ('toa_incoming_shortwave_flux', 'm01s01i207'),
                  ('tropopause_altitude', 'm01s30i453'),
@@ -993,14 +998,63 @@ def regridAnlFcstFiles(arg):
                 # So we kept here unit as 'cm'. But points are muliplied by
                 # 100 with its  corresponding cm values. Why because, that 
                 # 100 will be factorized (divied) in grib_message by setting 
+                # scaleFactorOfFirstFixedSurface as 2 and 
                 # scaleFactorOfFirstFixedSurface as 2. So that in grib2 will
                 # be able to read as 0.1 m, 0.35m, 1m & 2m. Iris will convert 
                 # cm to m while saving into grib2 file. So we must follow 
                 # this procedure to get correct results.
                 depth_below_land_surface.points = numpy.array([1000, 3500, 10000, 20000])
+                # we must set the bounds in vertical depths, since we required
+                # to mention the four different layers depth properly.
+                depth_below_land_surface.bounds = numpy.array([[0, 1000], 
+                                   [1000, 3500], [3500,10000],[10000,20000]])
                 depth_below_land_surface.units = Unit('cm')
                 depth_below_land_surface.long_name = 'depth_below_land_surface'
                 if __LPRINT__: print "depth_below_land_surface", depth_below_land_surface
+                
+                if regdCube.standard_name == 'moisture_content_of_soil_layer':
+                    #### Lets convert moisture_content_of_soil_layer into 
+                    ##  volumetric_moisture_of_soil_layer by divide each layer 
+                    ## with its layer depth in mm.
+                    ## Unit also gets changed from Kg/m2 into m3/m3. How ?
+                    ## voulumetric_soil_moisture = moisture_content_of_soil_layer / (density_of_water x depth_of_soil_layer)
+                    ## density_of_water is 1000 Kg/m3
+                    ## depth_of_soil_layer of first layer from 0 to 10 cm = 10/100 m
+                    ## depth_of_soil_layer of first layer from 10 to 35 cm = 25/100 m
+                    ## depth_of_soil_layer of first layer from 35 to 100 cm = 65/100 m
+                    ## depth_of_soil_layer of first layer from 100 to 200 cm = 100/100 m
+                    
+                    ## So if we apply the above values of density 1000 Kg/m3 
+                    ## & depth in meter in the denominator of voulumetric_soil_moisture
+                    ## equavation, we will endup with just divide first layer 
+                    ## by 100, second layer by 250, third layer by 650 and 
+                    ## fourth layer by 1000.
+                    
+                    ## By this way, we converted moisture_content_of_soil_layer 
+                    ## from Kg/m2 into voulumetric_soil_moisture_of_layer m3/m3.
+                    
+                    ## Reference : "Comparison of the Met Office soil moisture
+                    ## analyses with SMOS retrievals (2010-2011)", MARCH 2013.
+                    
+                    ## Link : http://www.researchgate.net/publication/257940913
+                    
+                    for idx, dval in enumerate([100.0, 250.0, 650.0, 1000.0]):
+                        regdCube.data[idx] /= dval
+                    # end of for idx, denominator in enumerate([...]):
+                    print "converted to volumetric"
+                    
+                    # update the units as m3 / m3
+                    regdCube.units = Unit('m3 m-3')
+                    # make sure that standard_name as None, so that it will  
+                    # not messup with units while writing as grib2. 
+                    regdCube.standard_name = None
+                    # set long name as volumetric_moisture_of_soil_layer, 
+                    # though its not standard cf name, I made it as 
+                    # understandable long name which points into volumetirc 
+                    # grib2 param code in _grib_cf_map.py.
+                    regdCube.long_name = 'volumetric_moisture_of_soil_layer'
+                # end of if regdCube.standard_name == 'moisture_content_of_soil_layer':                
+                
                 # We need to save this variable into nc file, why because
                 # if we saved into grib2 and then re-read it while re-ordering
                 # variables, iris couldnt load variables with 
@@ -1099,7 +1153,9 @@ def tweaked_messages(cubeList):
                 # will endup with 0m, 0m, 1m & 2m and finally will loose 
                 # information about decimal values of levels.
                 gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 2)
+                gribapi.grib_set(grib_message, "scaleFactorOfSecondFixedSurface", 2)
                 print "reset scaleFactorOfFirstFixedSurface as 2"
+                print "reset scaleFactorOfSecondFixedSurface as 2"
             # end of if cube.coords('depth_below_land_surface'):   
             if cube.coords('height'):                
                 # scaleFactorOfFirstFixedSurface as 1, equivalent to divide
@@ -1109,16 +1165,18 @@ def tweaked_messages(cubeList):
                 gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 1)
                 print "reset scaleFactorOfFirstFixedSurface as 1"                
             # end of if cube.coords('height'):   
-            if cube.standard_name.startswith('toa'):
-                # we have to explicitly re-set the type of first surfcae
-                # as Nominal top of the atmosphere i.e. 8 (WMO standard)
-                gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 8) 
-            # end of if cube.standard_name.startswith('toa'): 
-            if cube.standard_name.startswith('tropopause'):
-                # we have to explicitly re-set the type of first surfcae
-                # as tropopause i.e. 7 (WMO standard)
-                gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 7) 
-            # end of if cube.standard_name.startswith('tropopause'):                    
+            if cube.standard_name:
+                if cube.standard_name.startswith('toa'):
+                    # we have to explicitly re-set the type of first surfcae
+                    # as Nominal top of the atmosphere i.e. 8 (WMO standard)
+                    gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 8) 
+                # end of if cube.standard_name.startswith('toa'): 
+                if cube.standard_name.startswith('tropopause'):
+                    # we have to explicitly re-set the type of first surfcae
+                    # as tropopause i.e. 7 (WMO standard)
+                    gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 7) 
+                # end of if cube.standard_name.startswith('tropopause'):  
+            # end of if cube.standard_name:                  
             print "Tweaking end ", cube.standard_name
             
             yield grib_message
@@ -1150,19 +1208,28 @@ def doShuffleVarsInOrder(fpath):
         return 
     # end of try:
     # get only the pressure coordinate variables
-    unOrderedPressureLevelVars = [i for i in f if len(i.coords('pressure')) == 1]
+    unOrderedPressureLevelVarsList = [i for i in f if len(i.coords('pressure')) == 1]
     # get only the non pressure coordinate variables
-    unOrderedNonPressureLevelVars = list(set(f) - set(unOrderedPressureLevelVars))
+    unOrderedNonPressureLevelVarsList = list(set(f) - set(unOrderedPressureLevelVarsList))
     
     # generate dictionary (standard_name, STASH) as key and cube variable as value
-    unOrderedPressureLevelVars = {i.standard_name: i for i in unOrderedPressureLevelVars}
-    unOrderedNonPressureLevelVars = {i.standard_name: i for i in unOrderedNonPressureLevelVars}
+    unOrderedPressureLevelVars = {}
+    for i in unOrderedPressureLevelVarsList:
+        name = i.standard_name if i.standard_name else i.long_name
+        unOrderedPressureLevelVars[name] = i
+        
+    unOrderedNonPressureLevelVars = {}
+    for i in unOrderedNonPressureLevelVarsList:
+        name = i.standard_name if i.standard_name else i.long_name
+        unOrderedNonPressureLevelVars[name] = i   
     
     # need to store the ordered variables in this empty list
     orderedVars = []
     for varName, STASH in _orderedVars_['PressureLevel']:
         if varName in unOrderedPressureLevelVars: orderedVars.append(unOrderedPressureLevelVars[varName])
     # end of for name, STASH in _orderedVars_['PressureLevel']:
+    
+    
     
     ncloaddic = {}
     ncloadedfiles = []
