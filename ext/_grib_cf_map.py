@@ -130,6 +130,7 @@ GRIB2_TO_CF = {
     G2Param(2, 2, 0, 2): CFName('soil_temperature', None, 'K'),
     G2Param(2, 2, 0, 7): CFName('surface_altitude', None, 'm'),
     G2Param(2, 2, 3, 20): CFName('moisture_content_of_soil_layer', None, 'kg m-2'),
+    G2Param(2, 2, 0, 25): CFName(None, 'volumetric_moisture_of_soil_layer', 'm3 m-3'),
     G2Param(2, 2, 0, 34): CFName('surface_runoff_flux', None, 'kg m-2 s-1'),
     G2Param(2, 10, 1, 2): CFName('sea_water_x_velocity', None, 'm s-1'),
     G2Param(2, 10, 1, 3): CFName('sea_water_y_velocity', None, 'm s-1'),
@@ -253,6 +254,7 @@ CF_TO_GRIB2 = {
     CFName('low_type_cloud_area_fraction', None, '%'): G2Param(2, 0, 6, 3),
     CFName('medium_type_cloud_area_fraction', None, '%'): G2Param(2, 0, 6, 4),
     CFName('moisture_content_of_soil_layer', None, 'kg m-2'): G2Param(2, 2, 3, 20),
+    CFName(None, 'volumetric_moisture_of_soil_layer', 'm3 m-3'): G2Param(2, 2, 0, 25), 
     CFName('precipitation_flux', 'precipitation_rate', 'kg m-2 s-1'): G2Param(2, 0, 1, 7),
     CFName('relative_humidity', None, '%'): G2Param(2, 0, 1, 1),
     CFName('sea_ice_area_fraction', None, '1'): G2Param(2, 10, 2, 0),
@@ -287,7 +289,7 @@ CF_TO_GRIB2 = {
     CFName(None, 'density', 'kg m-3'): G2Param(2, 0, 3, 10), # 3089
     CFName('visibility_in_air', None, 'm'): G2Param(2, 0, 19, 0), # 3020   
     CFName('precipitation_amount', None, 'kg m-2'): G2Param(2, 0, 1, 8), # 228228
-    CFName(None, 'soil_moisture_content', 'kg m-2'): G2Param(2, 2, 0, 3), # 3086    
+    CFName(None, 'soil_moisture_content', 'kg m-2'): G2Param(2, 2, 0, 3), # 3086        
     CFName('sea_water_potential_temperature', 'ocean_potential_temperature', 'C'): G2Param(2, 192, 150, 129), # 150129
     CFName('sea_water_salinity', 'ocean_salinity', '1e-3'): G2Param(2, 192, 150, 130), # 150130
     CFName('ocean_mixed_layer_thickness', 'mixed_layer_depth', 'm'): G2Param(2, 0, 19, 3), # 3067
