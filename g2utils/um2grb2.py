@@ -1073,7 +1073,6 @@ def regridAnlFcstFiles(arg):
                 outFn = varSTASH + '_'+ ofname + '.nc'
                 ncfile = True
             # end of if regdCube.coords('soil_model_level_number'):
-            
             if regdCube.coords('height'):
                 # Get height coords from the cube.
                 # We need to update this variable, which will be replicated
@@ -1081,13 +1080,11 @@ def regridAnlFcstFiles(arg):
                 # support to handle height as floating point, so we need to 
                 # tweak it by following way.
                 height = regdCube.coords('height')[0]
-                height.points = height.points * 10
+                height.points = round(height.points)    
                 height.units = Unit('m')   
-                # Now we updated the cube height coords from 1.5 metre into 
-                # 15 meter. while re-ordering / saving to final grib2 file, 
-                # we need to tweaked_messages by setting the 
-                # scaleFactorOfFirstFixedSurface as 1 (i.e divied by 10)
-                # So that in grib2 we will have 1.5 metre instead of 1 meter.
+                # convert 1.5 height into 2 m height, so that WRF able to 
+                # read it!? WRF-WPS required certain field's height must be 
+                # either 2m or 10m. WRF unable to read float point height :-( 
             # end of if regdCube.coords('height'):
                 
             if (varName, varSTASH) in _ncfilesVars_:
@@ -1164,15 +1161,7 @@ def tweaked_messages(cubeList):
                 gribapi.grib_set(grib_message, "scaleFactorOfSecondFixedSurface", 2)
                 print "reset scaleFactorOfFirstFixedSurface as 2"
                 print "reset scaleFactorOfSecondFixedSurface as 2"
-            # end of if cube.coords('depth_below_land_surface'):   
-            if cube.coords('height'):                
-                # scaleFactorOfFirstFixedSurface as 1, equivalent to divide
-                # the height.points by 10. So that we can be sure that grib2
-                # has 1.5 meter. Otherwise, we will endup with 1 metre and
-                # finally will loose information about decimal value of height.
-                gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 1)
-                print "reset scaleFactorOfFirstFixedSurface as 1"                
-            # end of if cube.coords('height'):   
+            # end of if cube.coords('depth_below_land_surface'):    
             if cube.standard_name:
                 if cube.standard_name.startswith('toa'):
                     # we have to explicitly re-set the type of first surfcae
