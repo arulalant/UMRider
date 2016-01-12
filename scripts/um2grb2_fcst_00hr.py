@@ -15,7 +15,7 @@ from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, debug
 
 if loadg2utils == 'system':
     # Load g2utils from system python which has installed through setup.py
-    from g2utils.um2grb2 import convertAnlFiles
+    from g2utils.um2grb2 import convertFcstFiles
     print "INFO : imported g2utils.um2grb2 from system python"
 elif loadg2utils == 'local':
     # Load g2utils from previous directory for the operational purpose, 
@@ -23,7 +23,7 @@ elif loadg2utils == 'local':
     g2utils_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                                             '../g2utils'))
     sys.path.append(g2utils_path)
-    from um2grb2 import convertAnlFiles
+    from um2grb2 import convertFcstFiles
     print "INFO : imported g2utils.um2grb2 from local previous directory"
     print "loaded from g2utils_path : ", g2utils_path
 
