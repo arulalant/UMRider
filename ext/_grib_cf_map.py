@@ -183,9 +183,9 @@ GRIB2_TO_CF = {
     G2Param(2, 0, 4, 198): CFName('toa_outgoing_shortwave_flux_assuming_clear_sky', None, 'W m-2'), # NCMRWF Local
     G2Param(2, 0, 5, 195): CFName('toa_outgoing_longwave_flux_assuming_clear_sky', None, 'W m-2'), # NCMRWF Local
     
+#    # the below one gets conflicts with surface_downwelling_shortwave_flux_in_air while loading from iris, because of same key in this dictionary (we didnt implement typeOfFirstFixedSurface in grib1_phenom_to_cf_info)
 #    G2Param(2, 0, 4, 7, 8): CFName('toa_incoming_shortwave_flux', None, 'W m-2'), # WMO
-     # the above one gets conflicts with surface_downwelling_shortwave_flux_in_air while loading from iris, because of same key in this dictionary (we didnt implement typeOfFirstFixedSurface in grib1_phenom_to_cf_info)
-    
+
 #    #WMO need to set  surface level type as tropopause (7)
 #    G2Param(2, 0, 3, 0, 7): CFName('tropopause_air_pressure', None, 'Pa'), # WMO
 #    G2Param(2, 0, 0, 0, 7): CFName('tropopause_air_temperature', None, 'K'),  # WMO
@@ -319,7 +319,8 @@ CF_TO_GRIB2 = {
     CFName('tropopause_air_pressure', None, 'Pa'): G2Param(2, 0, 3, 0, 7), # WMO
     CFName('tropopause_air_temperature', None, 'K'): G2Param(2, 0, 0, 0, 7), # WMO
     CFName('tropopause_altitude', None, 'm'): G2Param(2, 0, 3, 6, 7), # WMO
-    
+    #WMO need to set  surface level type as top of atmosphere (8)
+    CFName('toa_incoming_shortwave_flux', None, 'W m-2'): G2Param(2, 0, 4, 7, 8), # WMO
     ### though we made duplicate Grib param in the above 4 variables, but 
     ### since we made cf_standard_name as unique. so while writing into grib2 
     ### will not throw any error and for timebeing we are tweaking grib messages
