@@ -151,9 +151,9 @@ _orderedVars_ = {'PressureLevel': [
 ('precipitation_amount', 'm01s05i226'),
 ('toa_incoming_shortwave_flux', 'm01s01i207'), 
 ('toa_outgoing_shortwave_flux', 'm01s01i205'),
-#('toa_outgoing_shortwave_flux_assuming_clear_sky', 'm01s01i209'),  #wgrib2 not working !
+('toa_outgoing_shortwave_flux_assuming_clear_sky', 'm01s01i209'),  
 ('toa_outgoing_longwave_flux', 'm01s02i205'),
-#('toa_outgoing_longwave_flux_assuming_clear_sky', 'm01s02i206'),   #wgrib2 not working !
+('toa_outgoing_longwave_flux_assuming_clear_sky', 'm01s02i206'),   
 ('surface_upward_latent_heat_flux', 'm01s03i234'),
 ('surface_upward_sensible_heat_flux', 'm01s03i217'),
 ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'),
@@ -424,10 +424,10 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                 ('surface_downwelling_longwave_flux', 'm01s02i207'),
                 ('surface_net_downward_longwave_flux', 'm01s02i201'),
                 ('toa_outgoing_longwave_flux', 'm01s02i205'),
-#                ('toa_outgoing_longwave_flux_assuming_clear_sky', 'm01s02i206'), #wgrib2 not working !
+                ('toa_outgoing_longwave_flux_assuming_clear_sky', 'm01s02i206'), 
                 ('toa_incoming_shortwave_flux', 'm01s01i207'), 
-                ('toa_outgoing_shortwave_flux', 'm01s01i205'), ]
-#                ('toa_outgoing_shortwave_flux_assuming_clear_sky', 'm01s01i209'),]
+                ('toa_outgoing_shortwave_flux', 'm01s01i205'), 
+                ('toa_outgoing_shortwave_flux_assuming_clear_sky', 'm01s01i209'),]
         # rain and snow vars (these vars will be created as 6-hourly accumutated)
         varNamesSTASH2 = [('snowfall_flux', 'm01s05i215'),
                           ('precipitation_flux', 'm01s05i216'),
@@ -529,10 +529,10 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                 ('surface_downwelling_longwave_flux', 'm01s02i207'),
                 ('surface_net_downward_longwave_flux', 'm01s02i201'),
                 ('toa_outgoing_longwave_flux', 'm01s02i205'),
-#                ('toa_outgoing_longwave_flux_assuming_clear_sky', 'm01s02i206'), #wgrib2 not working !
+                ('toa_outgoing_longwave_flux_assuming_clear_sky', 'm01s02i206'), 
                 ('toa_incoming_shortwave_flux', 'm01s01i207'), 
                 ('toa_outgoing_shortwave_flux', 'm01s01i205'),
-#                ('toa_outgoing_shortwave_flux_assuming_clear_sky', 'm01s01i209'),]
+                ('toa_outgoing_shortwave_flux_assuming_clear_sky', 'm01s01i209'),]
         # rain and snow vars (these vars will be created as 6-hourly accumutated)
         varNamesSTASH2 = [('snowfall_flux', 'm01s05i215'),
                           ('precipitation_flux', 'm01s05i216'),
