@@ -204,6 +204,12 @@ _ncfilesVars_ = [('volumetric_moisture_of_soil_layer', 'm01s08i223'),
                  ('tropopause_altitude', 'm01s30i453'),
                  ('tropopause_air_temperature', 'm01s30i452'),
                  ('tropopause_air_pressure', 'm01s30i451'),]
+
+## Define _ncmrGrib2LocalTableVars_
+## the following variables need to be set localTableVersion no as 1 and
+## master table version no as 255 (undefined), since WRF grib2 table doesnt
+## support for the following variables. So we created our local table.
+_ncmrGrib2LocalTableVars_ = ['toa_outgoing_longwave_flux_assuming_clear_sky', 'toa_outgoing_shortwave_flux_assuming_clear_sky']
                                             
 # create a class #1 for capturing stdin, stdout and stderr
 class myLog():
@@ -1127,6 +1133,8 @@ def regridAnlFcstFiles(arg):
 # end of def regridAnlFcstFiles(fname):
 
 def tweaked_messages(cubeList):
+    global _ncmrGrib2LocalTableVars_
+    
     for cube in cubeList:
         for cube, grib_message in iris.fileformats.grib.as_pairs(cube):
             print "Tweaking begin ", cube.standard_name
@@ -1176,6 +1184,20 @@ def tweaked_messages(cubeList):
                     # as tropopause i.e. 7 (WMO standard)
                     gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 7) 
                 # end of if cube.standard_name.startswith('tropopause'):  
+                if cube.standard_name in _ncmrGrib2LocalTableVars_:
+                    # We have to enable local table version and disable the 
+                    # master table only the special variables.
+                    # http://www.cosmo-model.org/content/model/documentation/grib/grib2keys_1.htm 
+                    # Above link says that tablesVersion must be set to 255, 
+                    # then only local table will be enabled.
+                    gribapi.grib_set_long(grib_message, "tablesVersion", 255)
+                    # http://apt-browse.org/browse/debian/wheezy/main/i386/libgrib-api-1.9.16/1.9.16-2%2Bb1/file/usr/share/grib_api/definitions/grib2/section.1.def (line no 42)
+                    # Above link says versionNumberOfGribLocalTables is alias 
+                    # of LocalTablesVersion.        
+                    # Set local table version number as 1 as per 
+                    # ncmr_grib2_local_table standard.
+                    gribapi.grib_set_long(grib_message, "versionNumberOfGribLocalTables", 1)
+                # end of if cube.standard_name in _ncmrGrib2LocalTableVars_:
             # end of if cube.standard_name:                  
             print "Tweaking end ", cube.standard_name
             
