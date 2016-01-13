@@ -1073,20 +1073,7 @@ def regridAnlFcstFiles(arg):
                 outFn = varSTASH + '_'+ ofname + '.nc'
                 ncfile = True
             # end of if regdCube.coords('soil_model_level_number'):
-            if regdCube.coords('height'):
-                # Get height coords from the cube.
-                # We need to update this variable, which will be replicated
-                # in the cube attributes. By default iris-1.9 will not 
-                # support to handle height as floating point, so we need to 
-                # tweak it by following way.
-                height = regdCube.coords('height')[0]
-                height.points = round(height.points)    
-                height.units = Unit('m')   
-                # convert 1.5 height into 2 m height, so that WRF able to 
-                # read it!? WRF-WPS required certain field's height must be 
-                # either 2m or 10m. WRF unable to read float point height :-( 
-            # end of if regdCube.coords('height'):
-                
+                            
             if (varName, varSTASH) in _ncfilesVars_:
                 # other than soil_model_level_number, few variables may be 
                 # need to write into nc file and then convert to grib2. why 
