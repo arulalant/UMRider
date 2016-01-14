@@ -8,7 +8,7 @@ Written by : Arulalan.T
 Date : 07.Dec.2015
 """
 
-import os, sys
+import os, sys, datetime
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, debug
 
@@ -26,6 +26,29 @@ elif loadg2utils == 'local':
     print "INFO : imported g2utils.um2grb2 from local previous directory"
     print "loaded from g2utils_path : ", g2utils_path
 
-### call analysis conversion function w.r.t data assimilated during short forecast hour.
-convertAnlFiles(inPath, outPath, tmpPath, date, hr='00', lprint=debug)
-
+if isinstance(date, tuple):
+    # Got tuple of date string.
+    startdate, enddate = date
+    sDay = datetime.datetime.strptime(startdate, "%Y%m%d")
+    eDay = datetime.datetime.strptime(enddate, "%Y%m%d")
+    lag = datetime.timedelta(days=1)
+    print "Got tuple dates"
+    print "So um2grb2 ana 00hr conversion - from %s to %s" % (startdate, enddate)
+    while sDay <= eDay:
+        # loop through until startdate incremented upto enddate
+        print "Going to start progress on", startdate
+        # call analysis conversion function w.r.t data assimilated 
+        # during short forecast hour - 00UTC.
+        convertAnlFiles(inPath, outPath, tmpPath, startdate, hr='00', lprint=debug)
+        print "Time lag incremented by 1"
+        sDay += lag
+        startdate = sDay.strftime('%Y%m%d')
+    # end of while sDay <= eDay:
+    print "Successfully completed all the dates till", enddate
+elif isinstance(date, str):
+    # only single date 
+    # call analysis conversion function w.r.t data assimilated 
+    # during short forecast hour - 00UTC.
+    print "um2grb2 ana 00hr conversion - date", date
+    convertAnlFiles(inPath, outPath, tmpPath, date, hr='00', lprint=debug)
+# end of if isinstance(date, tuple):

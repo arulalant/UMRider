@@ -18,11 +18,21 @@ outPath = /gpfs4/home/umtid/um2grb2/GRIB-parallel/
 ## working directory (used to create temporary log files)
 tmpPath = /gpfs4/home/umtid/tmp/um2grb2/logs/
 
-## By default date takes argument as YYYYMMDD (which means it assume today's date)
-## But user can specify the different date by follwing the same format.
-## for eg, date = 20151209 # then it will execute the scripts for 09-Dec-2015.
-## date = YYYYMMDD # then it will execute the scripts for today's date.
-date = YYYYMMDD
+## By default startdate takes argument as YYYYMMDD (which means it assume today's date)
+## But user can specify the different startdate by follwing the same format.
+## for eg, startdate = 20151209 # then it will execute the scripts for 09-Dec-2015.
+## startdate = YYYYMMDD # then it will execute the scripts for today's date.
+startdate = YYYYMMDD
+
+## By default enddate is None. User can specify different enddate (but > startdate)
+## i.e. for only specfied date / one date, user needs to control only in the 
+## startdate and enddate must be None. If user want to execute the um2grb2
+## conversion for the range of dates, then user need to set the lower startdate
+## end higher enddate. enddate could be even YYYYMMDD, but make sure that
+## startdate is lower than enddate.
+## For eg : startdate = 20151209 and enddate = 20160114 , then um2grb2
+## conversion program executes from 09-dec-2015 to 14-jan-2016.
+enddate = None
 
 ## Load g2utils from 'system' python which has installed through setup.py (OR)
 ## Load g2utils from 'local' previous directory for the operational purpose, 
