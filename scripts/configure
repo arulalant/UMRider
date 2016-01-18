@@ -18,6 +18,11 @@ outPath = /gpfs4/home/umtid/um2grb2/GRIB-parallel/
 ## working directory (used to create temporary log files)
 tmpPath = /gpfs4/home/umtid/tmp/um2grb2/logs/
 
+## targetGridResolution is resolution in degree (1 degree = 100km approx)
+## if targetGridResolution is set to None, then model resolution will be 
+## kept in the grib2 file. This must be a number or None.
+targetGridResolution = 0.25
+
 ## By default startdate takes argument as YYYYMMDD (which means it assume today's date)
 ## But user can specify the different startdate by follwing the same format.
 ## for eg, startdate = 20151209 # then it will execute the scripts for 09-Dec-2015.

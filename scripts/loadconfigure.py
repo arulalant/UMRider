@@ -28,6 +28,9 @@ loadg2utils = cdic.get('loadg2utils', 'system')
 debug = cdic.get('debug', False)
 debug = True if debug == 'True' else False
 
+targetGridResolution = cdic.get('targetGridResolution', None)
+targetGridResolution = None if targetGridResolution in ['None', None] else float(targetGridResolution)
+
 # check the variable's path 
 for name, path in [('inPath', inPath), ('outPath', outPath), ('tmpPath', tmpPath)]:
     if path is None:
@@ -55,6 +58,7 @@ else:
 # end of if enddate not in ['None', None]:
     
 print "date = ", date
+print "targetGridResolution = ", targetGridResolution
 print "loadg2utils = ", loadg2utils
 print "debug = ", debug
 print "Successfully loaded the above params from configure file!"

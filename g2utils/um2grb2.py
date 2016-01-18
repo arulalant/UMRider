@@ -110,6 +110,7 @@ _startT_ = None
 _tmpDir_ = None
 _inDataPath_ = None
 _opPath_ = None
+_doRegrid_ = False
 _targetGrid_ = None
 _fext_ = '_unOrdered'
 # global ordered variables (the order we want to write into grib2)
@@ -833,7 +834,7 @@ def regridAnlFcstFiles(arg):
     serial version by MNRS on 11/16/2015.
     """
     global _lock_, _targetGrid_, _current_date_, _startT_, _inDataPath_, \
-            _opPath_, _fext_, _accumulationVars_, _ncfilesVars_, __LPRINT__   
+     _opPath_, _fext_, _accumulationVars_, _ncfilesVars_, _doRegrid_, __LPRINT__   
    
     fpname, hr = arg 
     
@@ -998,20 +999,25 @@ def regridAnlFcstFiles(arg):
 
             # interpolate it 0,25 deg resolution by setting up sample points based on coord
             print "\n    Regridding data to 0.25x0.25 deg spatial resolution \n"
-            if __LPRINT__: print "From shape", tmpCube.shape            
-            try:            
-                # This interpolate will do extra polate over ocean also even 
-                # though original data doesnt have values over ocean and wise versa.
-                # So lets be aware of this and fix it by masking 1e-15 and 1e+15.
-                # DO NOT APPLY iris.analysis.Linear(extrapolation_mode='mask'), 
-                # which writes nan every where for the snowfall_flux,  
-                # rainfall_flux, precipitation_flux. So donot apply that.
-                regdCube = tmpCube.interpolate(_targetGrid_, iris.analysis.Linear())
-            except Exception as e:
-                print "ALERT !!! Error while regridding!! %s" % str(e)
-                print " So skipping this without saving data"
-                continue
-            # end of try:                   
+            if __LPRINT__: print "From shape", tmpCube.shape 
+            if _doRegrid_:
+                try:            
+                    # This interpolate will do extra polate over ocean also even 
+                    # though original data doesnt have values over ocean and wise versa.
+                    # So lets be aware of this and fix it by masking 1e-15 and 1e+15.
+                    # DO NOT APPLY iris.analysis.Linear(extrapolation_mode='mask'), 
+                    # which writes nan every where for the snowfall_flux,  
+                    # rainfall_flux, precipitation_flux. So donot apply that.
+                    regdCube = tmpCube.interpolate(_targetGrid_, iris.analysis.Linear())
+                except Exception as e:
+                    print "ALERT !!! Error while regridding!! %s" % str(e)
+                    print " So skipping this without saving data"
+                    continue
+                # end of try:      
+            else:
+                # do not apply regrid. this is temporary fix. 
+                regdCube = tmpCube
+            # end of if _doRegrid_:
             
             if (varName, varSTASH) not in [('snowfall_flux', 'm01s05i215'),
                           ('precipitation_flux', 'm01s05i216'),
@@ -1232,7 +1238,7 @@ def doShuffleVarsInOrder(fpath):
     Arulalan/T
     11-12-2015
     """
-    global _orderedVars_, _fext_, _ncfilesVars_, _inDataPath_, _targetGrid_
+    global _orderedVars_, _fext_, _ncfilesVars_, _inDataPath_
     
     try:        
         f = iris.load(fpath)
@@ -1459,11 +1465,11 @@ def convertFilesInParallel(fnames, ftype):
 # end of def convertFilesInParallel(fnames):
 
 
-def convertFcstFiles(inPath, outPath, tmpPath, date=time.strftime('%Y%m%d'), 
-                                                      hr='00', lprint=False):
+def convertFcstFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
+                    date=time.strftime('%Y%m%d'), hr='00', lprint=False):
        
     global _targetGrid_, _current_date_, _startT_, _tmpDir_, \
-            _inDataPath_, _opPath_, __LPRINT__
+            _inDataPath_, _opPath_, _doRegrid_, __LPRINT__
     
     # set print variables details options
     __LPRINT__ = lprint
@@ -1492,9 +1498,20 @@ def convertFcstFiles(inPath, outPath, tmpPath, date=time.strftime('%Y%m%d'),
         print "Created directory", _opPath_
     # end of if not os.path.exists(_opPath_):  
     
-    # target grid as 0.25 deg resolution by setting up sample points based on coord
-    _targetGrid_ = [('longitude',numpy.linspace(0,360,1440)),
-                    ('latitude',numpy.linspace(-90,90,721))]
+    if not isinstance(targetGridResolution, (int, float)):
+        raise ValueError("targetGridResolution must be either int or float")
+        
+    if targetGridResolution is None:
+        _doRegrid_ = False  
+    else:
+        # target grid as 0.25 deg (default) resolution by setting up sample points 
+        # based on coord    
+        _targetGrid_ = [('longitude', numpy.arange(0., 360.+targetGridResolution, 
+                                                  targetGridResolution)),
+                        ('latitude', numpy.arange(-90., 90.+targetGridResolution, 
+                                                      targetGridResolution))]
+        _doRegrid_ = True  
+    # end of if targetGridResolution is None:
                     
     # do convert for forecast files 
     convertFilesInParallel(fcst_fnames, ftype='fcst')   
@@ -1507,11 +1524,11 @@ def convertFcstFiles(inPath, outPath, tmpPath, date=time.strftime('%Y%m%d'),
 # end of def convertFcstFiles(...):
 
 
-def convertAnlFiles(inPath, outPath, tmpPath, date=time.strftime('%Y%m%d'), 
-                                                     hr='00', lprint=False):
+def convertAnlFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
+                    date=time.strftime('%Y%m%d'), hr='00', lprint=False):
        
     global _targetGrid_, _current_date_, _startT_, _tmpDir_, \
-                _inDataPath_, _opPath_, __LPRINT__
+                _inDataPath_, _opPath_, _doRegrid_, __LPRINT__
     
     # set print variables details options
     __LPRINT__ = lprint
@@ -1541,9 +1558,19 @@ def convertAnlFiles(inPath, outPath, tmpPath, date=time.strftime('%Y%m%d'),
         print "Created directory", _opPath_
     # end of if not os.path.exists(_opPath_):  
     
-    # target grid as 0.25 deg resolution by setting up sample points based on coord
-    _targetGrid_ = [('longitude',numpy.linspace(0,360,1440)),
-                    ('latitude',numpy.linspace(-90,90,721))]
+    if not isinstance(targetGridResolution, (int, float)):
+        raise ValueError("targetGridResolution must be either int or float")
+    if targetGridResolution is None:
+        _doRegrid_ = False  
+    else:
+        # target grid as 0.25 deg (default) resolution by setting up sample points 
+        # based on coord    
+        _targetGrid_ = [('longitude', numpy.arange(0., 360.+targetGridResolution, 
+                                                  targetGridResolution)),
+                        ('latitude', numpy.arange(-90., 90.+targetGridResolution, 
+                                                      targetGridResolution))]
+        _doRegrid_ = True  
+    # end of if targetGridResolution is None:
                     
     # do convert for analysis files
     convertFilesInParallel(anl_fnames, ftype='anl')   
