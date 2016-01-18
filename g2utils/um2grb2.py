@@ -169,6 +169,10 @@ _orderedVars_ = {'PressureLevel': [
 ('soil_temperature', 'm01s03i238'),  
 ('sea_ice_area_fraction', 'm01s00i031'),
 ('sea_ice_thickness', 'm01s00i032'),
+# the snowfall_amount might be changed as 
+# liquid_water_content_of_surface_snow by convert it into
+# water equivalent of snow amount, before re-ordering itself.
+('liquid_water_content_of_surface_snow', 'm01s00i023')
 # the below one is for orography which presents only in analysis 00 file.
 # so we must keep this as the last one in the ordered variables!
 ('surface_altitude', 'm01s00i033')],
@@ -204,7 +208,7 @@ _ncfilesVars_ = [('volumetric_moisture_of_soil_layer', 'm01s08i223'),
                  ('tropopause_altitude', 'm01s30i453'),
                  ('tropopause_air_temperature', 'm01s30i452'),
                  ('tropopause_air_pressure', 'm01s30i451'),]
-
+                 
 ## Define _ncmrGrib2LocalTableVars_
 ## the following variables need to be set localTableVersion no as 1 and
 ## master table version no as 255 (undefined), since WRF grib2 table doesnt
@@ -356,7 +360,11 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('tropopause_air_temperature', 'm01s30i452'),
                     ('tropopause_air_pressure', 'm01s30i451'),
                     ('sea_ice_area_fraction', 'm01s00i031'),
-                    ('sea_ice_thickness', 'm01s00i032'),] # available for use
+                    ('sea_ice_thickness', 'm01s00i032'),
+                    # the snowfall_amount need to be changed as 
+                    # liquid_water_content_of_surface_snow by convert it into
+                    # water equivalent of snow amount.
+                    ('snowfall_amount', 'm01s00i023')] 
         # the cube contains Instantaneous data at every 3-hours.        
         # but we need to extract every 6th hours instantaneous.
         fcstHours = numpy.array([0,])     
@@ -369,8 +377,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
             # rest of them (i.e 1,2,3,5,6,7) from taken already from qwqg00 
             # file. qwqg00 file variables are more correct than this 
             # short forecast vars.
-        else:
-            # upward wind is not working
+        else:            
            varNamesSTASH = [('geopotential_height', 'm01s16i202'),
                        ('air_temperature', 'm01s16i203'), 
                        ('specific_humidity', 'm01s30i205'),
@@ -460,6 +467,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
 #                                                             'm01s02i422'),]
         # the cube contains data of every 3-hourly average or accumutated.
         # but we need to make only every 6th hourly average or accumutated.
+        
         fcstHours = numpy.array([(1, 5)])
         do6HourlyMean = True
         # get the updated infile w.r.t analysis 00 simulated_hr or 06,12,18hr
@@ -481,7 +489,11 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('tropopause_air_temperature', 'm01s30i452'),
                     ('tropopause_air_pressure', 'm01s30i451'),
                     ('sea_ice_area_fraction', 'm01s00i031'),
-                    ('sea_ice_thickness', 'm01s00i032'),] 
+                    ('sea_ice_thickness', 'm01s00i032'),
+                    # the snowfall_amount need to be changed as 
+                    # liquid_water_content_of_surface_snow by convert it into
+                    # water equivalent of snow amount.
+                    ('snowfall_amount', 'm01s00i023')] 
         # the cube contains Instantaneous data at every 3-hours.        
         # but we need to extract every 6th hours instantaneous.
         fcstHours = numpy.array([6, 12, 18, 24]) + hr
@@ -489,7 +501,6 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         
     elif fname.startswith('umglaa_pd'):            # umglaa_pd
         # consider variable
-        # varNamesSTASH = 'upward_air_velocity' # needed
         varNamesSTASH = [('geopotential_height', 'm01s16i202'),
                     ('air_temperature', 'm01s16i203'),  
                     ('specific_humidity', 'm01s30i205'),                    
@@ -509,7 +520,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('air_temperature', 'm01s03i236'),
                     ('air_pressure_at_sea_level', 'm01s16i222'),
                     ('specific_humidity', 'm01s03i237'),
-                    ('surface_air_pressure', 'm01s00i409'),
+                    ('surface_air_pressure', 'm01s00i409'),]
                     ('x_wind', 'm01s03i209'), 
                     ('y_wind', 'm01s03i210'),
                     # The precipitation_amount variable must be at the last
@@ -565,7 +576,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # but we need to make only every 6th hourly average or accumutated.
         fcstHours = numpy.array([(1, 5), (7, 11), (13, 17), (19, 23)]) + hr    
         do6HourlyMean = True    
-    
+        
     ##### FORECAST FILE END
     else:
         raise ValueError("Filename not implemented yet!")
@@ -729,6 +740,82 @@ class _MyPool(mppool.Pool):
     Process = _NoDaemonProcess
 # end of class #3
 
+def _updateDepthBelowLandSurfaceCoords(depth_below_land_surface):
+    # Dr. Saji / UM_Model_DOC suggested that UM produce soil model
+    # level number is equivalent to 10cm, 35cm, 1m & 2m. 
+    # So we kept here unit as 'cm'. But points are muliplied by
+    # 100 with its  corresponding cm values. Why because, that 
+    # 100 will be factorized (divied) in grib_message by setting 
+    # scaleFactorOfFirstFixedSurface as 2 and 
+    # scaleFactorOfFirstFixedSurface as 2. So that in grib2 will
+    # be able to read as 0.1 m, 0.35m, 1m & 2m. Iris will convert 
+    # cm to m while saving into grib2 file. So we must follow 
+    # this procedure to get correct results.
+    depth_below_land_surface.points = numpy.array([1000, 3500, 10000, 20000])
+    # we must set the bounds in vertical depths, since we required
+    # to mention the four different layers depth properly.
+    depth_below_land_surface.bounds = numpy.array([[0, 1000], 
+                       [1000, 3500], [3500,10000],[10000,20000]])
+    depth_below_land_surface.units = Unit('cm')
+    depth_below_land_surface.long_name = 'depth_below_land_surface'    
+    depth_below_land_surface.standard_name = None
+# end of def update():
+
+def _convert2VolumetricMoisture(cube):
+    #### Lets convert moisture_content_of_soil_layer into 
+    ##  volumetric_moisture_of_soil_layer by divide each layer 
+    ## with its layer depth in mm.
+    ## Unit also gets changed from Kg/m2 into m3/m3. How ?
+    ## voulumetric_soil_moisture = moisture_content_of_soil_layer / (density_of_water x depth_of_soil_layer)
+    ## density_of_water is 1000 Kg/m3
+    ## depth_of_soil_layer of first layer from 0 to 10 cm = 10/100 m
+    ## depth_of_soil_layer of first layer from 10 to 35 cm = 25/100 m
+    ## depth_of_soil_layer of first layer from 35 to 100 cm = 65/100 m
+    ## depth_of_soil_layer of first layer from 100 to 200 cm = 100/100 m
+    
+    ## So if we apply the above values of density 1000 Kg/m3 
+    ## & depth in meter in the denominator of voulumetric_soil_moisture
+    ## equavation, we will endup with just divide first layer 
+    ## by 100, second layer by 250, third layer by 650 and 
+    ## fourth layer by 1000.
+    
+    ## By this way, we converted moisture_content_of_soil_layer 
+    ## from Kg/m2 into voulumetric_soil_moisture_of_layer m3/m3.
+    
+    ## Reference : "Comparison of the Met Office soil moisture
+    ## analyses with SMOS retrievals (2010-2011)", MARCH 2013.
+    
+    ## Link : http://www.researchgate.net/publication/257940913
+    
+    for idx, dval in enumerate([100.0, 250.0, 650.0, 1000.0]):
+        cube.data[idx] /= dval
+    # end of for idx, denominator in enumerate([...]):
+        
+    # update the units as m3 / m3
+    cube.units = Unit('m3 m-3')
+    # make sure that standard_name as None, so that it will  
+    # not messup with units while writing as grib2. 
+    cube.standard_name = None
+    # set long name as volumetric_moisture_of_soil_layer, 
+    # though its not standard cf name, I made it as 
+    # understandable long name which points into volumetirc 
+    # grib2 param code in _grib_cf_map.py.
+    cube.long_name = 'volumetric_moisture_of_soil_layer'        
+# end of def _convert2VolumetricMoisture(cube):
+
+def _convert2WEASD(cube):
+    
+    # http://www.nrcs.usda.gov/wps/portal/nrcs/detail/or/snow/?cid=nrcs142p2_046155
+    if cube.standard_name == 'snowfall_amount':
+        cube.standard_name = 'liquid_water_content_of_surface_snow'
+        # convert the snow amount data to water equivalent by divide by 10 or 
+        # multiply by 0.1.
+        # reference link : look above        
+        cube.data *= 0.1 
+    # end of if cube.standard_name == 'snowfall_amount':
+# end of def _convert2WEASD(cube):
+    
+
 # start definition #5
 def regridAnlFcstFiles(arg):
     """
@@ -788,13 +875,13 @@ def regridAnlFcstFiles(arg):
     if dtype == 'fcst':        
         ### But if we want to set access time point as per out file hour's
         ### ref time, then we can enable the following options. otherwise 
-        ### diable it, because 'cbound' will works for ctl file.
+        ### disable it, because 'cbound' will works for ctl file.
         timebound = 'rbound'        # TESTED, OK, on 05-01-2016
         fcstbound = 'rbound'        # TESTED, OK, on 05-01-2016
     elif dtype == 'ana':        
         ### But if we want to set access time point as per out file hour's
         ### ref time, then we can enable the following options. otherwise 
-        ### diable it, because 'cbound' will works for ctl file.
+        ### disable it, because 'cbound' will works for ctl file.
         timebound = 'rbound'        # TESTED, OK, on 05-01-2016
         fcstbound = 'lbound'        # TESTED, OK, on 05-01-2016
     # end of if dtype == 'fcst':
@@ -814,7 +901,7 @@ def regridAnlFcstFiles(arg):
         # end of if 'unknown' in stdNm: 
         print "  Working on variable: %s \n" %stdNm
         
-        if (varName, varSTASH) == ('soil_temperature', 'm01s03i238'):
+        if (varName, varSTASH) == ('soil_temperature', 'm01s03i238'):                        
             # Within pi file, this variable has instantaneous time point,
             # rest of other variables in pi file are 3-hr averaged.
             # get an instantaneous forecast time for soil_temperature. 
@@ -882,6 +969,14 @@ def regridAnlFcstFiles(arg):
                                     iris.Constraint(forecast_period=fhr))[0]
             if __LPRINT__: print "extrad end", infile, fhr, varName
             if __LPRINT__: print "tmpCube =>", tmpCube
+            
+            if (varName, varSTASH) == ('snowfall_amount', 'm01s00i023')
+                # the snowfall_amount need to be changed as 
+                # liquid_water_content_of_surface_snow by convert it into
+                # water equivalent of snow amount.                    
+                _convert2WEASD(tmpCube)
+            # end of if (varName, varSTASH) == ('snowfall_amount', 'm01s00i023')
+            
             if do6HourlyMean and (tmpCube.coords('forecast_period')[0].shape[0] > 1):              
                 # grab the variable which is f(t,z,y,x)
                 # tmpCube corresponds to each variable for the SYNOP hours from
@@ -904,7 +999,6 @@ def regridAnlFcstFiles(arg):
             # interpolate it 0,25 deg resolution by setting up sample points based on coord
             print "\n    Regridding data to 0.25x0.25 deg spatial resolution \n"
             if __LPRINT__: print "From shape", tmpCube.shape            
-            
             try:            
                 # This interpolate will do extra polate over ocean also even 
                 # though original data doesnt have values over ocean and wise versa.
@@ -940,13 +1034,14 @@ def regridAnlFcstFiles(arg):
                     # mask out values less then 1e-15
                     regdCube.data = numpy.ma.masked_less(regdCube.data , 1e-15)
                     # mask out values greater than 1e+15
-                    regdCube.data  = numpy.ma.masked_greater(regdCube.data , 1e+15)      
+                    regdCube.data = numpy.ma.masked_greater(regdCube.data , 1e+15)      
                 # end of if ...:         
                 # http://www.cpc.ncep.noaa.gov/products/wesley/g2grb.html
                 # Says that 9.999e+20 value indicates as missingValue in grib2
                 # by default g2ctl.pl generate "undefr 9.999e+20", so we must 
                 # keep the fill_value / missingValue as 9.999e+20 only.
-                numpy.ma.set_fill_value(regdCube.data, 9.999e+20)             
+                numpy.ma.set_fill_value(regdCube.data, 9.999e+20)    
+                print "regdCube.data +++ ",regdCube.data  
             # end of if varName not in ['rainfall_flux', 'precipitation_flux', 'snowfall_flux']:
             
             print "regrid done"
@@ -999,68 +1094,14 @@ def regridAnlFcstFiles(arg):
                 # support to handle soil_model_level_number, so we need to 
                 # tweak it by following way.
                 depth_below_land_surface = regdCube.coords('soil_model_level_number')[0]
-                # Dr. Saji / UM_Model_DOC suggested that UM produce soil model
-                # level number is equivalent to 10cm, 35cm, 1m & 2m. 
-                # So we kept here unit as 'cm'. But points are muliplied by
-                # 100 with its  corresponding cm values. Why because, that 
-                # 100 will be factorized (divied) in grib_message by setting 
-                # scaleFactorOfFirstFixedSurface as 2 and 
-                # scaleFactorOfFirstFixedSurface as 2. So that in grib2 will
-                # be able to read as 0.1 m, 0.35m, 1m & 2m. Iris will convert 
-                # cm to m while saving into grib2 file. So we must follow 
-                # this procedure to get correct results.
-                depth_below_land_surface.points = numpy.array([1000, 3500, 10000, 20000])
-                # we must set the bounds in vertical depths, since we required
-                # to mention the four different layers depth properly.
-                depth_below_land_surface.bounds = numpy.array([[0, 1000], 
-                                   [1000, 3500], [3500,10000],[10000,20000]])
-                depth_below_land_surface.units = Unit('cm')
-                depth_below_land_surface.long_name = 'depth_below_land_surface'
+                _updateDepthBelowLandSurfaceCoords(depth_below_land_surface)
                 if __LPRINT__: print "depth_below_land_surface", depth_below_land_surface
                 
                 if regdCube.standard_name == 'moisture_content_of_soil_layer':
-                    #### Lets convert moisture_content_of_soil_layer into 
-                    ##  volumetric_moisture_of_soil_layer by divide each layer 
-                    ## with its layer depth in mm.
-                    ## Unit also gets changed from Kg/m2 into m3/m3. How ?
-                    ## voulumetric_soil_moisture = moisture_content_of_soil_layer / (density_of_water x depth_of_soil_layer)
-                    ## density_of_water is 1000 Kg/m3
-                    ## depth_of_soil_layer of first layer from 0 to 10 cm = 10/100 m
-                    ## depth_of_soil_layer of first layer from 10 to 35 cm = 25/100 m
-                    ## depth_of_soil_layer of first layer from 35 to 100 cm = 65/100 m
-                    ## depth_of_soil_layer of first layer from 100 to 200 cm = 100/100 m
-                    
-                    ## So if we apply the above values of density 1000 Kg/m3 
-                    ## & depth in meter in the denominator of voulumetric_soil_moisture
-                    ## equavation, we will endup with just divide first layer 
-                    ## by 100, second layer by 250, third layer by 650 and 
-                    ## fourth layer by 1000.
-                    
-                    ## By this way, we converted moisture_content_of_soil_layer 
-                    ## from Kg/m2 into voulumetric_soil_moisture_of_layer m3/m3.
-                    
-                    ## Reference : "Comparison of the Met Office soil moisture
-                    ## analyses with SMOS retrievals (2010-2011)", MARCH 2013.
-                    
-                    ## Link : http://www.researchgate.net/publication/257940913
-                    
-                    for idx, dval in enumerate([100.0, 250.0, 650.0, 1000.0]):
-                        regdCube.data[idx] /= dval
-                    # end of for idx, denominator in enumerate([...]):
+                    _convert2VolumetricMoisture(regdCube)
                     print "converted to volumetric"
-                    
-                    # update the units as m3 / m3
-                    regdCube.units = Unit('m3 m-3')
-                    # make sure that standard_name as None, so that it will  
-                    # not messup with units while writing as grib2. 
-                    regdCube.standard_name = None
-                    # set long name as volumetric_moisture_of_soil_layer, 
-                    # though its not standard cf name, I made it as 
-                    # understandable long name which points into volumetirc 
-                    # grib2 param code in _grib_cf_map.py.
-                    regdCube.long_name = 'volumetric_moisture_of_soil_layer'
                 # end of if regdCube.standard_name == 'moisture_content_of_soil_layer':                
-                
+                               
                 # We need to save this variable into nc file, why because
                 # if we saved into grib2 and then re-read it while re-ordering
                 # variables, iris couldnt load variables with 
@@ -1191,7 +1232,7 @@ def doShuffleVarsInOrder(fpath):
     Arulalan/T
     11-12-2015
     """
-    global _orderedVars_, _fext_, _ncfilesVars_
+    global _orderedVars_, _fext_, _ncfilesVars_, _inDataPath_, _targetGrid_
     
     try:        
         f = iris.load(fpath)
@@ -1226,9 +1267,7 @@ def doShuffleVarsInOrder(fpath):
     for varName, STASH in _orderedVars_['PressureLevel']:
         if varName in unOrderedPressureLevelVars: orderedVars.append(unOrderedPressureLevelVars[varName])
     # end of for name, STASH in _orderedVars_['PressureLevel']:
-    
-    
-    
+            
     ncloaddic = {}
     ncloadedfiles = []
     for varName, varSTASH in _orderedVars_['nonPressureLevel']:
@@ -1245,13 +1284,15 @@ def doShuffleVarsInOrder(fpath):
                 except Exception as e:
                     print "ALERT!!! ERROR!!! couldn't read nc file to re-order", e
                     return 
-                # end of try:
+                # end of try:             
             # end of if varSTASH not in ncloaddic:
             # define variable name constraint
             varConstraint = iris.Constraint(name=varName)
             # define varibale stash code constraint
             STASHConstraint = iris.AttributeConstraint(STASH=varSTASH)
             var = ncloaddic['varSTASH'].extract(varConstraint & STASHConstraint)
+            # apped the ordered / corrected vars into the list, which will be 
+            # going to saved into grib2 files by tweaking it further!
             if var: orderedVars.append(var[0])
     # end of for name, STASH in _orderedVars_['PressureLevel']:
     
@@ -1271,7 +1312,7 @@ def doShuffleVarsInOrder(fpath):
     # remove the older file 
     os.remove(fpath)
     for ncf in ncloadedfiles: os.remove(ncf)
-    
+        
     print "Created the variables in ordered fassion and saved into", newfilefpath
     
     ## g2ctl.pl usage option refer the below link 
@@ -1341,7 +1382,6 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
     return 
 # end of def doShuffleVarsInOrderInParallel(arg):
     
-
 # Start definition #6
 def doFcstConvert(fname):
     """
@@ -1477,9 +1517,9 @@ def convertAnlFiles(inPath, outPath, tmpPath, date=time.strftime('%Y%m%d'),
     __LPRINT__ = lprint
     # analysis filenames partial name
     anl_fnames = ['umglca_pb', 'umglca_pd', 'umglca_pe', 'umglca_pf', 'umglca_pi']  
-
+    
     if hr == '00': anl_fnames.insert(0, 'qwqg00.pp0')
-
+    
     # get the current date in YYYYMMDD format
     _tmpDir_ = tmpPath
     _current_date_ = date
