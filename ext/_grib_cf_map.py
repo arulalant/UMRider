@@ -302,7 +302,6 @@ CF_TO_GRIB2 = {
     CFName('atmosphere_boundary_layer_thickness', None, 'm'): G2Param(2, 0, 3, 18), # WMO
     CFName('fog_area_fraction', None, '1'): G2Param(2, 192, 201, 56), # 201056
     CFName('atmosphere_optical_thickness_due_to_dust_ambient_aerosol', None, '1'): G2Param(2, 0, 20, 102), # WMO
-#    CFName('snowfall_amount', None, 'kg m-2'): G2Param(2, 0, 1, 13), # WMO  
 
 ##    CFName('surface_downwelling_shortwave_flux_in_air_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 4, 196), #260342
 ##    CFName('surface_upwelling_shortwave_flux_in_air_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 4, 196), #260342
