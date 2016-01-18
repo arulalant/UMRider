@@ -997,8 +997,9 @@ def regridAnlFcstFiles(arg):
                                   tpoint=timebound, fpoint=fcstbound)            
             # end of if do6HourlyMean and tmpCube.coords('forecast_period')[0].shape[0] > 1:     
 
-            # interpolate it 0,25 deg resolution by setting up sample points based on coord
-            print "\n    Regridding data to 0.25x0.25 deg spatial resolution \n"
+            # interpolate it as per targetGridResolution deg resolution by 
+            # setting up sample points based on coord
+            print "\n Regridding data to targetGridResolution deg spatial resolution \n"
             if __LPRINT__: print "From shape", tmpCube.shape 
             if _doRegrid_:
                 try:            
@@ -1534,7 +1535,6 @@ def convertAnlFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
     __LPRINT__ = lprint
     # analysis filenames partial name
     anl_fnames = ['umglca_pb', 'umglca_pd', 'umglca_pe', 'umglca_pf', 'umglca_pi']  
-    
     if hr == '00': anl_fnames.insert(0, 'qwqg00.pp0')
     
     # get the current date in YYYYMMDD format
