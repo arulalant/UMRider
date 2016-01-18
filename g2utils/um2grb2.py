@@ -172,7 +172,7 @@ _orderedVars_ = {'PressureLevel': [
 # the snowfall_amount might be changed as 
 # liquid_water_content_of_surface_snow by convert it into
 # water equivalent of snow amount, before re-ordering itself.
-('liquid_water_content_of_surface_snow', 'm01s00i023')
+('liquid_water_content_of_surface_snow', 'm01s00i023'),
 # the below one is for orography which presents only in analysis 00 file.
 # so we must keep this as the last one in the ordered variables!
 ('surface_altitude', 'm01s00i033')],
@@ -520,7 +520,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('air_temperature', 'm01s03i236'),
                     ('air_pressure_at_sea_level', 'm01s16i222'),
                     ('specific_humidity', 'm01s03i237'),
-                    ('surface_air_pressure', 'm01s00i409'),]
+                    ('surface_air_pressure', 'm01s00i409'),
                     ('x_wind', 'm01s03i209'), 
                     ('y_wind', 'm01s03i210'),
                     # The precipitation_amount variable must be at the last
@@ -970,12 +970,12 @@ def regridAnlFcstFiles(arg):
             if __LPRINT__: print "extrad end", infile, fhr, varName
             if __LPRINT__: print "tmpCube =>", tmpCube
             
-            if (varName, varSTASH) == ('snowfall_amount', 'm01s00i023')
+            if (varName, varSTASH) == ('snowfall_amount', 'm01s00i023'):
                 # the snowfall_amount need to be changed as 
                 # liquid_water_content_of_surface_snow by convert it into
                 # water equivalent of snow amount.                    
                 _convert2WEASD(tmpCube)
-            # end of if (varName, varSTASH) == ('snowfall_amount', 'm01s00i023')
+            # end of if (varName, varSTASH) == ('snowfall_amount', 'm01s00i023'):
             
             if do6HourlyMean and (tmpCube.coords('forecast_period')[0].shape[0] > 1):              
                 # grab the variable which is f(t,z,y,x)
