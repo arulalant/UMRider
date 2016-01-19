@@ -105,6 +105,7 @@ iris.FUTURE.cell_datetime_objects = True
 _lock_ = mp.Lock()
 # other global variables
 __LPRINT__ = False
+__utc__ = '00'
 _current_date_ = None
 _startT_ = None
 _tmpDir_ = None
@@ -834,7 +835,8 @@ def regridAnlFcstFiles(arg):
     serial version by MNRS on 11/16/2015.
     """
     global _lock_, _targetGrid_, _current_date_, _startT_, _inDataPath_, \
-     _opPath_, _fext_, _accumulationVars_, _ncfilesVars_, _doRegrid_, __LPRINT__   
+           _opPath_, _fext_, _accumulationVars_, _ncfilesVars_, _doRegrid_, \
+           __LPRINT__, __utc__
    
     fpname, hr = arg 
     
@@ -1090,7 +1092,7 @@ def regridAnlFcstFiles(arg):
                 hr = _inDataPath_.split('/')[-1]
             # end of if _inDataPath_.endswith('00'):
             
-            ofname = outfile +'_'+ hr.zfill(3) +'hr'+ '_' + _current_date_ + _fext_ 
+            ofname = '_'.join([outfile, hr.zfill(3)+'hr', _current_date_, __utc__+'Z', _fext_])
             outFn =  ofname + '.grib2'
             
             ncfile = False
@@ -1359,8 +1361,9 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
         ## generate all the forecast filenames w.r.t forecast hours 
         outfile = 'um_prg'
         fcstFiles = []
-        for hr in range(6, 241, 6):
-            outFn = outfile +'_'+ str(hr).zfill(3) +'hr'+ '_' + _current_date_ + _fext_ + '.grib2'
+        for fcsthr in range(6, 241, 6):            
+            outFn = '_'.join([outfile, str(fcsthr).zfill(3) +'hr', 
+                _current_date_, simulated_hr.zfill(2)+'Z', _fext_+'.grib2'])
             #outFn = os.path.join(_opPath_, outFn)
             fcstFiles.append(outFn)
         # end of for hr in range(6,241,6):
@@ -1379,7 +1382,8 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
     elif ftype in ['anl', 'analysis']:
         ## generate the analysis filename w.r.t simulated_hr
         outfile = 'um_ana'
-        outFn = outfile +'_'+ str(simulated_hr).zfill(3) +'hr'+ '_' + _current_date_ + _fext_ + '.grib2'
+        outFn = '_'.join([outfile, simulated_hr.zfill(3) +'hr', 
+                _current_date_, simulated_hr.zfill(2)+'Z', _fext_+'.grib2'])
         #outFn = os.path.join(_opPath_, outFn)
         doShuffleVarsInOrder(outFn)
     # end of if ftype in ['fcst', 'forecast']: 
@@ -1465,18 +1469,18 @@ def convertFilesInParallel(fnames, ftype):
     return
 # end of def convertFilesInParallel(fnames):
 
-def _checkFilesStatus(path, ftype, date, hr, overwrite):
+def _checkFilesStatus(path, ftype, date, utc, overwrite):
     
-    if ftype in ['fcst', 'prg']:
+    if ftype in ['ana', 'anl']:
+        ftype = 'ana'        
+        fhrs = [utc.zfill(3)] 
+    elif ftype in ['fcst', 'prg']:
         ftype = 'prg'
-        hrs = [hr.zfill(3)] 
-    elif ftype in ['ana', 'anl']:
-        ftype = 'ana'
-        hrs = [hr.zfill(3) for hr in range(6, 241, 6)]
+        fhrs = [hr.zfill(3) for hr in range(6, 241, 6)]
     
     status = None
-    for hr in hrs:
-        fname = 'um_ana_' + hr + '_' + date + '.grib2'
+    for fhr in fhrs:
+        fname = 'um_ana_' + fhr + '_' + date + '_' + utc.zfill(2) + 'Z.grib2'
         fpath = os.path.join(path, fname)        
         for ext in ['', '.ctl', '.idx']:
             fpath = os.path.join(path, *[fname, ext])
@@ -1496,7 +1500,7 @@ def _checkFilesStatus(path, ftype, date, hr, overwrite):
                     status = 'PartialFilesExist'
                     break
         # end of for ext in ['', '.ctl', '.idx']:
-    # end of for hr in hrs:
+    # end of for fhr in fhrs:
     
     ncfiles = [fname for fname in os.listdir(path) if fname.endswith('.nc')]
     if ncfiles:
@@ -1514,14 +1518,15 @@ def _checkFilesStatus(path, ftype, date, hr, overwrite):
 # end of def _checkFilesStatus(path, ftype, date, hr, overwrite):
             
 def convertFcstFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
-       date=time.strftime('%Y%m%d'), hr='00', overwrite=False, lprint=False):
+       date=time.strftime('%Y%m%d'), utc='00', overwrite=False, lprint=False):
        
     global _targetGrid_, _current_date_, _startT_, _tmpDir_, \
-            _inDataPath_, _opPath_, _doRegrid_, __LPRINT__
+            _inDataPath_, _opPath_, _doRegrid_, __LPRINT__, __utc__
     
     # set print variables details options
-    __LPRINT__ = lprint
-    
+    __LPRINT__ = lprint    
+    # update global utc variable
+    __utc__ = utc
     # forecast filenames partial name
     fcst_fnames = ['umglaa_pb','umglaa_pd', 'umglaa_pe', 'umglaa_pf', 'umglaa_pi'] 
 
@@ -1535,7 +1540,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
     _startT_ = time.time()
 
     # set-up base folders    
-    _inDataPath_ = os.path.join(inPath, _current_date_, hr)
+    _inDataPath_ = os.path.join(inPath, _current_date_, utc)
     if not os.path.exists(_inDataPath_):
         raise ValueError("In datapath does not exists %s" % _inDataPath_)
     # end of if not os.path.exists(_inDataPath_):
@@ -1563,7 +1568,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
     
     # check either files are exists or not. delete the existing files in case
     # of overwrite option is True, else return without re-converting files.
-    status = _checkFilesStatus(_opPath_, 'prg', _current_date_, hr, overwrite)
+    status = _checkFilesStatus(_opPath_, 'prg', _current_date_, utc, overwrite)
     if status is 'FilesExist': 
         print "All files are already exists. So skipping convert Fcst files porcess"
         return # return back without executing conversion process.
@@ -1575,24 +1580,26 @@ def convertFcstFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
     convertFilesInParallel(fcst_fnames, ftype='fcst')   
     
     # do re-order variables within files in parallel
-    doShuffleVarsInOrderInParallel('fcst', hr)
+    doShuffleVarsInOrderInParallel('fcst', utc)
     
-    cmdStr = ['mv', _tmpDir_+'log2.log', _tmpDir_+ 'um2grib2_fcst_stdout_'+ _current_date_ +'_00hr.log']
+    cmdStr = ['mv', _tmpDir_+'log2.log', _tmpDir_+ 'um2grib2_fcst_stdout_'+ _current_date_ +'_' + utc +'Z.log']
     subprocess.call(cmdStr)     
 # end of def convertFcstFiles(...):
 
 
 def convertAnlFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
-       date=time.strftime('%Y%m%d'), hr='00', overwrite=False, lprint=False):
+       date=time.strftime('%Y%m%d'), utc='00', overwrite=False, lprint=False):
        
     global _targetGrid_, _current_date_, _startT_, _tmpDir_, \
-                _inDataPath_, _opPath_, _doRegrid_, __LPRINT__
+                _inDataPath_, _opPath_, _doRegrid_, __LPRINT__, __utc__
     
     # set print variables details options
     __LPRINT__ = lprint
+    # update global utc variable
+    __utc__ = utc
     # analysis filenames partial name
     anl_fnames = ['umglca_pb', 'umglca_pd', 'umglca_pe', 'umglca_pf', 'umglca_pi']  
-    if hr == '00': anl_fnames.insert(0, 'qwqg00.pp0')
+    if utc == '00': anl_fnames.insert(0, 'qwqg00.pp0')
     
     # get the current date in YYYYMMDD format
     _tmpDir_ = tmpPath
@@ -1604,7 +1611,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
     _startT_ = time.time()
 
     # set-up base folders
-    _inDataPath_ = os.path.join(inPath, _current_date_, hr)
+    _inDataPath_ = os.path.join(inPath, _current_date_, utc)
     if not os.path.exists(_inDataPath_):
         raise ValueError("In datapath does not exists %s" % _inDataPath_)
     # end of if not os.path.exists(_inDataPath_):
@@ -1631,7 +1638,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
     
     # check either files are exists or not. delete the existing files in case
     # of overwrite option is True, else return without re-converting files.
-    status = _checkFilesStatus(_opPath_, 'ana', _current_date_, hr, overwrite)
+    status = _checkFilesStatus(_opPath_, 'ana', _current_date_, utc, overwrite)
     if status is 'FilesExist': 
         print "All files are already exists. So skipping convert Fcst files porcess"
         return # return back without executing conversion process.
@@ -1643,9 +1650,9 @@ def convertAnlFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
     convertFilesInParallel(anl_fnames, ftype='anl')   
     
     # do re-order variables within files in parallel
-    doShuffleVarsInOrderInParallel('anl', hr)
+    doShuffleVarsInOrderInParallel('anl', utc)
     
-    cmdStr = ['mv', _tmpDir_+'log1.log', _tmpDir_+ 'um2grib2_anl_stdout_'+ _current_date_ +'_' +hr+'hr.log']
+    cmdStr = ['mv', _tmpDir_+'log1.log', _tmpDir_+ 'um2grib2_anl_stdout_'+ _current_date_ +'_' +utc+'Z.log']
     subprocess.call(cmdStr)  
 # end of def convertAnlFiles(...):
 

@@ -2,8 +2,9 @@
 This is simple script to invoke parallel conversion function from um2grb2
 and pass the assimilated / forecasted hour as argument.
 
-hour : 06
-Output : It creates analysis - 1 file (um_ana_006hr_date.grib2).
+UTC : 06UTC
+fcst hour : 06hr
+Output : It creates analysis - 1 file (um_ana_006hr_date_06Z.grib2).
 
 Written by : Arulalan.T
 Date : 07.Dec.2015
@@ -42,7 +43,7 @@ if isinstance(date, tuple):
         # call analysis conversion function w.r.t data assimilated 
         # during short forecast hour - 06UTC.
         convertAnlFiles(inPath, outPath, tmpPath, targetGridResolution,
-              startdate, hr='06', overwrite=overwriteFiles, lprint=debug)
+              startdate, utc='06', overwrite=overwriteFiles, lprint=debug)
         print "Time lag incremented by 1"
         sDay += lag
         startdate = sDay.strftime('%Y%m%d')
@@ -54,5 +55,5 @@ elif isinstance(date, str):
     # during short forecast hour - 06UTC.
     print "um2grb2 ana 00hr conversion - date", date
     convertAnlFiles(inPath, outPath, tmpPath, targetGridResolution,
-              date, hr='06', overwrite=overwriteFiles, lprint=debug)
+              date, utc='06', overwrite=overwriteFiles, lprint=debug)
 # end of if isinstance(date, tuple):

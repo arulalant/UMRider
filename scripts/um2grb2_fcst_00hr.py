@@ -2,9 +2,10 @@
 This is simple script to invoke parallel conversion function from um2grb2
 and pass the assimilated / forecasted hour as argument.
 
-hour : 00
+UTC : 00Z
+fcst hour : 006hr, 012hr, 018hr, ..., 234hr, 240hr
 Output : It creates forecast - 40 files 
-         (um_prg_00hr_date.grib2, ..., um_prg_240hr_date.grib2).
+         (um_prg_006hr_date_00Z.grib2, ..., um_prg_240hr_date_00Z.grib2).
 Written by : Arulalan.T
 Date : 07.Dec.2015
 """
@@ -42,7 +43,7 @@ if isinstance(date, tuple):
         # call forecast conversion function w.r.t data assimilated 
         # during long forecast hour - 00UTC.
         convertFcstFiles(inPath, outPath, tmpPath, targetGridResolution,
-               startdate, hr='00', overwrite=overwriteFiles, lprint=debug)
+               startdate, utc='00', overwrite=overwriteFiles, lprint=debug)
         print "Time lag incremented by 1"
         sDay += lag
         startdate = sDay.strftime('%Y%m%d')
@@ -54,5 +55,5 @@ elif isinstance(date, str):
     # during long forecast hour - 00UTC.
     print "um2grb2 fcst conversion - date", date
     convertFcstFiles(inPath, outPath, tmpPath, targetGridResolution,
-               date, hr='00', overwrite=overwriteFiles, lprint=debug)
+               date, utc='00', overwrite=overwriteFiles, lprint=debug)
 # end of if isinstance(date, tuple):
