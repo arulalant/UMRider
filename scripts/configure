@@ -4,7 +4,7 @@
 ## and forecast files.                                                      ##
 ##                                                                          ##
 ## Author : Arulalan <arulalan@ncmrwf.gov.in>                               ##
-## Updated : 08-Dec-2015                                                    ##
+## Updated : 19-Jan-2016                                                    ##
 ##############################################################################
 
 ##### BEGIN OF SETUP CONFIGURE  FOR um2grb2 SCRIPTS ######
@@ -44,6 +44,16 @@ enddate = None
 ## where normal user don't have write permission to change the g2utils!
 ## So loadg2utils argument should be either system (default) or local.  
 loadg2utils = local
+
+## If overwriteFiles option is 'True' then existing output final files (if any) 
+## will be deleted from outPath and re-created freshly. 
+## If overwriteFiles option is 'False' and all output final files are already 
+## exists in the outPath, then program will be exited without re-creating the 
+## output files.
+## If partially created files exist (like few hours outfiles only exist or 
+## intermediate nc files) then by default make overwriteFiles option as True
+## (though False as passed to overwriteFiles option).
+overwriteFiles = True 
 
 ## This debug option should be either True or False. This will just print 
 ## extra informations like varibles details, shape, execution process, etc.,

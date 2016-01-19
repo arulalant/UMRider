@@ -80,7 +80,7 @@ Copyright: ESSO-NCMRWF,MoES, 2015-2016.
 """
 
 # -- Start importing necessary modules
-import os, sys, time, subprocess
+import os, sys, time, subprocess, shutil
 import numpy 
 import iris
 import gribapi
@@ -1465,9 +1465,56 @@ def convertFilesInParallel(fnames, ftype):
     return
 # end of def convertFilesInParallel(fnames):
 
-
+def _checkFilesStatus(path, ftype, date, hr, overwrite):
+    
+    if ftype in ['fcst', 'prg']:
+        ftype = 'prg'
+        hrs = [hr.zfill(3)] 
+    elif ftype in ['ana', 'anl']:
+        ftype = 'ana'
+        hrs = [hr.zfill(3) for hr in range(6, 241, 6)]
+    
+    status = None
+    for hr in hrs:
+        fname = 'um_ana_' + hr + '_' + date + '.grib2'
+        fpath = os.path.join(path, fname)        
+        for ext in ['', '.ctl', '.idx']:
+            fpath = os.path.join(path, *[fname, ext])
+            if os.path.isfile(fpath):
+                print "Out File already exists", fpath 
+                if overwrite: 
+                    os.remove(fpath)
+                    status = 'FilesRemoved'
+                    print "overwrite is True. So removed it", fpath
+                else:
+                    status = 'FilesExist' 
+            else:
+                if status in [None, 'FilesRemoved']:
+                    status = 'FilesDoNotExist' 
+                    continue
+                elif status is 'FilesExist':
+                    status = 'PartialFilesExist'
+                    break
+        # end of for ext in ['', '.ctl', '.idx']:
+    # end of for hr in hrs:
+    
+    ncfiles = [fname for fname in os.listdir(path) if fname.endswith('.nc')]
+    if ncfiles:
+        print "Intermediate nc files are exists in the outdirectory.", path
+        status = 'PartialFilesExist'
+        
+    if status == 'PartialFilesExist':
+        # partial files exist, so make overwrite option as True and do 
+        # recursive call one time to remove all output files.
+        print "Partial out files exist, so going to overwrite all files"
+        shutil.rmtree(path)
+        return None
+    else:
+        return status
+# end of def _checkFilesStatus(path, ftype, date, hr, overwrite):
+            
 def convertFcstFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
-                    date=time.strftime('%Y%m%d'), hr='00', lprint=False):
+       date=time.strftime('%Y%m%d'), hr='00', overwrite=False, lprint=False):
        
     global _targetGrid_, _current_date_, _startT_, _tmpDir_, \
             _inDataPath_, _opPath_, _doRegrid_, __LPRINT__
@@ -1513,7 +1560,17 @@ def convertFcstFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
                                                       targetGridResolution))]
         _doRegrid_ = True  
     # end of if targetGridResolution is None:
-                    
+    
+    # check either files are exists or not. delete the existing files in case
+    # of overwrite option is True, else return without re-converting files.
+    status = _checkFilesStatus(_opPath_, 'prg', _current_date_, hr, overwrite)
+    if status is 'FilesExist': 
+        print "All files are already exists. So skipping convert Fcst files porcess"
+        return # return back without executing conversion process.
+    elif status in [None, 'FilesDoNotExist', 'FilesRemoved']:
+        print "Going to start convert Fcst files freshly"
+    # end of if status is 'FilesExists': 
+    
     # do convert for forecast files 
     convertFilesInParallel(fcst_fnames, ftype='fcst')   
     
@@ -1526,7 +1583,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
 
 
 def convertAnlFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
-                    date=time.strftime('%Y%m%d'), hr='00', lprint=False):
+       date=time.strftime('%Y%m%d'), hr='00', overwrite=False, lprint=False):
        
     global _targetGrid_, _current_date_, _startT_, _tmpDir_, \
                 _inDataPath_, _opPath_, _doRegrid_, __LPRINT__
@@ -1571,7 +1628,17 @@ def convertAnlFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
                                                       targetGridResolution))]
         _doRegrid_ = True  
     # end of if targetGridResolution is None:
-                    
+    
+    # check either files are exists or not. delete the existing files in case
+    # of overwrite option is True, else return without re-converting files.
+    status = _checkFilesStatus(_opPath_, 'ana', _current_date_, hr, overwrite)
+    if status is 'FilesExist': 
+        print "All files are already exists. So skipping convert Fcst files porcess"
+        return # return back without executing conversion process.
+    elif status in [None, 'FilesDoNotExist', 'FilesRemoved']:
+        print "Going to start convert Fcst files freshly"
+    # end of if status is 'FilesExists': 
+                   
     # do convert for analysis files
     convertFilesInParallel(anl_fnames, ftype='anl')   
     

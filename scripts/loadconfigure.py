@@ -25,8 +25,8 @@ tmpPath = cdic.get('tmpPath', None)
 startdate = cdic.get('startdate', 'YYYYMMDD')
 enddate = cdic.get('enddate', None)
 loadg2utils = cdic.get('loadg2utils', 'system')
-debug = cdic.get('debug', False)
-debug = True if debug == 'True' else False
+overwriteFiles = eval(cdic.get('overwriteFiles', 'True'))
+debug = eval(cdic.get('debug', 'False'))
 
 targetGridResolution = cdic.get('targetGridResolution', None)
 targetGridResolution = None if targetGridResolution in ['None', None] else float(targetGridResolution)
@@ -60,5 +60,6 @@ else:
 print "date = ", date
 print "targetGridResolution = ", targetGridResolution
 print "loadg2utils = ", loadg2utils
+print "overwriteFiles = ", overwriteFiles
 print "debug = ", debug
 print "Successfully loaded the above params from configure file!"

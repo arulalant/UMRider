@@ -12,7 +12,7 @@ Date : 07.Dec.2015
 import os, sys, datetime
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
-                            debug, targetGridResolution
+                            debug, targetGridResolution, overwriteFiles
 
 if loadg2utils == 'system':
     # Load g2utils from system python which has installed through setup.py
@@ -42,7 +42,7 @@ if isinstance(date, tuple):
         # call forecast conversion function w.r.t data assimilated 
         # during long forecast hour - 00UTC.
         convertFcstFiles(inPath, outPath, tmpPath, targetGridResolution,
-                                        startdate, hr='00', lprint=debug)
+               startdate, hr='00', overwrite=overwriteFiles, lprint=debug)
         print "Time lag incremented by 1"
         sDay += lag
         startdate = sDay.strftime('%Y%m%d')
@@ -54,5 +54,5 @@ elif isinstance(date, str):
     # during long forecast hour - 00UTC.
     print "um2grb2 fcst conversion - date", date
     convertFcstFiles(inPath, outPath, tmpPath, targetGridResolution,
-                                        date, hr='00', lprint=debug)
+               date, hr='00', overwrite=overwriteFiles, lprint=debug)
 # end of if isinstance(date, tuple):
