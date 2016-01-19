@@ -46,7 +46,7 @@ enddate = None
 loadg2utils = local
 
 ## If overwriteFiles option is 'True' then existing output final files (if any) 
-## will be deleted from outPath and re-created freshly. 
+## will be deleted from outPath and re-creating freshly. 
 ## If overwriteFiles option is 'False' and all output final files are already 
 ## exists in the outPath, then program will be exited without re-creating the 
 ## output files.
