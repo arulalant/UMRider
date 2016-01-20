@@ -1200,6 +1200,10 @@ def tweaked_messages(cubeList):
                 print "reset scaleFactorOfSecondFixedSurface as 2"
             # end of if cube.coords('depth_below_land_surface'):    
             if cube.standard_name:
+                if cube.standard_name.startswith('air_pressure_at_sea_level'):
+                    # we have to explicitly re-set the type of first fixed
+                    # surfcae as Mean sea level (101)
+                    gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 101) 
                 if cube.standard_name.startswith('toa'):
                     # we have to explicitly re-set the type of first surfcae
                     # as Nominal top of the atmosphere i.e. 8 (WMO standard)
@@ -1590,7 +1594,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
     doShuffleVarsInOrderInParallel('fcst', utc)
     
     cmdStr = ['mv', _tmpDir_+'log2.log', _tmpDir_+'um2grib2_fcst_stdout_'+
-                                         current_date_ +'_' + utc +'Z.log']
+                                         _current_date_ +'_' + utc +'Z.log']
     subprocess.call(cmdStr)     
 # end of def convertFcstFiles(...):
 
@@ -1648,10 +1652,10 @@ def convertAnlFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
     # of overwrite option is True, else return without re-converting files.
     status = _checkFilesStatus(_opPath_, 'ana', _current_date_, utc, overwrite)
     if status is 'FilesExist': 
-        print "All files are already exists. So skipping convert Fcst files porcess"
+        print "All files are already exists. So skipping convert Anl files porcess"
         return # return back without executing conversion process.
     elif status in [None, 'FilesDoNotExist', 'FilesRemoved']:
-        print "Going to start convert Fcst files freshly"
+        print "Going to start convert Anl files freshly"
     # end of if status is 'FilesExists': 
                    
     # do convert for analysis files
