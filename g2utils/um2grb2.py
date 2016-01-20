@@ -80,7 +80,7 @@ Copyright: ESSO-NCMRWF,MoES, 2015-2016.
 """
 
 # -- Start importing necessary modules
-import os, sys, time, subprocess, shutil
+import os, sys, time, subprocess
 import numpy 
 import iris
 import gribapi
@@ -1049,8 +1049,7 @@ def regridAnlFcstFiles(arg):
                 # Says that 9.999e+20 value indicates as missingValue in grib2
                 # by default g2ctl.pl generate "undefr 9.999e+20", so we must 
                 # keep the fill_value / missingValue as 9.999e+20 only.
-                numpy.ma.set_fill_value(regdCube.data, 9.999e+20)    
-                print "regdCube.data +++ ",regdCube.data  
+                numpy.ma.set_fill_value(regdCube.data, 9.999e+20)
             # end of if varName not in ['rainfall_flux', 'precipitation_flux', 'snowfall_flux']:
             
             print "regrid done"
@@ -1092,7 +1091,8 @@ def regridAnlFcstFiles(arg):
                 hr = _inDataPath_.split('/')[-1]
             # end of if _inDataPath_.endswith('00'):
             
-            ofname = '_'.join([outfile, hr.zfill(3)+'hr', _current_date_, __utc__+'Z', _fext_])
+            ofname = '_'.join([outfile, hr.zfill(3)+'hr', _current_date_, 
+                                                      __utc__+'Z'+_fext_])
             outFn =  ofname + '.grib2'
             
             ncfile = False
@@ -1363,7 +1363,7 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
         fcstFiles = []
         for fcsthr in range(6, 241, 6):            
             outFn = '_'.join([outfile, str(fcsthr).zfill(3) +'hr', 
-                _current_date_, simulated_hr.zfill(2)+'Z', _fext_+'.grib2'])
+              _current_date_, simulated_hr.zfill(2)+'Z' + _fext_ + '.grib2'])
             #outFn = os.path.join(_opPath_, outFn)
             fcstFiles.append(outFn)
         # end of for hr in range(6,241,6):
@@ -1383,7 +1383,7 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
         ## generate the analysis filename w.r.t simulated_hr
         outfile = 'um_ana'
         outFn = '_'.join([outfile, simulated_hr.zfill(3) +'hr', 
-                _current_date_, simulated_hr.zfill(2)+'Z', _fext_+'.grib2'])
+              _current_date_, simulated_hr.zfill(2)+'Z' + _fext_ + '.grib2'])
         #outFn = os.path.join(_opPath_, outFn)
         doShuffleVarsInOrder(outFn)
     # end of if ftype in ['fcst', 'forecast']: 
@@ -1471,28 +1471,31 @@ def convertFilesInParallel(fnames, ftype):
 
 def _checkFilesStatus(path, ftype, date, utc, overwrite):
     
+    global _fext_
+    
     if ftype in ['ana', 'anl']:
         ftype = 'ana'        
         fhrs = [utc.zfill(3)] 
     elif ftype in ['fcst', 'prg']:
         ftype = 'prg'
-        fhrs = [hr.zfill(3) for hr in range(6, 241, 6)]
+        fhrs = [str(hr).zfill(3) for hr in range(6, 241, 6)]
     
     status = None
     for fhr in fhrs:
-        fname = 'um_ana_' + fhr + '_' + date + '_' + utc.zfill(2) + 'Z.grib2'
+        fname = 'um_ana_' + fhr + 'hr_' + date + '_' + utc.zfill(2) + 'Z.grib2'
         fpath = os.path.join(path, fname)        
         for ext in ['', '.ctl', '.idx']:
-            fpath = os.path.join(path, *[fname, ext])
+            fpath = os.path.join(path, fname+ext)
             if os.path.isfile(fpath):
-                print "Out File already exists", fpath 
+                print "Out File already exists", fpath,
                 if overwrite: 
                     os.remove(fpath)
                     status = 'FilesRemoved'
-                    print "overwrite is True. So removed it", fpath
+                    print ", but overwrite option is True. So removed it!"
                 else:
                     status = 'FilesExist' 
             else:
+                print "\nOut File does not exists", fpath 
                 if status in [None, 'FilesRemoved']:
                     status = 'FilesDoNotExist' 
                     continue
@@ -1502,17 +1505,21 @@ def _checkFilesStatus(path, ftype, date, utc, overwrite):
         # end of for ext in ['', '.ctl', '.idx']:
     # end of for fhr in fhrs:
     
-    ncfiles = [fname for fname in os.listdir(path) if fname.endswith('.nc')]
-    if ncfiles:
-        print "Intermediate nc files are exists in the outdirectory.", path
-        status = 'PartialFilesExist'
-        
-    if status == 'PartialFilesExist':
+    ifiles = [fname for fname in os.listdir(path) if _fext_ in fname]
+    if ifiles:        
+        print "Intermediate files are exists in the outdirectory.", path
+        for ifile in ifiles:        
+            if ftype in ifile and utc.zfill(2)+'Z'+_fext_ in ifile:
+                os.remove(os.path.join(path, ifile))
+                status = 'IntermediateFilesExist'
+                print "removed intermediate nc file"                
+        # end of for ncfile in ncfiles:        
+    # end of if ncfiles:
+    if status in ['PartialFilesExist', 'IntermediateFilesExist']:
         # partial files exist, so make overwrite option as True and do 
         # recursive call one time to remove all output files.
-        print "Partial out files exist, so going to overwrite all files"
-        shutil.rmtree(path)
-        return None
+        print "Partial/Intermediate out files exist, so going to overwrite all files"
+        return _checkFilesStatus(path, ftype, date, utc, overwrite=True)
     else:
         return status
 # end of def _checkFilesStatus(path, ftype, date, hr, overwrite):
@@ -1582,7 +1589,8 @@ def convertFcstFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
     # do re-order variables within files in parallel
     doShuffleVarsInOrderInParallel('fcst', utc)
     
-    cmdStr = ['mv', _tmpDir_+'log2.log', _tmpDir_+ 'um2grib2_fcst_stdout_'+ _current_date_ +'_' + utc +'Z.log']
+    cmdStr = ['mv', _tmpDir_+'log2.log', _tmpDir_+'um2grib2_fcst_stdout_'+
+                                         current_date_ +'_' + utc +'Z.log']
     subprocess.call(cmdStr)     
 # end of def convertFcstFiles(...):
 
@@ -1652,7 +1660,8 @@ def convertAnlFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
     # do re-order variables within files in parallel
     doShuffleVarsInOrderInParallel('anl', utc)
     
-    cmdStr = ['mv', _tmpDir_+'log1.log', _tmpDir_+ 'um2grib2_anl_stdout_'+ _current_date_ +'_' +utc+'Z.log']
+    cmdStr = ['mv', _tmpDir_+'log1.log', _tmpDir_+ 'um2grib2_anl_stdout_'+
+                                           _current_date_ +'_' +utc+'Z.log']
     subprocess.call(cmdStr)  
 # end of def convertAnlFiles(...):
 
