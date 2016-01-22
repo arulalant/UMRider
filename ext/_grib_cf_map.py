@@ -154,8 +154,19 @@ GRIB2_TO_CF = {
     G2Param(2, 0, 1, 65): CFName('rainfall_flux', 'rainfall_rate', 'kg m-2 s-1'), # 260058
     G2Param(2, 0, 3, 18): CFName('atmosphere_boundary_layer_thickness', None, 'm'), # WMO
 #    G2Param(2, 0, 1, 13): CFName('snowfall_amount', None, 'kg m-2'), # WMO  
-    G2Param(2, 192, 201, 56): CFName('fog_area_fraction', None, '1'), # 201056
+    G2Param(2, 0, 1, 192): CFName('fog_area_fraction', None, '%'), # NCMRWF Local
     G2Param(2, 0, 20, 102): CFName('atmosphere_optical_thickness_due_to_dust_ambient_aerosol', None, '1'), # WMO
+    
+    G2Param(2, 3, 1, 192): CFName(None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_0.38um', '1'), # NCMRWF Local
+    G2Param(2, 3, 1, 193): CFName(None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_0.44um', '1'), # NCMRWF Local
+    G2Param(2, 3, 1, 194): CFName(None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_0.55um', '1'), # NCMRWF Local
+    G2Param(2, 3, 1, 195): CFName(None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_0.67um', '1'), # NCMRWF Local
+    G2Param(2, 3, 1, 196): CFName(None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_0.87um', '1'), # NCMRWF Local
+    G2Param(2, 3, 1, 197): CFName(None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_1.02um', '1'), # NCMRWF Local
+
+    
+    
+    
     # G2Param(grib version, discipline, parameter category, parameter no, typeOfFirstFixedSurface):
     G2Param(2, 0, 1, 60, 1): CFName(None, 'snow_depth_water_equivalent', 'kg m-2'), # 228141
 #    G2Param(2, 2, 0, 0, 1): CFName(None, 'land_sea_mask', '(0 - 1)'), # 172
@@ -300,8 +311,15 @@ CF_TO_GRIB2 = {
     CFName(None, 'precipitation_minus_evaporation', 'kg m-2 s-1' ): G2Param(2, 192, 151, 158), # 151158
     CFName('rainfall_flux', 'rainfall_rate', 'kg m-2 s-1'): G2Param(2, 0, 1, 65), # 260058
     CFName('atmosphere_boundary_layer_thickness', None, 'm'): G2Param(2, 0, 3, 18), # WMO
-    CFName('fog_area_fraction', None, '1'): G2Param(2, 192, 201, 56), # 201056
+    CFName('fog_area_fraction', None, '%'): G2Param(2, 0, 1, 192), # NCMRWF Local
     CFName('atmosphere_optical_thickness_due_to_dust_ambient_aerosol', None, '1'): G2Param(2, 0, 20, 102), # WMO
+    
+    CFName(None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_0.38um', '1'): G2Param(2, 3, 1, 192), # NCMRWF Local
+    CFName(None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_0.44um', '1'): G2Param(2, 3, 1, 193), # NCMRWF Local
+    CFName(None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_0.55um', '1'): G2Param(2, 3, 1, 194), # NCMRWF Local
+    CFName(None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_0.67um', '1'): G2Param(2, 3, 1, 195), # NCMRWF Local
+    CFName(None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_0.87um', '1'): G2Param(2, 3, 1, 196), # NCMRWF Local
+    CFName(None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_1.02um', '1'): G2Param(2, 3, 1, 197), # NCMRWF Local
 
 ##    CFName('surface_downwelling_shortwave_flux_in_air_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 4, 196), #260342
 ##    CFName('surface_upwelling_shortwave_flux_in_air_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 4, 196), #260342
