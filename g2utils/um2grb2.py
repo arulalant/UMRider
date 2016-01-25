@@ -1566,20 +1566,44 @@ def convertFilesInParallel(fnames, ftype):
     return
 # end of def convertFilesInParallel(fnames):
 
-def _checkFilesStatus(path, ftype, date, utc, overwrite):
+def _checkInFilesStatus(path, ftype, pfnames):
+        
+    if ftype in ['ana', 'anl']:
+        fhrs = ['000'] 
+    elif ftype in ['fcst', 'prg']:
+        fhrs = [str(hr).zfill(3) for hr in range(0, 240, 24)]
+    
+    fileNotExistList = []
+    for pfname in pfnames:
+        for fhr in fhrs:
+            # constrct the correct fileName from partial fileName and hours
+            # add hour only if doenst have any extension on partial filename.
+            fname = pfname if '.' in pfname else pfname + fhr
+            fpath = os.path.join(path, fname)
+            if not os.path.isfile(fpath): fileNotExistList.append(fpath)
+    # end of for pfname in pfnames:
+    status = False if fileNotExistList else True
+    if status is False:    
+        print "The following infiles are not exists!\n"
+        print "\n\t".join(fileNotExistList)
+        
+    return status
+# end of def _checkInFilesStatus(path, ftype, pfnames):
+
+def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
     
     global _fext_
     
     if ftype in ['ana', 'anl']:
-        ftype = 'ana'        
+        ftype = 'um_ana'        
         fhrs = [utc.zfill(3)] 
     elif ftype in ['fcst', 'prg']:
-        ftype = 'prg'
+        ftype = 'um_prg'
         fhrs = [str(hr).zfill(3) for hr in range(6, 241, 6)]
     
     status = None
     for fhr in fhrs:
-        fname = 'um_ana_' + fhr + 'hr_' + date + '_' + utc.zfill(2) + 'Z.grib2'
+        fname = ftype + '_' + fhr + 'hr_' + date + '_' + utc.zfill(2) + 'Z.grib2'
         fpath = os.path.join(path, fname)        
         for ext in ['', '.ctl', '.idx']:
             fpath = os.path.join(path, fname+ext)
@@ -1616,10 +1640,10 @@ def _checkFilesStatus(path, ftype, date, utc, overwrite):
         # partial files exist, so make overwrite option as True and do 
         # recursive call one time to remove all output files.
         print "Partial/Intermediate out files exist, so going to overwrite all files"
-        return _checkFilesStatus(path, ftype, date, utc, overwrite=True)
+        return _checkOutFilesStatus(path, ftype, date, utc, overwrite=True)
     else:
         return status
-# end of def _checkFilesStatus(path, ftype, date, hr, overwrite):
+# end of def _checkOutFilesStatus(path, ftype, date, hr, overwrite):
             
 def convertFcstFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
        date=time.strftime('%Y%m%d'), utc='00', overwrite=False, lprint=False):
@@ -1650,6 +1674,13 @@ def convertFcstFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
         raise ValueError("In datapath does not exists %s" % _inDataPath_)
     # end of if not os.path.exists(_inDataPath_):
     
+    # check either infiles are exist or not!
+    status = _checkInFilesStatus(_inDataPath_, 'prg', fcst_fnames)
+    print "in status+++++++++++++++++++++++++++", status
+    if not status:
+        raise ValueError("In datapath does not contain the above valid infiles")
+    # end of if not instatus:
+    
     _opPath_ = os.path.join(outPath, _current_date_)
     if not os.path.exists(_opPath_):  
         os.makedirs(_opPath_)
@@ -1673,7 +1704,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
     
     # check either files are exists or not. delete the existing files in case
     # of overwrite option is True, else return without re-converting files.
-    status = _checkFilesStatus(_opPath_, 'prg', _current_date_, utc, overwrite)
+    status = _checkOutFilesStatus(_opPath_, 'prg', _current_date_, utc, overwrite)
     if status is 'FilesExist': 
         print "All files are already exists. So skipping convert Fcst files porcess"
         return # return back without executing conversion process.
@@ -1723,6 +1754,12 @@ def convertAnlFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
         raise ValueError("In datapath does not exists %s" % _inDataPath_)
     # end of if not os.path.exists(_inDataPath_):
     
+    # check either infiles are exist or not!
+    status = _checkInFilesStatus(_inDataPath_, 'ana', fcst_fnames)
+    if not status:
+        raise ValueError("In datapath does not contain the above valid infiles")
+    # end of if not instatus:
+    
     _opPath_ = os.path.join(outPath, _current_date_)
     if not os.path.exists(_opPath_):  
         os.makedirs(_opPath_)
@@ -1745,7 +1782,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
     
     # check either files are exists or not. delete the existing files in case
     # of overwrite option is True, else return without re-converting files.
-    status = _checkFilesStatus(_opPath_, 'ana', _current_date_, utc, overwrite)
+    status = _checkOutFilesStatus(_opPath_, 'ana', _current_date_, utc, overwrite)
     if status is 'FilesExist': 
         print "All files are already exists. So skipping convert Anl files porcess"
         return # return back without executing conversion process.
