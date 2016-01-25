@@ -1022,11 +1022,22 @@ def regridAnlFcstFiles(arg):
             # variable name, stash code, forecast_reference_time constraints
             # and forecast hour constraint
             if __LPRINT__: print varConstraint, STASHConstraint, fcstRefTimeConstraint, fhr
+
             tmpCube = cubes.extract(varConstraint & STASHConstraint & 
                                     fcstRefTimeConstraint &
                                     iris.Constraint(forecast_period=fhr))[0]
             if __LPRINT__: print "extrad end", infile, fhr, varName
             if __LPRINT__: print "tmpCube =>", tmpCube
+            if tmpCube.has_lazy_data():
+                print "Loaded", tmpCube.standard_name, "into memory",
+                ## By accessing tmpCube.data (even for printing), the full 
+                ## data has been loaded into memory instead of being lazy 
+                ## data. Especially for dust aod, we must make it as fully 
+                ## loaded otherwise full data will be treated as zeros only 
+                ## instead of 6 pseudo_level data.
+                print "- min", tmpCube.data.min(), "max", tmpCube.data.max(),
+                print "has_lazy_data =", tmpCube.has_lazy_data()
+            # end of if tmpCube.has_lazy_data():
             
             if (varName, varSTASH) == ('snowfall_amount', 'm01s00i023'):
                 # the snowfall_amount need to be changed as 
@@ -1051,7 +1062,7 @@ def regridAnlFcstFiles(arg):
                 if __LPRINT__: print "action = ", action
                 tmpCube = cubeAverager(tmpCube, action, dt='1 hour', 
                                            actionIntervals='6 hour', 
-                                  tpoint=timebound, fpoint=fcstbound)            
+                                  tpoint=timebound, fpoint=fcstbound)
             # end of if do6HourlyMean and tmpCube.coords('forecast_period')[0].shape[0] > 1:     
 
             # interpolate it as per targetGridResolution deg resolution by 
@@ -1085,11 +1096,10 @@ def regridAnlFcstFiles(arg):
                           ('stratiform_rainfall_amount', 'm01s04i201'),
                           ('convective_rainfall_amount', 'm01s05i201')]:
                 # For the above set of variables we shouldnot convert into 
-                # masked array. Otherwise its full data goes as nan.
-                
+                # masked array. Otherwise its full data goes as nan.                
                 # convert data into masked array
                 regdCube.data = numpy.ma.masked_array(regdCube.data)
-                
+
                 if (varName, varSTASH) in [('moisture_content_of_soil_layer', 'm01s08i223'),
                         ('soil_temperature', 'm01s03i238')]:
                     # We should mask 1e15 only for these variables!!!
@@ -1098,7 +1108,7 @@ def regridAnlFcstFiles(arg):
                     # mask out values less then 1e-15
                     regdCube.data = numpy.ma.masked_less(regdCube.data , 1e-15)
                     # mask out values greater than 1e+15
-                    regdCube.data = numpy.ma.masked_greater(regdCube.data , 1e+15)      
+                    regdCube.data = numpy.ma.masked_greater(regdCube.data , 1e+15)
                 # end of if ...:         
                 # http://www.cpc.ncep.noaa.gov/products/wesley/g2grb.html
                 # Says that 9.999e+20 value indicates as missingValue in grib2
@@ -1112,11 +1122,7 @@ def regridAnlFcstFiles(arg):
             if __LPRINT__: print "To shape", regdCube.shape  
                 
             regdCube.attributes = tmpCube.attributes
-            if __LPRINT__: print "set the attributes back to regdCube"  
-
-            # make memory free 
-            del tmpCube
-            
+            if __LPRINT__: print "set the attributes back to regdCube"              
             if __LPRINT__: print "regdCube => ", regdCube
             # get the regridded lat/lons
             stdNm, fcstTm, refTm, lat1, lon1 = getCubeAttr(regdCube)
@@ -1211,7 +1217,7 @@ def regridAnlFcstFiles(arg):
             # end of try:
             print "saved"
             # make memory free 
-            del regdCube
+            del regdCube, tmpCube
         # end of for fhr in fcstHours:
     # end of for varName, varSTASH in varNamesSTASH:
     # make memory free
