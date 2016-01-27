@@ -839,7 +839,7 @@ def _convert2VolumetricMoisture(cube):
     for idx, dval in enumerate([100.0, 250.0, 650.0, 1000.0]):
         cube.data[idx] /= dval
     # end of for idx, denominator in enumerate([...]):
-        
+
     # update the units as m3 / m3
     cube.units = Unit('m3 m-3')
     # make sure that standard_name as None, so that it will  
@@ -1585,7 +1585,9 @@ def _checkInFilesStatus(path, ftype, pfnames):
     status = False if fileNotExistList else True
     if status is False:    
         print "The following infiles are not exists!\n"
-        print "\n\t".join(fileNotExistList)
+        print "*" * 80
+        print "\n".join(fileNotExistList)
+        print "*" * 80
         
     return status
 # end of def _checkInFilesStatus(path, ftype, pfnames):
@@ -1755,7 +1757,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
     # end of if not os.path.exists(_inDataPath_):
     
     # check either infiles are exist or not!
-    status = _checkInFilesStatus(_inDataPath_, 'ana', fcst_fnames)
+    status = _checkInFilesStatus(_inDataPath_, 'ana', anl_fnames)
     if not status:
         raise ValueError("In datapath does not contain the above valid infiles")
     # end of if not instatus:
