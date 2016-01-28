@@ -839,7 +839,19 @@ def _convert2VolumetricMoisture(cube):
     for idx, dval in enumerate([100.0, 250.0, 650.0, 1000.0]):
         cube.data[idx] /= dval
     # end of for idx, denominator in enumerate([...]):
-
+    
+    # WRF-WPS requires minimum vlaue as 0.005. If it is < 0.005 then 
+    # Noah thorws segmentation error due to low value of soil moisture. 
+    # Reference : look at the lines from 1219 t0 1260 in the below link
+    # http://www.cisl.ucar.edu/staff/huangwei/WRFV3/dyn_em/module_initialize_real.F.html
+    # though the above Noah code replace the <0.005 grid values with 0.005,
+    # but it does only for the first time step (say analysis 00hr), and then 
+    # model will blow up for the next time step (say forecast 06hr).
+    # And either we should do mask grid points < 0.005 or replace with 0.005.
+    # Here we are replacing with 0.005 since soil moisture masking will not 
+    # make proper sense!. so replace the values less than 0.005 with 0.005.
+    cube.data[cube.data < 0.005] = 0.0051
+    
     # update the units as m3 / m3
     cube.units = Unit('m3 m-3')
     # make sure that standard_name as None, so that it will  
@@ -1595,17 +1607,18 @@ def _checkInFilesStatus(path, ftype, pfnames):
 def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
     
     global _fext_
-    
+
     if ftype in ['ana', 'anl']:
-        ftype = 'um_ana'        
+        ftype = 'ana'        
         fhrs = [utc.zfill(3)] 
     elif ftype in ['fcst', 'prg']:
-        ftype = 'um_prg'
+        ftype = 'prg'
         fhrs = [str(hr).zfill(3) for hr in range(6, 241, 6)]
     
     status = None
     for fhr in fhrs:
-        fname = ftype + '_' + fhr + 'hr_' + date + '_' + utc.zfill(2) + 'Z.grib2'
+        fname = 'um' + '_' + ftype + '_' + fhr + 'hr_' + date 
+        fname += '_' + utc.zfill(2) + 'Z.grib2'
         fpath = os.path.join(path, fname)        
         for ext in ['', '.ctl', '.idx']:
             fpath = os.path.join(path, fname+ext)
