@@ -13,7 +13,7 @@ Date : 07.Dec.2015
 import os, sys, datetime
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
-                             debug, targetGridResolution, overwriteFiles
+                    debug, targetGridResolution, overwriteFiles, neededVars
 
 if loadg2utils == 'system':
     # Load g2utils from system python which has installed through setup.py
@@ -42,8 +42,10 @@ if isinstance(date, tuple):
         print "Going to start progress on", startdate
         # call analysis conversion function w.r.t data assimilated 
         # during short forecast hour - 12UTC.
-        convertAnlFiles(inPath, outPath, tmpPath, targetGridResolution,
-              startdate, utc='12', overwrite=overwriteFiles, lprint=debug)
+        convertAnlFiles(inPath, outPath, tmpPath, 
+                        targetGridResolution=targetGridResolution, 
+                  date=startdate, utc='12', convertVars=neededVars, 
+                            overwrite=overwriteFiles, lprint=debug)
         print "Time lag incremented by 1"
         sDay += lag
         startdate = sDay.strftime('%Y%m%d')
@@ -54,6 +56,8 @@ elif isinstance(date, str):
     # call analysis conversion function w.r.t data assimilated 
     # during short forecast hour - 12UTC.
     print "um2grb2 ana 00hr conversion - date", date
-    convertAnlFiles(inPath, outPath, tmpPath, targetGridResolution,
-              date, utc='12', overwrite=overwriteFiles, lprint=debug)
+    convertAnlFiles(inPath, outPath, tmpPath, 
+                    targetGridResolution=targetGridResolution, 
+                   date=date, utc='12', convertVars=neededVars,
+                         overwrite=overwriteFiles, lprint=debug)
 # end of if isinstance(date, tuple):

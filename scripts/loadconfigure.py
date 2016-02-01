@@ -10,10 +10,19 @@ import os, sys, time, datetime
 # get this script abspath
 scriptPath = os.path.dirname(os.path.abspath(__file__))
 
+# get environment variable for setup file otherwise load default local path 
+setupfile = os.environ.get('UMRIDER_SETUP', os.path.join(scriptPath, 'um2grb2_setup.cfg')).strip()
+if not os.path.isfile(setupfile):
+    raise ValueError("UMRIDER_SETUP file doesnot exists '%s'" % setupfile)
+
+print "loaded UMRIDER_SETUP configure file from ", setupfile
 print "Reading configure file to load the paths"
 # get the configure lines
-clines = [l.strip() for l in open(os.path.join(scriptPath, 'configure')).readlines() \
+clines = [l.strip() for l in open(setupfile).readlines() \
                 if not l.startswith(('#', '/', '!', '\n', '%'))]
+if not clines:
+    raise ValueError("Empty setup list loaded from %s" % setupfile)
+
 # get the dictionary keys, values
 cdic = {k.strip(): v.strip() for k,v in [l.split('=') for l in clines]}
 
@@ -56,10 +65,32 @@ if enddate not in ['None', None]:
 else:
     date = startdate
 # end of if enddate not in ['None', None]:
-    
+
+# get environment variable for vars file otherwise load default local path 
+varfile = os.environ.get('UMRIDER_VARS', os.path.join(scriptPath, 'um2grb2_vars.cfg')).strip()
+if not os.path.isfile(varfile):
+    raise ValueError("UMRIDER_VARS file doesnot exists '%s'" % varfile)
+print "loaded UMRIDER_VARS configure file from ", varfile
+print "Reading configure file to load the paths"
+
+# clean it up and store as list of tuples contains both varName and varSTASH
+vl = [i.strip() for i in open(varfile).readlines() if i]
+neededVars = [j if len(j) == 2 else j[0] for j in 
+                    [eval(i) for i in vl if i and not i.startswith('#')]]
+if not neededVars:
+    raise ValueError("Empty variables list loaded from %s" % varfile)
+
+print "\n" * 4
+print "*" * 80
 print "date = ", date
 print "targetGridResolution = ", targetGridResolution
 print "loadg2utils = ", loadg2utils
 print "overwriteFiles = ", overwriteFiles
 print "debug = ", debug
-print "Successfully loaded the above params from configure file!"
+print "Successfully loaded the above params from UMRIDER_SETUP configure file!", setupfile
+print "*" * 80
+print "Successfully loaded the below variables from UMRIDER_VARS configure file!", varfile 
+print "\n".join([str(i+1)+' : ' + str(tu) for i, tu in enumerate(neededVars)])
+print "The above %d variables will be passed to UMRider" % len(neededVars)
+print "*" * 80
+print "\n" * 4

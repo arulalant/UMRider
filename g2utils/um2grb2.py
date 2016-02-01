@@ -106,6 +106,10 @@ _lock_ = mp.Lock()
 # other global variables
 __LPRINT__ = False
 __utc__ = '00'
+# the _convertVars_ is global list which should has final variables list of 
+# tuples (varName, varSTASH) will be converted, otherwise default variables 
+# of this module will be converted!
+_convertVars_ = []
 _current_date_ = None
 _startT_ = None
 _tmpDir_ = None
@@ -936,7 +940,7 @@ def regridAnlFcstFiles(arg):
     """
     global _lock_, _targetGrid_, _targetGridRes_, _current_date_, _startT_, \
            _inDataPath_, _opPath_, _fext_, _accumulationVars_, _ncfilesVars_, \
-           _doRegrid_, __LPRINT__, __utc__
+           _convertVars_, _doRegrid_, __LPRINT__, __utc__
    
     fpname, hr = arg 
     
@@ -954,6 +958,20 @@ def regridAnlFcstFiles(arg):
         return  
     # end of if not os.path.isfile(fname): 
     
+    if _convertVars_:
+        # load only needed variables from this file !
+        varNamesSTASH = [vns for vns in varNamesSTASH if vns in _convertVars_]
+    
+    if not varNamesSTASH:
+        print "No varibale selected to load from the file '%s' " % fname
+        if __LPRINT__: 
+            print "Because global variable _convertVars_ doesn't contain any one of the following variables"
+            print "\n".join([str(i+1)+' : ' + str(tu) for i, tu in enumerate(varNamesSTASH)])
+        return None
+    else:
+        print "The following variables are going to be converted from file ", fname
+        print "\n".join([str(i+1)+' : ' + str(tu) for i, tu in enumerate(varNamesSTASH)])
+    # end of if not varNamesSTASH:
     
     print "Started Processing the file: %s.. \n" %infile
     
@@ -1474,27 +1492,30 @@ def doShuffleVarsInOrder(fpath):
                     orderedVars.append(var[0])
             # end of if var:
     # end of for name, STASH in _orderedVars_['PressureLevel']:
+    
     if _maskOverOceanVars_:
         # store the land_binary_mask data into temporary variable
         land_binary_mask = [var for var in orderedVars 
-                                if var.standard_name == 'land_binary_mask'][0]
-        land_binary_mask = land_binary_mask.data == 0
-        # get the shapes
-        lsh = land_binary_mask.shape
-        for vidx, var in enumerate(orderedVars):
-            vname = var.standard_name if var.standard_name else var.long_name
-            if vname in _maskOverOceanVars_:     
-                # get the ocean mask by masking 0s of land_binary_mask 
-                # (0-sea, 1-land) and set it to the required variables.           
-                vsh = var.shape
-                if lsh != vsh:
-                    land_binary_mask_grown = land_binary_mask.reshape(1, lsh[0], lsh[-1])
-                    land_binary_mask_grown = land_binary_mask_grown.repeat(vsh[0], axis=0)                    
-                    var.data = numpy.ma.masked_where(land_binary_mask_grown, var.data)
-                else:                    
-                    var.data = numpy.ma.masked_where(land_binary_mask, var.data)
-                print "updated ocean masked vars"
-        # end of for var in orderedVars:
+                                if var.standard_name == 'land_binary_mask']
+        if land_binary_mask:
+            land_binary_mask = land_binary_mask[0].data == 0            
+            # get the shapes
+            lsh = land_binary_mask.shape
+            for vidx, var in enumerate(orderedVars):
+                vname = var.standard_name if var.standard_name else var.long_name
+                if vname in _maskOverOceanVars_:     
+                    # get the ocean mask by masking 0s of land_binary_mask 
+                    # (0-sea, 1-land) and set it to the required variables.           
+                    vsh = var.shape
+                    if lsh != vsh:
+                        land_binary_mask_grown = land_binary_mask.reshape(1, lsh[0], lsh[-1])
+                        land_binary_mask_grown = land_binary_mask_grown.repeat(vsh[0], axis=0)                    
+                        var.data = numpy.ma.masked_where(land_binary_mask_grown, var.data)
+                    else:                    
+                        var.data = numpy.ma.masked_where(land_binary_mask, var.data)
+                    print "updated ocean masked vars"
+            # end of for vidx, var in enumerate(orderedVars):
+        # end of if land_binary_mask:
     # end of if _maskOverOceanVars_:
         
     newfilefpath = fpath.split(_fext_)[0] + '.grib2'
@@ -1743,11 +1764,21 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
         return status
 # end of def _checkOutFilesStatus(path, ftype, date, hr, overwrite):
             
-def convertFcstFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
-       date=time.strftime('%Y%m%d'), utc='00', overwrite=False, lprint=False):
-       
+def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
+           
     global _targetGrid_, _targetGridRes_, _current_date_, _startT_, _tmpDir_, \
-            _inDataPath_, _opPath_, _doRegrid_, __LPRINT__, __utc__
+       _inDataPath_, _opPath_, _doRegrid_, _convertVars_, __LPRINT__, __utc__
+    
+    # load key word arguments
+    targetGridResolution = kwarg.get('targetGridResolution', 0.25)
+    date = kwarg.get('date', time.strftime('%Y%m%d'))
+    utc = kwarg.get('utc', '00')
+    overwrite = kwarg.get('overwrite', False)
+    lprint = kwarg.get('lprint', False)
+    convertVars = kwarg.get('convertVars', None)
+    
+    # assign the convert vars list of tuples to global variable
+    if convertVars: _convertVars_ = convertVars
     
     # set print variables details options
     __LPRINT__ = lprint    
@@ -1822,11 +1853,21 @@ def convertFcstFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
 # end of def convertFcstFiles(...):
 
 
-def convertAnlFiles(inPath, outPath, tmpPath, targetGridResolution=0.25,
-       date=time.strftime('%Y%m%d'), utc='00', overwrite=False, lprint=False):
+def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
        
     global _targetGrid_, _targetGridRes_, _current_date_, _startT_, _tmpDir_, \
-                _inDataPath_, _opPath_, _doRegrid_, __LPRINT__, __utc__
+       _inDataPath_, _opPath_, _doRegrid_, _convertVars_, __LPRINT__, __utc__
+    
+    # load key word arguments
+    targetGridResolution = kwarg.get('targetGridResolution', 0.25)
+    date = kwarg.get('date', time.strftime('%Y%m%d'))
+    utc = kwarg.get('utc', '00')
+    overwrite = kwarg.get('overwrite', False)
+    lprint = kwarg.get('lprint', False)
+    convertVars = kwarg.get('convertVars', None)
+    
+    # assign the convert vars list of tuples to global variable
+    if convertVars: _convertVars_ = convertVars
     
     # set print variables details options
     __LPRINT__ = lprint
