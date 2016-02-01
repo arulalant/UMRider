@@ -165,10 +165,14 @@ _orderedVars_ = {'PressureLevel': [
 ('surface_net_downward_longwave_flux', 'm01s02i201'), 
 ('atmosphere_boundary_layer_thickness', 'm01s00i025'),
 ('atmosphere_optical_thickness_due_to_dust_ambient_aerosol', 'm01s02i422'),
-('moisture_content_of_soil_layer', 'm01s08i223'),
+('moisture_content_of_soil_layer', 'm01s08i223'),  # 4 layers 
+# single layer, this must be after 4 layers as in order 
+('soil_moisture_content', 'm01s08i208'),       # single layer  
 ## though moisture_content_of_soil_layer and volumetric_moisture_of_soil_layer
 ## has same STASH code, but we must include seperate entry here.
-('volumetric_moisture_of_soil_layer', 'm01s08i223'),
+('volumetric_moisture_of_soil_layer', 'm01s08i223'), # 4 layers
+# single layer, this must be after 4 layers as in order 
+('volumetric_moisture_of_soil_layer', 'm01s08i208'), # single layer
 ('soil_temperature', 'm01s03i238'),  
 ('land_binary_mask', 'm01s00i030'),
 ('sea_ice_area_fraction', 'm01s00i031'),
@@ -208,6 +212,9 @@ _accumulationVars_ = [('precipitation_amount', 'm01s05i226'),
 _ncfilesVars_ = [('volumetric_moisture_of_soil_layer', 'm01s08i223'), 
         # 'moisture_content_of_soil_layer' renamed as  
         # 'volumetric_moisture_of_soil_layer', but same STASH m01s08i223 code.
+        ('volumetric_moisture_of_soil_layer', 'm01s08i208'), 
+        # 'soil_moisture_content' renamed as  
+        # 'volumetric_moisture_of_soil_layer', but same STASH m01s08i208 code.
                  ('soil_temperature', 'm01s03i238'),
                  ('toa_incoming_shortwave_flux', 'm01s01i207'),
                  ('tropopause_altitude', 'm01s30i453'),
@@ -224,6 +231,15 @@ _ncmrGrib2LocalTableVars_ = ['fog_area_fraction',
                             'toa_outgoing_shortwave_flux_assuming_clear_sky',
                   'atmosphere_optical_thickness_due_to_dust_ambient_aerosol']
 
+## Define _maskOverOceanVars_
+## the following variables need to be set mask over ocean because the original
+## model itself producing mask over ocean. but when we are doing regrid it 
+## couldnt retain the mask ! dont know why ! So using land_binary_mask 
+## variable, we are resetting mask over ocean for the following vars.
+_maskOverOceanVars_ = ['volumetric_moisture_of_soil_layer', 
+        # 'moisture_content_of_soil_layer' renamed as  
+        # 'volumetric_moisture_of_soil_layer', but same STASH m01s08i223 code.
+                 'soil_temperature']
 
 ## Define dust aerosol optical thickness of model pseudo level with its 
 ## corresponding micron / micro wavelength. We need to tweak with following 
@@ -380,6 +396,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('tropopause_air_pressure', 'm01s30i451'),
                     ('sea_ice_area_fraction', 'm01s00i031'),
                     ('sea_ice_thickness', 'm01s00i032'),
+#                    ('soil_moisture_content', 'm01s08i208'), # production has -ve values, (WRONG values)
                     # the snowfall_amount need to be changed as 
                     # liquid_water_content_of_surface_snow by convert it into
                     # water equivalent of snow amount.
@@ -521,6 +538,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('tropopause_air_pressure', 'm01s30i451'),
                     ('sea_ice_area_fraction', 'm01s00i031'),
                     ('sea_ice_thickness', 'm01s00i032'),
+#                    ('soil_moisture_content', 'm01s08i208'),  # production has -ve values, (WRONG values)
                     # the snowfall_amount need to be changed as 
                     # liquid_water_content_of_surface_snow by convert it into
                     # water equivalent of snow amount.
@@ -789,7 +807,25 @@ class _MyPool(mppool.Pool):
     Process = _NoDaemonProcess
 # end of class #3
 
-def _updateDepthBelowLandSurfaceCoords(depth_below_land_surface):
+def _createDepthBelowLandSurfaceCoords1Lev(cube):
+    # Dr. Saji / UM_Model_DOC suggested that UM produce Root zone soil model
+    # level number is equivalent to 0 to 2m. (i.e. from 1 to 4 layer no) 
+    # So we kept here unit as 'cm'. But points are muliplied by
+    # 100 with its  corresponding cm values. Why because, that 
+    # 100 will be factorized (divied) in grib_message by setting 
+    # scaleFactorOfFirstFixedSurface as 2 and 
+    # scaleFactorOfFirstFixedSurface as 2. So we must follow 
+    # this procedure to get correct results.
+
+    # Lets create new coords with 0, 2m infomation.   
+    depth_below_land_surface = iris.coords.DimCoord(numpy.array([20000]), 
+                      bounds=numpy.array([[0, 20000]]), units=Unit('cm'), 
+                                    long_name='depth_below_land_surface') 
+    # add the above created new coords to the cube 
+    cube.add_aux_coord(depth_below_land_surface)    
+# end of def _createDepthBelowLandSurfaceCoords1Lev():
+
+def _updateDepthBelowLandSurfaceCoords4Levs(depth_below_land_surface):
     # Dr. Saji / UM_Model_DOC suggested that UM produce soil model
     # level number is equivalent to 10cm, 35cm, 1m & 2m. 
     # So we kept here unit as 'cm'. But points are muliplied by
@@ -808,9 +844,9 @@ def _updateDepthBelowLandSurfaceCoords(depth_below_land_surface):
     depth_below_land_surface.units = Unit('cm')
     depth_below_land_surface.long_name = 'depth_below_land_surface'    
     depth_below_land_surface.standard_name = None
-# end of def update():
+# end of def _updateDepthBelowLandSurfaceCoords4Levs():
 
-def _convert2VolumetricMoisture(cube):
+def _convert2VolumetricMoisture(cube, levels=[100.0, 250.0, 650.0, 1000.0]):
     #### Lets convert moisture_content_of_soil_layer into 
     ##  volumetric_moisture_of_soil_layer by divide each layer 
     ## with its layer depth in mm.
@@ -836,8 +872,13 @@ def _convert2VolumetricMoisture(cube):
     
     ## Link : http://www.researchgate.net/publication/257940913
     
-    for idx, dval in enumerate([100.0, 250.0, 650.0, 1000.0]):
-        cube.data[idx] /= dval
+    if isinstance(levels, (list, tuple)):   
+        # This block of code for 4 different layers 
+        for idx, dval in enumerate(levels):
+            cube.data[idx] /= dval
+    elif isinstance(levels, float):
+        # this block of code for single layer 
+        cube.data /= levels
     # end of for idx, denominator in enumerate([...]):
     
     # WRF-WPS requires minimum vlaue as 0.005. If it is < 0.005 then 
@@ -850,7 +891,7 @@ def _convert2VolumetricMoisture(cube):
     # And either we should do mask grid points < 0.005 or replace with 0.005.
     # Here we are replacing with 0.005 since soil moisture masking will not 
     # make proper sense!. so replace the values less than 0.005 with 0.005.
-    cube.data[cube.data < 0.005] = 0.0051
+    cube.data[numpy.ma.logical_and(cube.data > 0.0, cube.data < 0.005)] = 0.005
     
     # update the units as m3 / m3
     cube.units = Unit('m3 m-3')
@@ -1038,7 +1079,7 @@ def regridAnlFcstFiles(arg):
             tmpCube = cubes.extract(varConstraint & STASHConstraint & 
                                     fcstRefTimeConstraint &
                                     iris.Constraint(forecast_period=fhr))[0]
-            if __LPRINT__: print "extrad end", infile, fhr, varName
+            if __LPRINT__: print "extract end", infile, fhr, varName
             if __LPRINT__: print "tmpCube =>", tmpCube
             if tmpCube.has_lazy_data():
                 print "Loaded", tmpCube.standard_name, "into memory",
@@ -1082,13 +1123,13 @@ def regridAnlFcstFiles(arg):
             print "\n Regridding data to %sx%s degree spatial resolution \n" % (_targetGridRes_, _targetGridRes_)
             if __LPRINT__: print "From shape", tmpCube.shape 
             if _doRegrid_:
-                try:            
-                    # This interpolate will do extra polate over ocean also even 
+                try:
+                    # This lienar interpolate will do extra polate over ocean even 
                     # though original data doesnt have values over ocean and wise versa.
-                    # So lets be aware of this and fix it by masking 1e-15 and 1e+15.
+                    # So lets be aware of this.
                     # DO NOT APPLY iris.analysis.Linear(extrapolation_mode='mask'), 
                     # which writes nan every where for the snowfall_flux,  
-                    # rainfall_flux, precipitation_flux. So donot apply that.
+                    # rainfall_flux, precipitation_flux. So donot apply that.               
                     regdCube = tmpCube.interpolate(_targetGrid_, iris.analysis.Linear())
                 except Exception as e:
                     print "ALERT !!! Error while regridding!! %s" % str(e)
@@ -1110,25 +1151,22 @@ def regridAnlFcstFiles(arg):
                 # For the above set of variables we shouldnot convert into 
                 # masked array. Otherwise its full data goes as nan.                
                 # convert data into masked array
-                regdCube.data = numpy.ma.masked_array(regdCube.data)
-
+                regdCube.data = numpy.ma.masked_array(regdCube.data, dtype=numpy.float64)
+                
+                if (varName, varSTASH) in [('land_binary_mask', 'm01s00i030')]:
+                    regdCube.data[regdCube.data > 0.0] = 1.0   
+                
                 if (varName, varSTASH) in [('moisture_content_of_soil_layer', 'm01s08i223'),
                         ('soil_temperature', 'm01s03i238')]:
-                    # We should mask 1e15 only for these variables!!!
-                    # If do it for other variables, then it maskes even 
-                    # smaller -ve values also.!!! 
-                    # mask out values less then 1e-15
-                    regdCube.data = numpy.ma.masked_less(regdCube.data , 1e-15)
-                    # mask out values greater than 1e+15
-                    regdCube.data = numpy.ma.masked_greater(regdCube.data , 1e+15)
+                    # We should assign 0 instead 1e-15 only for these vars!
+                    regdCube.data[regdCube.data <= 1e-15] = 0.0
                 # end of if ...:         
                 # http://www.cpc.ncep.noaa.gov/products/wesley/g2grb.html
                 # Says that 9.999e+20 value indicates as missingValue in grib2
                 # by default g2ctl.pl generate "undefr 9.999e+20", so we must 
                 # keep the fill_value / missingValue as 9.999e+20 only.
                 numpy.ma.set_fill_value(regdCube.data, 9.999e+20)
-            # end of if varName not in ['rainfall_flux', 'precipitation_flux', 'snowfall_flux']:
-            
+            # end of if varName not in ['rainfall_flux', 'precipitation_flux', 'snowfall_flux']:            
             print "regrid done"
              
             if __LPRINT__: print "To shape", regdCube.shape  
@@ -1170,18 +1208,24 @@ def regridAnlFcstFiles(arg):
             
             ncfile = False
             if regdCube.coords('soil_model_level_number'):
+                # NOTE : THIS SECTION WILL WORKS ONLY FOR SOIL MOISTURE AND
+                # SOIL TEMPERATUE AT 4 LAYERS, NOT FOR SINGLE LAYER OR 
+                # NOT FOR Root zone Soil Moisture Content !!!
+                 
                 # Get soil_model_level_number coords from the cube.
                 # We need to update this variable, which will be replicated
                 # in the cube attributes. By default iris-1.9 will not 
                 # support to handle soil_model_level_number, so we need to 
                 # tweak it by following way.
                 depth_below_land_surface = regdCube.coords('soil_model_level_number')[0]
-                _updateDepthBelowLandSurfaceCoords(depth_below_land_surface)
+                _updateDepthBelowLandSurfaceCoords4Levs(depth_below_land_surface)
                 if __LPRINT__: print "depth_below_land_surface", depth_below_land_surface
                 
                 if regdCube.standard_name == 'moisture_content_of_soil_layer':
-                    _convert2VolumetricMoisture(regdCube)
-                    print "converted to volumetric"
+                    # pass the vertical layer depth in millimeter
+                    _convert2VolumetricMoisture(regdCube, 
+                                        levels=[100.0, 250.0, 650.0, 1000.0])
+                    print "converted four layer soil moisture to volumetric"
                 # end of if regdCube.standard_name == 'moisture_content_of_soil_layer':                
                                
                 # We need to save this variable into nc file, why because
@@ -1196,7 +1240,23 @@ def regridAnlFcstFiles(arg):
                 outFn = varSTASH + '_'+ ofname + '.nc'
                 ncfile = True
             # end of if regdCube.coords('soil_model_level_number'):
-                            
+            
+            if (varName, varSTASH) == ('soil_moisture_content', 'm01s08i208'):
+                # NOTE : THIS SECTION WILL WORKS ONLY FOR SINGLE LAYERED 
+                # Root zone Soil Moisture Content, NOT FOR 4 LAYERS.
+                
+                # By default this variable doesn't have any vertical coords 
+                # inforomation. So we must add explicitly by ourself.
+                _createDepthBelowLandSurfaceCoords1Lev(regdCube)
+                
+                # Convert this into volumetirc soil moisture. This varibale
+                # vertical level at 2meter in millimeter.
+                _convert2VolumetricMoisture(regdCube, levels=2000.0)
+                print "converted single layer soil moisture to volumetric"
+                outFn = varSTASH + '_'+ ofname + '.nc'
+                ncfile = True
+            # end of if (varName, varSTASH) in (...):
+            
             if (varName, varSTASH) in _ncfilesVars_:
                 # other than soil_model_level_number, few variables may be 
                 # need to write into nc file and then convert to grib2. why 
@@ -1336,7 +1396,8 @@ def doShuffleVarsInOrder(fpath):
     Arulalan/T
     11-12-2015
     """
-    global _orderedVars_, _fext_, _ncfilesVars_, _inDataPath_, _aod_pseudo_level_var_
+    global _orderedVars_, _fext_, _ncfilesVars_, _inDataPath_, \
+                       _maskOverOceanVars_, _aod_pseudo_level_var_
     
     try:        
         f = iris.load(fpath)
@@ -1398,7 +1459,7 @@ def doShuffleVarsInOrder(fpath):
             
             if var: 
                 # apped the ordered / corrected vars into the list, which will  
-                # be going to saved into grib2 files by tweaking it further!
+                # be going to saved into grib2 files by tweaking it further!                
                 if varName in _aod_pseudo_level_var_:
                     for plev, pval in _aod_pseudo_level_var_[varName]:
                         pvar = var[0].extract(iris.Constraint(pseudo_level=plev))
@@ -1413,7 +1474,29 @@ def doShuffleVarsInOrder(fpath):
                     orderedVars.append(var[0])
             # end of if var:
     # end of for name, STASH in _orderedVars_['PressureLevel']:
-    
+    if _maskOverOceanVars_:
+        # store the land_binary_mask data into temporary variable
+        land_binary_mask = [var for var in orderedVars 
+                                if var.standard_name == 'land_binary_mask'][0]
+        land_binary_mask = land_binary_mask.data == 0
+        # get the shapes
+        lsh = land_binary_mask.shape
+        for vidx, var in enumerate(orderedVars):
+            vname = var.standard_name if var.standard_name else var.long_name
+            if vname in _maskOverOceanVars_:     
+                # get the ocean mask by masking 0s of land_binary_mask 
+                # (0-sea, 1-land) and set it to the required variables.           
+                vsh = var.shape
+                if lsh != vsh:
+                    land_binary_mask_grown = land_binary_mask.reshape(1, lsh[0], lsh[-1])
+                    land_binary_mask_grown = land_binary_mask_grown.repeat(vsh[0], axis=0)                    
+                    var.data = numpy.ma.masked_where(land_binary_mask_grown, var.data)
+                else:                    
+                    var.data = numpy.ma.masked_where(land_binary_mask, var.data)
+                print "updated ocean masked vars"
+        # end of for var in orderedVars:
+    # end of if _maskOverOceanVars_:
+        
     newfilefpath = fpath.split(_fext_)[0] + '.grib2'
     # now lets save the ordered variables into same file
     try:   
