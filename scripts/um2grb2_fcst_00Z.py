@@ -58,6 +58,6 @@ elif isinstance(date, str):
     print "um2grb2 fcst conversion - date", date
     convertFcstFiles(inPath, outPath, tmpPath, 
                         targetGridResolution=targetGridResolution, 
-                  date=startdate, utc='00', convertVars=neededVars, 
+                      date=date, utc='00', convertVars=neededVars, 
                             overwrite=overwriteFiles, lprint=debug)
 # end of if isinstance(date, tuple):
