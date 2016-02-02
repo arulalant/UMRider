@@ -15,6 +15,10 @@ setupfile = os.environ.get('UMRIDER_SETUP', os.path.join(scriptPath, 'um2grb2_se
 if not os.path.isfile(setupfile):
     raise ValueError("UMRIDER_SETUP file doesnot exists '%s'" % setupfile)
 
+print "\n" * 4
+print "*" * 80
+print "*" * 35 + "  UMRider  " + "*" * 34
+print "*" * 80
 print "loaded UMRIDER_SETUP configure file from ", setupfile
 print "Reading configure file to load the paths"
 # get the configure lines
@@ -36,9 +40,28 @@ enddate = cdic.get('enddate', None)
 loadg2utils = cdic.get('loadg2utils', 'system')
 overwriteFiles = eval(cdic.get('overwriteFiles', 'True'))
 debug = eval(cdic.get('debug', 'False'))
+requiredLat = eval(cdic.get('latitude', None))
+requiredLon = eval(cdic.get('longitude', None))
+targetGridResolution = eval(cdic.get('targetGridResolution', None))
 
-targetGridResolution = cdic.get('targetGridResolution', None)
-targetGridResolution = None if targetGridResolution in ['None', None] else float(targetGridResolution)
+if requiredLat:
+    if not isinstance(requiredLat, (tuple, list)):
+        raise ValueError("latitude must be tuple")
+    if requiredLat[0] > requiredLat[-1]:
+        raise ValueError("First latitude must be less than second latitude")
+    print "Will be loaded user specfied latitudes", requiredLat
+else:
+    print "Will be loaded full model global latitudes"
+# end of if requiredLat:
+if requiredLon:
+    if not isinstance(requiredLon, (tuple, list)):
+        raise ValueError("longitude must be tuple")
+    if requiredLon[0] > requiredLon[-1]:
+        raise ValueError("First longitude must be less than second longitude")
+    print "Will be loaded user specfied longitudes", requiredLon
+else:
+    print "Will be loaded full model global longitudes"
+# end of if requiredLon:
 
 # check the variable's path 
 for name, path in [('inPath', inPath), ('outPath', outPath), ('tmpPath', tmpPath)]:
@@ -80,13 +103,14 @@ neededVars = [j if len(j) == 2 else j[0] for j in
 if not neededVars:
     raise ValueError("Empty variables list loaded from %s" % varfile)
 
-print "\n" * 4
 print "*" * 80
 print "date = ", date
 print "targetGridResolution = ", targetGridResolution
 print "loadg2utils = ", loadg2utils
 print "overwriteFiles = ", overwriteFiles
 print "debug = ", debug
+print "latitude = ", requiredLat
+print "longitude = ", requiredLon
 print "Successfully loaded the above params from UMRIDER_SETUP configure file!", setupfile
 print "*" * 80
 print "Successfully loaded the below variables from UMRIDER_VARS configure file!", varfile 
