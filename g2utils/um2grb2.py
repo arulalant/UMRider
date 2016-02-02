@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__author__ = 'arulalant, raghav'
+__author__ = 'arulalant'
 __version__ = 'v1.0'
 __long_name__ = 'NCUM Parallel Rider'
 
@@ -118,6 +118,8 @@ _opPath_ = None
 _doRegrid_ = False
 _targetGrid_ = None
 _targetGridRes_ = None
+_requiredLat_ = None
+_requiredLon_ = None
 _fext_ = '_unOrdered'
 # global ordered variables (the order we want to write into grib2)
 _orderedVars_ = {'PressureLevel': [
@@ -941,7 +943,8 @@ def regridAnlFcstFiles(arg):
     """
     global _lock_, _targetGrid_, _targetGridRes_, _current_date_, _startT_, \
            _inDataPath_, _opPath_, _fext_, _accumulationVars_, _ncfilesVars_, \
-           _convertVars_, _doRegrid_, __LPRINT__, __utc__
+           _convertVars_, _requiredLat_, _requiredLon_, _doRegrid_, \
+           __LPRINT__, __utc__
    
     fpname, hr = arg 
     
@@ -1008,6 +1011,17 @@ def regridAnlFcstFiles(arg):
         fcstbound = 'lbound'        # TESTED, OK, on 05-01-2016
     # end of if dtype == 'fcst':
     
+    # Define default lat, lon contraint (None just bring model global data)
+    latConstraint, lonConstraint = None, None
+    if _requiredLat_: 
+        # make constraint of required latitude
+        latConstraint = iris.Constraint(latitude=lambda cell: 
+                                _requiredLat_[0] <= cell <= _requiredLat_[-1])
+    if _requiredLon_:
+        # make constraint of required longitude
+        lonConstraint = iris.Constraint(longitude=lambda cell: 
+                                _requiredLon_[0] <= cell <= _requiredLon_[-1])
+                                
     # open for-loop-1 -- for all the variables in the cube
     for varName, varSTASH in varNamesSTASH:
         # define variable name constraint
@@ -1093,11 +1107,14 @@ def regridAnlFcstFiles(arg):
             # get the varibale iris cube by applying variable name constraint, 
             # variable name, stash code, forecast_reference_time constraints
             # and forecast hour constraint
-            if __LPRINT__: print varConstraint, STASHConstraint, fcstRefTimeConstraint, fhr
-
+            if __LPRINT__: print varConstraint, STASHConstraint, fhr,
+            if __LPRINT__: print fcstRefTimeConstraint, latConstraint, lonConstraint
+            
+            # extract cube with possible and required constraints
             tmpCube = cubes.extract(varConstraint & STASHConstraint & 
                                     fcstRefTimeConstraint &
-                                    iris.Constraint(forecast_period=fhr))[0]
+                                    iris.Constraint(forecast_period=fhr) &
+                                    latConstraint & lonConstraint)[0]
             if __LPRINT__: print "extract end", infile, fhr, varName
             if __LPRINT__: print "tmpCube =>", tmpCube
             if tmpCube.has_lazy_data():
@@ -1606,11 +1623,11 @@ def doShuffleVarsInOrder(fpath):
     ctlfile = open(newfilefpath+'.ctl', 'w')
     if 'um_ana' in newfilefpath:
         # create ctl & idx files for analysis file 
-        subprocess.call([g2ctl, '-0', newfilefpath], stdout=ctlfile)
-        subprocess.call([gribmap, '-0', '-i', newfilefpath+'.ctl'])
+        subprocess.call([g2ctl, '-ts6hr', '-0', newfilefpath], stdout=ctlfile)
+        subprocess.call([gribmap, '-ts6hr', '-0', '-i', newfilefpath+'.ctl'])
     elif 'um_prg' in newfilefpath:
         # create ctl & idx files for forecast file
-        subprocess.call([g2ctl, newfilefpath], stdout=ctlfile)
+        subprocess.call([g2ctl, '-ts6hr', newfilefpath], stdout=ctlfile)
         subprocess.call([gribmap, '-i', newfilefpath+'.ctl'])
     else:
         raise ValueError("unknown file type while executing g2ctl.pl!!")
@@ -1829,7 +1846,8 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
 def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
            
     global _targetGrid_, _targetGridRes_, _current_date_, _startT_, _tmpDir_, \
-       _inDataPath_, _opPath_, _doRegrid_, _convertVars_, __LPRINT__, __utc__
+       _inDataPath_, _opPath_, _doRegrid_, _convertVars_, _requiredLat_, \
+       _requiredLon_, __LPRINT__, __utc__
     
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -1838,6 +1856,8 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     overwrite = kwarg.get('overwrite', False)
     lprint = kwarg.get('lprint', False)
     convertVars = kwarg.get('convertVars', None)
+    latitude = kwarg.get('latitude', None)
+    longitude = kwarg.get('longitude', None)
     
     # assign the convert vars list of tuples to global variable
     if convertVars: _convertVars_ = convertVars
@@ -1847,6 +1867,8 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     # update global variables
     __utc__ = utc
     _targetGridRes_ = str(targetGridResolution)
+    _requiredLat_ = latitude
+    _requiredLon_ = longitude
     # forecast filenames partial name
     fcst_fnames = ['umglaa_pb','umglaa_pd', 'umglaa_pe', 'umglaa_pf', 'umglaa_pi'] 
 
@@ -1884,12 +1906,19 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     if targetGridResolution is None:
         _doRegrid_ = False  
     else:
+        # define default global lat start, lon end points
+        slat, elat = (0., 360.)
+        # define default global lon start, lon end points 
+        slon, elon = (-90., 90.)
+        # define user defined custom lat & lon start and end points
+        if latitude: (slat, elat) = latitude
+        if longitude: (slon, elon) = longitude
         # target grid as 0.25 deg (default) resolution by setting up sample points 
         # based on coord    
-        _targetGrid_ = [('longitude', numpy.arange(0., 360.+targetGridResolution, 
-                                                  targetGridResolution)),
-                        ('latitude', numpy.arange(-90., 90.+targetGridResolution, 
-                                                      targetGridResolution))]
+        _targetGrid_ = [('latitude', numpy.arange(slat, 
+                          elat+targetGridResolution, targetGridResolution)),
+                        ('longitude', numpy.arange(slon, 
+                          elon+targetGridResolution, targetGridResolution))]
         _doRegrid_ = True  
     # end of if targetGridResolution is None:
     
@@ -1918,7 +1947,8 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
 def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
        
     global _targetGrid_, _targetGridRes_, _current_date_, _startT_, _tmpDir_, \
-       _inDataPath_, _opPath_, _doRegrid_, _convertVars_, __LPRINT__, __utc__
+       _inDataPath_, _opPath_, _doRegrid_, _convertVars_, _requiredLat_, \
+       _requiredLon_, __LPRINT__, __utc__
     
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -1927,6 +1957,8 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     overwrite = kwarg.get('overwrite', False)
     lprint = kwarg.get('lprint', False)
     convertVars = kwarg.get('convertVars', None)
+    latitude = kwarg.get('latitude', None)
+    longitude = kwarg.get('longitude', None)
     
     # assign the convert vars list of tuples to global variable
     if convertVars: _convertVars_ = convertVars
@@ -1936,6 +1968,8 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     # update global variables
     __utc__ = utc
     _targetGridRes_ = str(targetGridResolution)
+    _requiredLat_ = latitude
+    _requiredLon_ = longitude
     # analysis filenames partial name
     anl_fnames = ['umglca_pb', 'umglca_pd', 'umglca_pe', 'umglca_pf', 'umglca_pi']  
     if utc == '00': anl_fnames.insert(0, 'qwqg00.pp0')
@@ -1972,12 +2006,19 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     if targetGridResolution is None:
         _doRegrid_ = False  
     else:
+        # define default global lat start, lon end points
+        slat, elat = (0., 360.)
+        # define default global lon start, lon end points 
+        slon, elon = (-90., 90.)
+        # define user defined custom lat & lon start and end points
+        if latitude: (slat, elat) = latitude
+        if longitude: (slon, elon) = longitude
         # target grid as 0.25 deg (default) resolution by setting up sample points 
         # based on coord    
-        _targetGrid_ = [('longitude', numpy.arange(0., 360.+targetGridResolution, 
-                                                  targetGridResolution)),
-                        ('latitude', numpy.arange(-90., 90.+targetGridResolution, 
-                                                      targetGridResolution))]
+        _targetGrid_ = [('latitude', numpy.arange(slat, 
+                          elat+targetGridResolution, targetGridResolution)),
+                        ('longitude', numpy.arange(slon, 
+                          elon+targetGridResolution, targetGridResolution))]
         _doRegrid_ = True  
     # end of if targetGridResolution is None:
     
