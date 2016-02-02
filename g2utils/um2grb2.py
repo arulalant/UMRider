@@ -241,8 +241,9 @@ _ncmrGrib2LocalTableVars_ = ['fog_area_fraction',
 ## couldnt retain the mask ! dont know why ! So using land_binary_mask 
 ## variable, we are resetting mask over ocean for the following vars.
 _maskOverOceanVars_ = ['volumetric_moisture_of_soil_layer', 
-        # 'moisture_content_of_soil_layer' renamed as  
-        # 'volumetric_moisture_of_soil_layer', but same STASH m01s08i223 code.
+        # 'moisture_content_of_soil_layer' and 'soil_moisture_content' are 
+        # renamed as  'volumetric_moisture_of_soil_layer', 
+        # but same STASH m01s08i223 and m01s08i208 code.
                  'soil_temperature']
 
 ## Define dust aerosol optical thickness of model pseudo level with its 
@@ -892,10 +893,10 @@ def _convert2VolumetricMoisture(cube, levels=[100.0, 250.0, 650.0, 1000.0]):
     # though the above Noah code replace the <0.005 grid values with 0.005,
     # but it does only for the first time step (say analysis 00hr), and then 
     # model will blow up for the next time step (say forecast 06hr).
-    # And either we should do mask grid points < 0.005 or replace with 0.005.
-    # Here we are replacing with 0.005 since soil moisture masking will not 
-    # make proper sense!. so replace the values less than 0.005 with 0.005.
-    cube.data[numpy.ma.logical_and(cube.data > 0.0, cube.data < 0.005)] = 0.005
+    # And either we should do mask grid points < 0.005 or replace with 0.0051.
+    # Here we are replacing with 0.0051 since soil moisture masking will not 
+    # make proper sense!. so replace the values less than 0.005 with 0.0051.
+    cube.data[numpy.ma.logical_and(cube.data > 0.0, cube.data < 0.005)] = 0.0051
     
     # update the units as m3 / m3
     cube.units = Unit('m3 m-3')
@@ -1159,25 +1160,33 @@ def regridAnlFcstFiles(arg):
                 regdCube = tmpCube
             # end of if _doRegrid_:
             
+            if (varName, varSTASH) in [('land_binary_mask', 'm01s00i030')]:
+                regdCube.data[regdCube.data > 0] = 1
+                # trying to keep values either 0 or 1. Not fraction!
+                regdCube.data = numpy.array(regdCube.data, dtype=int)
+            # end of if (varName, varSTASH) in [('land_binary_mask', 'm01s00i030')]:
+            
             if (varName, varSTASH) not in [('snowfall_flux', 'm01s05i215'),
                           ('precipitation_flux', 'm01s05i216'),
                           ('rainfall_flux', 'm01s05i214'),
                           ('stratiform_snowfall_amount', 'm01s04i202'),
                           ('convective_snowfall_amount', 'm01s05i202'),
                           ('stratiform_rainfall_amount', 'm01s04i201'),
-                          ('convective_rainfall_amount', 'm01s05i201')]:
+                          ('convective_rainfall_amount', 'm01s05i201'),
+                          ('land_binary_mask', 'm01s00i030')]:
                 # For the above set of variables we shouldnot convert into 
                 # masked array. Otherwise its full data goes as nan.                
                 # convert data into masked array
                 regdCube.data = numpy.ma.masked_array(regdCube.data, dtype=numpy.float64)
-                
-                if (varName, varSTASH) in [('land_binary_mask', 'm01s00i030')]:
-                    regdCube.data[regdCube.data > 0.0] = 1.0   
-                
-                if (varName, varSTASH) in [('moisture_content_of_soil_layer', 'm01s08i223'),
-                        ('soil_temperature', 'm01s03i238')]:
-                    # We should assign 0 instead 1e-15 only for these vars!
+                                                
+                if (varName, varSTASH) == ('moisture_content_of_soil_layer', 'm01s08i223'):
+                    # We should assign 0 instead 1e-15 only for this var!
                     regdCube.data[regdCube.data <= 1e-15] = 0.0
+                elif (varName, varSTASH) == ('soil_temperature', 'm01s03i238'):
+                    # We should assign min instead 1e-15 only for this var!
+                    # because 0 will not make sense when temperature unit is Kelvin
+                    nmin = numpy.ma.masked_less_equal(regdCube.data, 1e-15).min()
+                    regdCube.data[regdCube.data <= 1e-15] = nmin
                 # end of if ...:         
                 # http://www.cpc.ncep.noaa.gov/products/wesley/g2grb.html
                 # Says that 9.999e+20 value indicates as missingValue in grib2
@@ -1498,21 +1507,75 @@ def doShuffleVarsInOrder(fpath):
         land_binary_mask = [var for var in orderedVars 
                                 if var.standard_name == 'land_binary_mask']
         if land_binary_mask:
-            land_binary_mask = land_binary_mask[0].data == 0            
+            land_binary_mask = land_binary_mask[0].data < 1   
+            # here we are masking less than 1. we can do just simply == 0 also, 
+            # but somehow it retains fraction values between 0 to 1. To get 
+            # ride out of this fraction values, just mask out < 1.
             # get the shapes
             lsh = land_binary_mask.shape
+            # Define constraint to extract latitude from 60S to 60N
+            lat_60S_60N = iris.Constraint(latitude=lambda cell: -60 < cell < 60)
+            lat_30S_30N = iris.Constraint(latitude=lambda cell: -30 < cell < 30)
             for vidx, var in enumerate(orderedVars):
                 vname = var.standard_name if var.standard_name else var.long_name
-                if vname in _maskOverOceanVars_:     
-                    # get the ocean mask by masking 0s of land_binary_mask 
-                    # (0-sea, 1-land) and set it to the required variables.           
+                if vname in _maskOverOceanVars_:    
+                    # Lets reset zero values lies within 60S to 60N band
+                    # with 0.0051, before ocean region has been masked.
+                    # Now extract data only lies between 60S to 60N
+                    var_60S_60N = var.extract(lat_60S_60N)
+                    if vname == 'volumetric_moisture_of_soil_layer':
+                        # reset the minimum values as 0.0051
+                        var_60S_60N.data[var_60S_60N.data < 0.005] = 0.0051
+                    elif vname == 'soil_temperature':
+                        # We should assign min of extra tropical band !
+                        # because polar minimum might have been assigned 
+                        # while extracting data (function regridAnlFcstFiles).
+                        # So lets re-set here!
+                        # zero will not make sense when temperature unit is Kelvin
+                        # get tropical data 
+                        var_30S_30N = var.extract(lat_30S_30N) 
+                        # find next mean value of tropical data 
+                        nmean = numpy.ma.masked_less_equal(var_30S_30N.data, 
+                                                var_30S_30N.data.min()).mean()
+                        # make memory free 
+                        del var_30S_30N
+                        # set mean value (of tropical data 30S to 30N) as 
+                        # min value full extra tropical data (60S to 60N).
+                        # This will solve the abnormal temperature values over 
+                        # small islands in tropical ocean regions.
+                        var_60S_60N.data[var_60S_60N.data <= var_60S_60N.data.min()] = nmean
+                    # end of if vname == 'volumetric_moisture_of_soil_layer':
+                    
+                    # extract latitude coords of 60S to 60N data 
+                    lat_60S_60N_points = var_60S_60N.coords('latitude')[0].points
+                    # get its start and end lat values of 60S and 60N
+                    lat_60S_start, lat_60N_end = lat_60S_60N_points[0], lat_60S_60N_points[-1]
+                    # get the original global data latitude points 
+                    originalLat = var.coords('latitude')[0].points.tolist()
+                    # find the 60S index in original global latitude
+                    lat_60S_index = originalLat.index(lat_60S_start)
+                    # find the 60N index in original global latitude
+                    lat_60N_index = originalLat.index(lat_60N_end) + 1
+                    # Lets insert the updated data (0.0051) within the 
+                    # original global data itself.
+                    # Now Lets do masking over Ocean regions!
                     vsh = var.shape
                     if lsh != vsh:
+                        # first dimension points 4 layer depth_below_land_surface
+                        # so second dimension points latitude.
+                        var.data[:, lat_60S_index: lat_60N_index, :] = var_60S_60N.data                        
+                        # get the ocean mask by masking 0s of land_binary_mask 
+                        # (0-sea, 1-land) and set it to the required variables. 
                         land_binary_mask_grown = land_binary_mask.reshape(1, lsh[0], lsh[-1])
                         land_binary_mask_grown = land_binary_mask_grown.repeat(vsh[0], axis=0)                    
                         var.data = numpy.ma.masked_where(land_binary_mask_grown, var.data)
-                    else:                    
+                    else:    
+                        # single layer only. so first dimension points latitude
+                        var.data[lat_60S_index: lat_60N_index, :] = var_60S_60N.data
+                        # get the ocean mask by masking 0s of land_binary_mask 
+                        # (0-sea, 1-land) and set it to the required variables. 
                         var.data = numpy.ma.masked_where(land_binary_mask, var.data)
+                    # end of if lsh != vsh:
                     print "updated ocean masked vars"
             # end of for vidx, var in enumerate(orderedVars):
         # end of if land_binary_mask:
