@@ -40,9 +40,9 @@ enddate = cdic.get('enddate', None)
 loadg2utils = cdic.get('loadg2utils', 'system')
 overwriteFiles = eval(cdic.get('overwriteFiles', 'True'))
 debug = eval(cdic.get('debug', 'False'))
-requiredLat = eval(cdic.get('latitude', None))
-requiredLon = eval(cdic.get('longitude', None))
-targetGridResolution = eval(cdic.get('targetGridResolution', None))
+requiredLat = eval(cdic.get('latitude', 'None'))
+requiredLon = eval(cdic.get('longitude', 'None'))
+targetGridResolution = eval(cdic.get('targetGridResolution', 'None'))
 
 if requiredLat:
     if not isinstance(requiredLat, (tuple, list)):
