@@ -106,6 +106,8 @@ _lock_ = mp.Lock()
 # other global variables
 __LPRINT__ = False
 __utc__ = '00'
+# maximum long forecast hours produced by model
+__max_long_fcst_hours__ = 240
 # the _convertVars_ is global list which should has final variables list of 
 # tuples (varName, varSTASH) will be converted, otherwise default variables 
 # of this module will be converted!
@@ -1222,27 +1224,32 @@ def regridAnlFcstFiles(arg):
             stdNm, fcstTm, refTm, lat1, lon1 = getCubeAttr(regdCube)
             if __LPRINT__: print "Got attributes from regdCube"
             # save the cube in append mode as a grib2 file       
-            if _inDataPath_.endswith('00'):
-                if fcstTm.bounds is not None:
-                    # (need this for pf files)
-                    if dtype == 'ana':
-                        # this is needed for analysis 00th simulated_hr
-                        # get the first hour from bounds
-                        hr = str(int(fcstTm.bounds[-1][0]))
-                    elif dtype == 'fcst':
-                        # this is needed for forecast 00th simulated_hr
-                        # get the last hour from bounds
-                        hr = str(int(fcstTm.bounds[-1][-1]))
-                    if __LPRINT__: print "Bounds comes in ", hr, fcstTm.bounds, fileName                        
+            if _inDataPath_.endswith(('00', '12')):
+                if dtype == 'ana' and _inDataPath_.endswith('12'):
+                    # get the hour from infile path as 'least dirname'
+                    # this is needed for analysis 12th simulated_hr
+                    hr = _inDataPath_.split('/')[-1]
                 else:
-                    # get the fcst time point 
-                    # this is needed for analysis/forecast 00th simulated_hr
-                    hr = str(int(fcstTm.points))
-                    if __LPRINT__: print "points comes in ", hr, fileName 
-                # end of if fcstTm.bounds:
+                    if fcstTm.bounds is not None:
+                        # (need this for pf files)
+                        if dtype == 'ana':
+                            # this is needed for analysis 00th simulated_hr
+                            # get the first hour from bounds
+                            hr = str(int(fcstTm.bounds[-1][0]))
+                        elif dtype == 'fcst':
+                            # this is needed for forecast 00th simulated_hr
+                            # get the last hour from bounds
+                            hr = str(int(fcstTm.bounds[-1][-1]))
+                        if __LPRINT__: print "Bounds comes in ", hr, fcstTm.bounds, fileName                        
+                    else:
+                        # get the fcst time point 
+                        # this is needed for analysis/forecast 00th simulated_hr
+                        hr = str(int(fcstTm.points))
+                        if __LPRINT__: print "points comes in ", hr, fileName 
+                    # end of if fcstTm.bounds:
             else:
                 # get the hour from infile path as 'least dirname'
-                # this is needed for analysis 06, 12, 18th simulated_hr
+                # this is needed for analysis 06, 18th simulated_hr
                 hr = _inDataPath_.split('/')[-1]
             # end of if _inDataPath_.endswith('00'):
             
@@ -1638,7 +1645,7 @@ def doShuffleVarsInOrder(fpath):
 
 def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
             
-    global _current_date_, _opPath_, _fext_
+    global _current_date_, _opPath_, _fext_, __max_long_fcst_hours__
     
     print "Lets re-order variables for all the files!!!"
     #####
@@ -1653,7 +1660,7 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
         ## generate all the forecast filenames w.r.t forecast hours 
         outfile = 'um_prg'
         fcstFiles = []
-        for fcsthr in range(6, 241, 6):            
+        for fcsthr in range(6, __max_long_fcst_hours__+1, 6):            
             outFn = '_'.join([outfile, str(fcsthr).zfill(3) +'hr', 
               _current_date_, simulated_hr.zfill(2)+'Z' + _fext_ + '.grib2'])
             #outFn = os.path.join(_opPath_, outFn)
@@ -1695,7 +1702,13 @@ def doFcstConvert(fname):
     :param fname: Name of the FF filename in question as a "string"
     :return: Nothing! TANGIBLE!
     """
-    fcst_times = ['000', '024','048','072','096','120','144','168','192','216']
+    global __max_long_fcst_hours__
+    
+    # here max fcst hours goes upto 240 only, not 241. why ??
+    # because 216 long fcst hours contains upto 240th hour fcst.
+    # and 240th long fcst contains upto 264th hour fcst.
+    # so here no need to add +1 to __max_long_fcst_hours__.
+    fcst_times = [str(hr).zfill(3) for hr in range(0, __max_long_fcst_hours__, 24)]
     fcst_filenames = [(fname, hr) for hr in fcst_times]
     nchild = len(fcst_times)
     # create the no of child parallel processes
@@ -1762,11 +1775,17 @@ def convertFilesInParallel(fnames, ftype):
 # end of def convertFilesInParallel(fnames):
 
 def _checkInFilesStatus(path, ftype, pfnames):
-        
+    
+    global __max_long_fcst_hours__
+    
     if ftype in ['ana', 'anl']:
         fhrs = ['000'] 
     elif ftype in ['fcst', 'prg']:
-        fhrs = [str(hr).zfill(3) for hr in range(0, 240, 24)]
+        # here max fcst hours goes upto 240 only, not 241. why ??
+        # because 216 long fcst hours contains upto 240th hour fcst.
+        # and 240th long fcst contains upto 264th hour fcst.
+        # so here no need to add +1 to __max_long_fcst_hours__.
+        fhrs = [str(hr).zfill(3) for hr in range(0, __max_long_fcst_hours__, 24)]
     
     fileNotExistList = []
     for pfname in pfnames:
@@ -1789,14 +1808,14 @@ def _checkInFilesStatus(path, ftype, pfnames):
 
 def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
     
-    global _fext_
+    global _fext_, __max_long_fcst_hours__
 
     if ftype in ['ana', 'anl']:
         ftype = 'ana'        
         fhrs = [utc.zfill(3)] 
     elif ftype in ['fcst', 'prg']:
         ftype = 'prg'
-        fhrs = [str(hr).zfill(3) for hr in range(6, 241, 6)]
+        fhrs = [str(hr).zfill(3) for hr in range(6, __max_long_fcst_hours__+1, 6)]
     
     status = None
     for fhr in fhrs:
@@ -1847,7 +1866,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
            
     global _targetGrid_, _targetGridRes_, _current_date_, _startT_, _tmpDir_, \
        _inDataPath_, _opPath_, _doRegrid_, _convertVars_, _requiredLat_, \
-       _requiredLon_, __LPRINT__, __utc__
+       _requiredLon_, __LPRINT__, __utc__, __max_long_fcst_hours__
     
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -1858,6 +1877,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     convertVars = kwarg.get('convertVars', None)
     latitude = kwarg.get('latitude', None)
     longitude = kwarg.get('longitude', None)
+    max_long_fcst_hours = kwarg.get('max_long_fcst_hours', 240)
     
     # assign the convert vars list of tuples to global variable
     if convertVars: _convertVars_ = convertVars
@@ -1866,6 +1886,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     __LPRINT__ = lprint    
     # update global variables
     __utc__ = utc
+    __max_long_fcst_hours__ = max_long_fcst_hours
     _targetGridRes_ = str(targetGridResolution)
     _requiredLat_ = latitude
     _requiredLon_ = longitude
@@ -1948,7 +1969,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
        
     global _targetGrid_, _targetGridRes_, _current_date_, _startT_, _tmpDir_, \
        _inDataPath_, _opPath_, _doRegrid_, _convertVars_, _requiredLat_, \
-       _requiredLon_, __LPRINT__, __utc__
+       _requiredLon_, __LPRINT__, __utc__, __max_long_fcst_hours__
     
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -1959,6 +1980,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     convertVars = kwarg.get('convertVars', None)
     latitude = kwarg.get('latitude', None)
     longitude = kwarg.get('longitude', None)
+    max_long_fcst_hours = kwarg.get('max_long_fcst_hours', 240)
     
     # assign the convert vars list of tuples to global variable
     if convertVars: _convertVars_ = convertVars
@@ -1967,6 +1989,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     __LPRINT__ = lprint
     # update global variables
     __utc__ = utc
+    __max_long_fcst_hours__ = max_long_fcst_hours
     _targetGridRes_ = str(targetGridResolution)
     _requiredLat_ = latitude
     _requiredLon_ = longitude
