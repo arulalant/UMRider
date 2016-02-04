@@ -43,6 +43,14 @@ debug = eval(cdic.get('debug', 'False'))
 requiredLat = eval(cdic.get('latitude', 'None'))
 requiredLon = eval(cdic.get('longitude', 'None'))
 targetGridResolution = eval(cdic.get('targetGridResolution', 'None'))
+max_long_fcst_hours_at_00z = eval(cdic.get('max_long_fcst_hours_at_00z', '240'))
+max_long_fcst_hours_at_12z = eval(cdic.get('max_long_fcst_hours_at_12z', '120'))
+
+if not isinstance(max_long_fcst_hours_at_00z, int):
+    raise ValueError('max_long_fcst_hours_at_00z must be an integer')
+
+if not isinstance(max_long_fcst_hours_at_12z, int):
+    raise ValueError('max_long_fcst_hours_at_12z must be an integer')
 
 if requiredLat:
     if not isinstance(requiredLat, (tuple, list)):
@@ -111,6 +119,8 @@ print "overwriteFiles = ", overwriteFiles
 print "debug = ", debug
 print "latitude = ", requiredLat
 print "longitude = ", requiredLon
+print "max_long_fcst_hours_at_00z = ", max_long_fcst_hours_at_00z
+print "max_long_fcst_hours_at_12z = ", max_long_fcst_hours_at_12z
 print "Successfully loaded the above params from UMRIDER_SETUP configure file!", setupfile
 print "*" * 80
 print "Successfully loaded the below variables from UMRIDER_VARS configure file!", varfile 
