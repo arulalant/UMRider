@@ -14,7 +14,7 @@ import os, sys, datetime
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                  debug, targetGridResolution, overwriteFiles, neededVars, \
-                 requiredLat, requiredLon
+                 requiredLat, requiredLon, max_long_fcst_hours_at_00z
 
 if loadg2utils == 'system':
     # Load g2utils from system python which has installed through setup.py
@@ -47,6 +47,7 @@ if isinstance(date, tuple):
                         targetGridResolution=targetGridResolution, 
                  date=startdate, utc='00', convertVars=neededVars, 
                       latitude=requiredLat, longitude=requiredLon,
+                   max_long_fcst_hours=max_long_fcst_hours_at_00z,
                            overwrite=overwriteFiles, lprint=debug)
         print "Time lag incremented by 1"
         sDay += lag
@@ -62,5 +63,6 @@ elif isinstance(date, str):
                         targetGridResolution=targetGridResolution, 
                       date=date, utc='00', convertVars=neededVars, 
                       latitude=requiredLat, longitude=requiredLon,
+                   max_long_fcst_hours=max_long_fcst_hours_at_00z,
                            overwrite=overwriteFiles, lprint=debug)
 # end of if isinstance(date, tuple):
