@@ -391,7 +391,6 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         do6HourlyMean = False
             
     elif fname.startswith('umglca_pb'):              # umglca_pb
-        # varNamesSTASH = [19, 24, 26, 30, 31, 32, 33, 34] # needed
         # available for use
         varNamesSTASH = [('land_binary_mask', 'm01s00i030'),
                     ('fog_area_fraction', 'm01s03i248'),
@@ -419,7 +418,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # consider variable
         if inDataPathHour == '00':
             varNamesSTASH = [('specific_humidity', 'm01s30i205'),] 
-            # rest of them (i.e 1,2,3,5,6,7) from taken already from qwqg00 
+            # rest of them from taken already from qwqg00 
             # file. qwqg00 file variables are more correct than this 
             # short forecast vars.
         else:            
@@ -534,7 +533,6 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
     
     ##### FORECAST FILE BEGIN
     elif fname.startswith('umglaa_pb'):              # umglaa_pb
-        # varNamesSTASH = [19, 24, 26, 30, 31, 32, 33, 34] # needed        
         varNamesSTASH = [('land_binary_mask', 'm01s00i030'),
                     ('fog_area_fraction', 'm01s03i248'),
                     ('dew_point_temperature', 'm01s03i250'),
