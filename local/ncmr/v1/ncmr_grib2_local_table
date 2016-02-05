@@ -35,10 +35,10 @@
 0:1:0:10:28:1:1:192:FOG:Fog Area Cover:%
 0:1:0:10:28:1:4:198:CSUSF:Clear Sky Upward Solar Flux:W m-2
 0:1:0:10:28:1:5:195:CSULF:Clear Sky Upward Long Wave Flux:W m-2
-3:1:0:10:28:1:1:192:DAOT038:Dust Aerosol Optical Thickness at 0.38 µm:None
-3:1:0:10:28:1:1:193:DAOT044:Dust Aerosol Optical Thickness at 0.44 µm:None
-3:1:0:10:28:1:1:194:DAOT055:Dust Aerosol Optical Thickness at 0.55 µm:None
-3:1:0:10:28:1:1:195:DAOT067:Dust Aerosol Optical Thickness at 0.67 µm:None
-3:1:0:10:28:1:1:196:DAOT087:Dust Aerosol Optical Thickness at 0.87 µm:None
-3:1:0:10:28:1:1:197:DAOT102:Dust Aerosol Optical Thickness at 1.02 µm:None
+3:1:0:10:28:1:1:192:DAOT038:Dust Aerosol Optical Thickness at 0.38 µm:unitless
+3:1:0:10:28:1:1:193:DAOT044:Dust Aerosol Optical Thickness at 0.44 µm:unitless
+3:1:0:10:28:1:1:194:DAOT055:Dust Aerosol Optical Thickness at 0.55 µm:unitless
+3:1:0:10:28:1:1:195:DAOT067:Dust Aerosol Optical Thickness at 0.67 µm:unitless
+3:1:0:10:28:1:1:196:DAOT087:Dust Aerosol Optical Thickness at 0.87 µm:unitless
+3:1:0:10:28:1:1:197:DAOT102:Dust Aerosol Optical Thickness at 1.02 µm:unitless
 * ncmr grib2 local table entries end  
