@@ -1180,7 +1180,7 @@ def regridAnlFcstFiles(arg):
             if (varName, varSTASH) in [('land_binary_mask', 'm01s00i030')]:
                 regdCube.data[regdCube.data > 0] = 1
                 # trying to keep values either 0 or 1. Not fraction!
-                regdCube.data = numpy.array(regdCube.data, dtype=int)
+                regdCube.data = numpy.ma.array(regdCube.data, dtype=numpy.int)
             # end of if (varName, varSTASH) in [('land_binary_mask', 'm01s00i030')]:
             
             if (varName, varSTASH) not in [('snowfall_flux', 'm01s05i215'),
@@ -1189,8 +1189,7 @@ def regridAnlFcstFiles(arg):
                           ('stratiform_snowfall_amount', 'm01s04i202'),
                           ('convective_snowfall_amount', 'm01s05i202'),
                           ('stratiform_rainfall_amount', 'm01s04i201'),
-                          ('convective_rainfall_amount', 'm01s05i201'),
-                          ('land_binary_mask', 'm01s00i030')]:
+                          ('convective_rainfall_amount', 'm01s05i201'),]:
                 # For the above set of variables we shouldnot convert into 
                 # masked array. Otherwise its full data goes as nan.                
                 # convert data into masked array
@@ -1529,7 +1528,7 @@ def doShuffleVarsInOrder(fpath):
         land_binary_mask = [var for var in orderedVars 
                                 if var.standard_name == 'land_binary_mask']
         if land_binary_mask:
-            land_binary_mask = land_binary_mask[0].data < 1   
+            land_binary_mask = land_binary_mask[0].data < 1
             # here we are masking less than 1. we can do just simply == 0 also, 
             # but somehow it retains fraction values between 0 to 1. To get 
             # ride out of this fraction values, just mask out < 1.
@@ -1926,9 +1925,9 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
         _doRegrid_ = False  
     else:
         # define default global lat start, lon end points
-        slat, elat = (0., 360.)
+        slat, elat = (-90., 90.)
         # define default global lon start, lon end points 
-        slon, elon = (-90., 90.)
+        slon, elon = (0., 360.)
         # define user defined custom lat & lon start and end points
         if latitude: (slat, elat) = latitude
         if longitude: (slon, elon) = longitude
@@ -2028,9 +2027,9 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
         _doRegrid_ = False  
     else:
         # define default global lat start, lon end points
-        slat, elat = (0., 360.)
+        slat, elat = (-90., 90.)
         # define default global lon start, lon end points 
-        slon, elon = (-90., 90.)
+        slon, elon = (0., 360.)
         # define user defined custom lat & lon start and end points
         if latitude: (slat, elat) = latitude
         if longitude: (slon, elon) = longitude
