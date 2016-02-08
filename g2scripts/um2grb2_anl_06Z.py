@@ -14,7 +14,9 @@ import os, sys, datetime
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                     debug, targetGridResolution, overwriteFiles, neededVars, \
-                    requiredLat, requiredLon
+                    requiredLat, requiredLon, anlOutGrib2FilesNameStructure, \
+                    createGrib2CtlIdxFiles, createGrib1CtlIdxFiles, \
+                    convertGrib2FilestoGrib1Files
 
 if loadg2utils == 'system':
     # Load g2utils from system python which has installed through setup.py
@@ -33,34 +35,35 @@ elif loadg2utils == 'local':
 if isinstance(date, tuple):
     # Got tuple of date string.
     startdate, enddate = date
-    sDay = datetime.datetime.strptime(startdate, "%Y%m%d")
-    eDay = datetime.datetime.strptime(enddate, "%Y%m%d")
-    lag = datetime.timedelta(days=1)
     print "Got tuple dates"
-    print "So um2grb2 ana 00hr conversion - from %s to %s" % (startdate, enddate)
-    while sDay <= eDay:
-        # loop through until startdate incremented upto enddate
-        print "Going to start progress on", startdate
-        # call analysis conversion function w.r.t data assimilated 
-        # during short forecast hour - 06UTC.
-        convertAnlFiles(inPath, outPath, tmpPath, 
-                        targetGridResolution=targetGridResolution, 
-                 date=startdate, utc='06', convertVars=neededVars, 
-                      latitude=requiredLat, longitude=requiredLon,
-                           overwrite=overwriteFiles, lprint=debug)
-        print "Time lag incremented by 1"
-        sDay += lag
-        startdate = sDay.strftime('%Y%m%d')
-    # end of while sDay <= eDay:
-    print "Successfully completed all the dates till", enddate
+    print "So um2grb2 ana 06hr conversion - from %s to %s" % (startdate, enddate)
 elif isinstance(date, str):
-    # only single date 
+    # only single date
+    startdate, enddate = date, date
+    print "Got single string date"
+    print "So um2grb2 ana 06hr conversion - on %s" % date
+# end of if isinstance(date, tuple):
+    
+sDay = datetime.datetime.strptime(startdate, "%Y%m%d")
+eDay = datetime.datetime.strptime(enddate, "%Y%m%d")
+lag = datetime.timedelta(days=1)
+
+while sDay <= eDay:
+    # loop through until startdate incremented upto enddate
+    print "Going to start progress on", startdate
     # call analysis conversion function w.r.t data assimilated 
     # during short forecast hour - 06UTC.
-    print "um2grb2 ana 00hr conversion - date", date
     convertAnlFiles(inPath, outPath, tmpPath, 
                     targetGridResolution=targetGridResolution, 
-                  date=date, utc='06', convertVars=neededVars,
+             date=startdate, utc='06', convertVars=neededVars, 
                   latitude=requiredLat, longitude=requiredLon,
+           anlFileNameStructure=anlOutGrib2FilesNameStructure, 
+                createGrib2CtlIdxFiles=createGrib2CtlIdxFiles,
+                createGrib1CtlIdxFiles=createGrib1CtlIdxFiles,
+ convertGrib2FilestoGrib1Files=convertGrib2FilestoGrib1Files, 
                        overwrite=overwriteFiles, lprint=debug)
-# end of if isinstance(date, tuple):
+    print "Time lag incremented by 1"
+    sDay += lag
+    startdate = sDay.strftime('%Y%m%d')
+# end of while sDay <= eDay:
+print "Successfully completed all the dates till", enddate
