@@ -103,11 +103,27 @@ iris.FUTURE.cell_datetime_objects = True
 # -- Start coding
 # create global _lock_ object
 _lock_ = mp.Lock()
+
+# global path variables
+g2ctl = "/gpfs2/home/umtid/Softwares/grib2ctl/g2ctl.pl"
+grib2ctl = "/gpfs2/home/umtid/Softwares/grib2ctl/grib2ctl.pl"
+gribmap = "/gpfs1/home/Libs/GNU/GRADS/grads-2.0.2.oga.1/Contents/gribmap"
+cnvgrib = "/gpfs1/home/Libs/INTEL/cnvgrib-1.4.0/cnvgrib"
+
 # other global variables
 __LPRINT__ = False
 __utc__ = '00'
 # maximum long forecast hours produced by model
 __max_long_fcst_hours__ = 240
+
+# Defining default out grib2 file name structure for analysis 
+__anlFileNameStructure__ = ('um_ana', '_', '*HHH*', 'hr', '_', 
+                            '*YYYYMMDD*', '_', '*ZZ*', 'Z', '.grib2')
+
+# Defining default out grib2 file name structure for forecast                             
+__fcstFileNameStructure__ = ('um_prg', '_', '*HHH*', 'hr', '_', 
+                            '*YYYYMMDD*', '_', '*ZZ*', 'Z', '.grib2')
+                            
 # the _convertVars_ is global list which should has final variables list of 
 # tuples (varName, varSTASH) will be converted, otherwise default variables 
 # of this module will be converted!
@@ -122,7 +138,10 @@ _targetGrid_ = None
 _targetGridRes_ = None
 _requiredLat_ = None
 _requiredLon_ = None
-_fext_ = '_unOrdered'
+_preExtension_ = '_unOrdered'
+_createGrib2CtlIdxFiles_ = True
+_createGrib1CtlIdxFiles_ = False
+_convertGrib2FilestoGrib1Files_ = False
 # global ordered variables (the order we want to write into grib2)
 _orderedVars_ = {'PressureLevel': [
 ## Pressure Level Variable names & STASH codes
@@ -337,6 +356,57 @@ def __getTodayOrYesterdayInfile__(ipath, fname):
     return infile
 # end of def __getTodayOrYesterdayInfile__(ipath):
 
+def __getAnlFcstFileNameIdecies__(fileNameStructure):
+    
+    # define function to search in list 
+    findInList = lambda searchList, elem: [[i for i, x in enumerate(searchList)
+                                                     if x == e] for e in elem]
+    dateIdx = fileNameStructure.index('*YYYYMMDD*')
+    # hour, utc are optional 
+    hourIdx, hrFill, utcIdx, utcFill = None, None, None, None
+      
+    # get the houIdx of hour pattern
+    hourIdx = [idx[0] for idx in findInList(fileNameStructure, 
+                            ['*H*', '*HH*', '*HHH*']) if idx]
+    # get the utcIdx of utc pattern
+    utcIdx = [idx[0] for idx in findInList(fileNameStructure, 
+                            ['*Z*', '*ZZ*', '*ZZZ*']) if idx]
+    if hourIdx:
+        hourIdx = hourIdx[0]        
+        hr = fileNameStructure[hourIdx]
+        hrFill = len(hr.split('*')[1])
+    
+    if utcIdx:
+        utcIdx = utcIdx[0]
+        utc = fileNameStructure[utcIdx]
+        utcFill = len(utc.split('*')[1])
+    
+    return [dateIdx, (hourIdx, hrFill), (utcIdx, utcFill)]
+# end of def _genAnlFcstFileName(fileNameStructure):
+
+
+def __genAnlFcstOutFileName__(fileNameStructure, indecies, fcstDate, fcstHour, 
+                                                    fcstUTC, preExtension=''):
+    
+    # get the indecies 
+    dateIdx, (hourIdx, hrFill), (utcIdx, utcFill) = indecies
+    # copy the argument list into local list, so that it wont change the arg.
+    fileNameStructure = list(fileNameStructure) # copy of the original
+
+    # update the date 
+    fileNameStructure[dateIdx] = fcstDate
+    # update the hour    
+    if hourIdx and hrFill:
+        fileNameStructure[hourIdx] = str(fcstHour).zfill(hrFill)
+    # update the utc 
+    if utcIdx and utcFill:
+        fileNameStructure[utcIdx] = str(fcstUTC).zfill(utcFill)
+    # insert pre-extension string
+    fileNameStructure.insert(-1, preExtension)
+    
+    return ''.join(fileNameStructure)
+# end of def __getAnlFcstFileNameIdecies__(...):
+
 # start definition #2
 def getVarInOutFilesDetails(inDataPath, fname, hr):
     """
@@ -366,13 +436,6 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
     infile = os.path.join(inDataPath, fname)    
     
     inDataPathHour = inDataPath.split('/')[-1]      
-    if fname.startswith('umglaa'):
-        outfile = 'um_prg' 
-    elif fname.startswith(('umglca', 'qwqg00')):
-        outfile = 'um_ana'
-    else:
-        raise ValueError("Got unknown fname, so couldn't set outfile!")
-    # end of if fname.startswith('umglaa'):
     
     ##### ANALYSIS FILE BEGIN     
     if fname.startswith('qwqg00.pp0'):                   # qwqg00.pp0
@@ -391,7 +454,6 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         do6HourlyMean = False
             
     elif fname.startswith('umglca_pb'):              # umglca_pb
-        # varNamesSTASH = [19, 24, 26, 30, 31, 32, 33, 34] # needed
         # available for use
         varNamesSTASH = [('land_binary_mask', 'm01s00i030'),
                     ('fog_area_fraction', 'm01s03i248'),
@@ -419,7 +481,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # consider variable
         if inDataPathHour == '00':
             varNamesSTASH = [('specific_humidity', 'm01s30i205'),] 
-            # rest of them (i.e 1,2,3,5,6,7) from taken already from qwqg00 
+            # rest of them from taken already from qwqg00 
             # file. qwqg00 file variables are more correct than this 
             # short forecast vars.
         else:            
@@ -534,7 +596,6 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
     
     ##### FORECAST FILE BEGIN
     elif fname.startswith('umglaa_pb'):              # umglaa_pb
-        # varNamesSTASH = [19, 24, 26, 30, 31, 32, 33, 34] # needed        
         varNamesSTASH = [('land_binary_mask', 'm01s00i030'),
                     ('fog_area_fraction', 'm01s03i248'),
                     ('dew_point_temperature', 'm01s03i250'),
@@ -650,7 +711,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         raise ValueError("Filename not implemented yet!")
     # end if-loop
 
-    return varNamesSTASH, fcstHours, do6HourlyMean, infile, outfile
+    return varNamesSTASH, fcstHours, do6HourlyMean, infile
 # end of definition #2
 
 # start definition #3
@@ -944,9 +1005,9 @@ def regridAnlFcstFiles(arg):
     serial version by MNRS on 11/16/2015.
     """
     global _lock_, _targetGrid_, _targetGridRes_, _current_date_, _startT_, \
-           _inDataPath_, _opPath_, _fext_, _accumulationVars_, _ncfilesVars_, \
-           _convertVars_, _requiredLat_, _requiredLon_, _doRegrid_, \
-           __LPRINT__, __utc__
+           _inDataPath_, _opPath_, _preExtension_, _accumulationVars_, _ncfilesVars_, \
+           _convertVars_, _requiredLat_, _requiredLon_, _doRegrid_, __utc__, \
+           __anlFileNameStructure__, __fcstFileNameStructure__, __LPRINT__ 
    
     fpname, hr = arg 
     
@@ -956,9 +1017,9 @@ def regridAnlFcstFiles(arg):
     fname = os.path.join(_inDataPath_, fileName)        
     
     # call definition to get variable indices
-    varNamesSTASH, fcstHours, do6HourlyMean, infile, outfile = getVarInOutFilesDetails(_inDataPath_,
-                                                                                             fileName, hr)
-    
+    varNamesSTASH, fcstHours, do6HourlyMean, infile = getVarInOutFilesDetails(_inDataPath_,
+                                                                               fileName, hr)
+   
     if not os.path.isfile(fname): 
         print "The file doesn't exists: %s.. \n" %fname
         return  
@@ -989,10 +1050,17 @@ def regridAnlFcstFiles(arg):
     print "simulated_hr = ", simulated_hr
     
     if fpname.startswith('umglaa'):
-        dtype = 'fcst' 
+        dtype = 'fcst'         
+        outFileNameStructure = __fcstFileNameStructure__
     elif fpname.startswith(('umglca', 'qwqg00')):
         dtype = 'ana'
+        outFileNameStructure = __anlFileNameStructure__
     # end of if fpname.startswith('umglaa'):
+    
+    # get the out fileName Structure based on pre / user defined indecies                       
+    outFnIndecies = __getAnlFcstFileNameIdecies__(outFileNameStructure)
+    # get the file name extension
+    fileExtension = outFileNameStructure[-1]
     #####
     ### setting timebound, fcstbound as 'centre' bounds, will not affect
     ### in g2ctl.pl because it uses flag -verf by default which will set 
@@ -1182,7 +1250,7 @@ def regridAnlFcstFiles(arg):
             if (varName, varSTASH) in [('land_binary_mask', 'm01s00i030')]:
                 regdCube.data[regdCube.data > 0] = 1
                 # trying to keep values either 0 or 1. Not fraction!
-                regdCube.data = numpy.array(regdCube.data, dtype=int)
+                regdCube.data = numpy.ma.array(regdCube.data, dtype=numpy.int)
             # end of if (varName, varSTASH) in [('land_binary_mask', 'm01s00i030')]:
             
             if (varName, varSTASH) not in [('snowfall_flux', 'm01s05i215'),
@@ -1191,8 +1259,7 @@ def regridAnlFcstFiles(arg):
                           ('stratiform_snowfall_amount', 'm01s04i202'),
                           ('convective_snowfall_amount', 'm01s05i202'),
                           ('stratiform_rainfall_amount', 'm01s04i201'),
-                          ('convective_rainfall_amount', 'm01s05i201'),
-                          ('land_binary_mask', 'm01s00i030')]:
+                          ('convective_rainfall_amount', 'm01s05i201'),]:
                 # For the above set of variables we shouldnot convert into 
                 # masked array. Otherwise its full data goes as nan.                
                 # convert data into masked array
@@ -1252,11 +1319,14 @@ def regridAnlFcstFiles(arg):
                 # this is needed for analysis 06, 18th simulated_hr
                 hr = _inDataPath_.split('/')[-1]
             # end of if _inDataPath_.endswith('00'):
-            
-            ofname = '_'.join([outfile, hr.zfill(3)+'hr', _current_date_, 
-                                                      __utc__+'Z'+_fext_])
-            outFn =  ofname + '.grib2'
-            
+                        
+            # generate the out file name based on actual informations                                 
+            outFn = __genAnlFcstOutFileName__(outFileNameStructure, 
+                                 outFnIndecies, _current_date_, hr, 
+                                           __utc__, _preExtension_)            
+            # get the file full name except last extension, for the purpose
+            # of writing intermediate nc files
+            ofname = outFn.split(fileExtension)[0]                    
             ncfile = False
             if regdCube.coords('soil_model_level_number'):
                 # NOTE : THIS SECTION WILL WORKS ONLY FOR SOIL MOISTURE AND
@@ -1328,9 +1398,9 @@ def regridAnlFcstFiles(arg):
                 # to write other variables
                 _lock_.acquire()
                 if ncfile:
-                    iris.save(regdCube, outFn)  # save nc file 
+                    iris.fileformats.netcdf.save(regdCube, outFn)  # save nc file 
                 else:
-                    iris.save(regdCube, outFn, append=True) # save grib2 file 
+                    iris.fileformats.grib.save_grib2(regdCube, outFn, append=True) # save grib2 file 
                 # release the _lock_, let other threads/processors access this file.
                 _lock_.release()
             except Exception as e:
@@ -1447,8 +1517,11 @@ def doShuffleVarsInOrder(fpath):
     Arulalan/T
     11-12-2015
     """
-    global _orderedVars_, _fext_, _ncfilesVars_, _inDataPath_, \
-                       _maskOverOceanVars_, _aod_pseudo_level_var_
+    global  _orderedVars_, _preExtension_, _ncfilesVars_, _inDataPath_, \
+           _maskOverOceanVars_, _aod_pseudo_level_var_, _createGrib2CtlIdxFiles_, \
+           _createGrib1CtlIdxFiles_, _convertGrib2FilestoGrib1Files_, \
+           __anlFileNameStructure__, __fcstFileNameStructure__, \
+           g2ctl, grib2ctl, gribmap, cnvgrib
     
     try:        
         f = iris.load(fpath)
@@ -1491,7 +1564,7 @@ def doShuffleVarsInOrder(fpath):
             orderedVars.append(unOrderedNonPressureLevelVars[varName])
         elif (varName, varSTASH) in _ncfilesVars_:            
             ## generate nc file name 
-            ncfpath = varSTASH + '_' + fpath.split('.grib2')[0] + '.nc'
+            ncfpath = varSTASH + '_' + ''.join(fpath.split('.')[:-1]) + '.nc'
             if not os.path.isfile(ncfpath): continue
             if varSTASH not in ncloaddic:
                 try:
@@ -1531,7 +1604,7 @@ def doShuffleVarsInOrder(fpath):
         land_binary_mask = [var for var in orderedVars 
                                 if var.standard_name == 'land_binary_mask']
         if land_binary_mask:
-            land_binary_mask = land_binary_mask[0].data < 1   
+            land_binary_mask = land_binary_mask[0].data < 1
             # here we are masking less than 1. we can do just simply == 0 also, 
             # but somehow it retains fraction values between 0 to 1. To get 
             # ride out of this fraction values, just mask out < 1.
@@ -1604,13 +1677,15 @@ def doShuffleVarsInOrder(fpath):
         # end of if land_binary_mask:
     # end of if _maskOverOceanVars_:
         
-    newfilefpath = fpath.split(_fext_)[0] + '.grib2'
+    # generate correct file name by removing _preExtension_ preExtension
+    g2filepath = fpath.split(_preExtension_)
+    g2filepath = g2filepath[0] + g2filepath[-1]
     # now lets save the ordered variables into same file
     try:   
         # before save it, tweak the cubes by setting centre no and 
         # address other temporary issues before saving into grib2.
         iris.fileformats.grib.save_messages(tweaked_messages(orderedVars), 
-                                                newfilefpath, append=True)
+                                                g2filepath, append=True)
     except Exception as e:
         print "ALERT !!! Error while saving orderd variables into grib2!! %s" % str(e)
         print " So skipping this without saving data"
@@ -1621,51 +1696,82 @@ def doShuffleVarsInOrder(fpath):
     os.remove(fpath)
     for ncf in ncloadedfiles: os.remove(ncf)
         
-    print "Created the variables in ordered fassion and saved into", newfilefpath
+    print "Created the variables in ordered fassion and saved into", g2filepath
     
-    ## g2ctl.pl usage option refer the below link 
-    ## https://tuxcoder.wordpress.com/2011/08/31/how-to-install-g2ctl-pl-and-wgrib2-in-linux/
-    g2ctl = "/gpfs2/home/umtid/Softwares/grib2ctl/g2ctl.pl"
-    gribmap = "/gpfs1/home/Libs/GNU/GRADS/grads-2.0.2.oga.1/Contents/gribmap"
-    ctlfile = open(newfilefpath+'.ctl', 'w')
-    if 'um_ana' in newfilefpath:
-        # create ctl & idx files for analysis file 
-        subprocess.call([g2ctl, '-ts6hr', '-0', newfilefpath], stdout=ctlfile)
-        subprocess.call([gribmap, '-ts6hr', '-0', '-i', newfilefpath+'.ctl'])
-    elif 'um_prg' in newfilefpath:
-        # create ctl & idx files for forecast file
-        subprocess.call([g2ctl, '-ts6hr', newfilefpath], stdout=ctlfile)
-        subprocess.call([gribmap, '-i', newfilefpath+'.ctl'])
-    else:
-        raise ValueError("unknown file type while executing g2ctl.pl!!")
+    if _createGrib2CtlIdxFiles_:
+        ## g2ctl.pl usage option refer the below link 
+        ## https://tuxcoder.wordpress.com/2011/08/31/how-to-install-g2ctl-pl-and-wgrib2-in-linux/        
+        ctlfile = open(g2filepath+'.ctl', 'w')
+        if __anlFileNameStructure__[0] in g2filepath:
+            # create ctl & idx files for analysis file 
+            subprocess.call([g2ctl, '-ts6hr', '-0', g2filepath], stdout=ctlfile)
+            subprocess.call([gribmap, '-ts6hr', '-0', '-i', g2filepath+'.ctl'])
+        elif __fcstFileNameStructure__[0] in g2filepath:
+            # create ctl & idx files for forecast file
+            subprocess.call([g2ctl, '-ts6hr', g2filepath], stdout=ctlfile)
+            subprocess.call([gribmap, '-i', g2filepath+'.ctl'])
+        else:
+            raise ValueError("unknown file type while executing g2ctl.pl!!")
+        
+        print "Successfully created control and index file using g2ctl !", g2filepath+'.ctl'
+    # end of if _createGrib2CtlIdxFiles_:
+        
+    if _convertGrib2FilestoGrib1Files_:
+        g1filepath = g2filepath[:-1] + '1'
+        if not os.path.isfile(g1filepath):
+            cmd = [cnvgrib, '-g21', g2filepath, g1filepath]
+            subprocess.call(cmd, shell=False)
+            cmd = ['chmod', '644', g1filepath]
+            subprocess.call(cmd, shell=False)
+            print "Converted grib2 to grib1 file : -", g1filepath
+    # end of if _convertGrib2FilestoGrib1Files_:
     
-    print "Successfully created control and index file using g2ctl !", newfilefpath+'.ctl'
+    if  _createGrib1CtlIdxFiles_:
+        ## grib2ctl.pl usage option refer the below link 
+        ## https://tuxcoder.wordpress.com/2011/04/11/how-to-install-grib2ctl-pl-and-wgrib-in-linux/    
+        ctlfile = open(g1filepath+'.ctl', 'w')
+        if __anlFileNameStructure__[0] in g1filepath:
+            # create ctl & idx files for analysis file 
+            subprocess.call([grib2ctl, '-ts6hr', g1filepath], stdout=ctlfile)
+            subprocess.call([gribmap, '-ts6hr', '-0', '-i', g1filepath+'.ctl'])
+        elif __fcstFileNameStructure__[0] in g1filepath:
+            # create ctl & idx files for forecast file
+            subprocess.call([grib2ctl, '-ts6hr', '-verf', g1filepath], stdout=ctlfile)
+            subprocess.call([gribmap, '-i', g1filepath+'.ctl'])
+        else:
+            raise ValueError("unknown file type while executing grib2ctl.pl!!")
+        
+        print "Successfully created control and index file using grib2ctl !", g1filepath+'.ctl'
+    # end of if _createGrib1CtlIdxFiles_:
     
 # end of def doShuffleVarsInOrder(fpath):
 
 def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
             
-    global _current_date_, _opPath_, _fext_, __max_long_fcst_hours__
-    
+    global _current_date_, _opPath_, _preExtension_, __max_long_fcst_hours__, \
+           __anlFileNameStructure__, __fcstFileNameStructure__
+            
     print "Lets re-order variables for all the files!!!"
     #####
     ## 6-hourly Files have been created with extension.
-    ## Now lets do re-order variables within those individual files, in parallel mode. 
-    
+    ## Now lets do re-order variables within those individual files, in parallel mode.  
+            
     # get current working directory
     current_dir = os.getcwd()
     # lets change current working directory as out path
     os.chdir(_opPath_)
     if ftype in ['fcst', 'forecast']:
         ## generate all the forecast filenames w.r.t forecast hours 
-        outfile = 'um_prg'
+        # get the out fileName Structure based on pre / user defined indecies                       
+        outFnIndecies = __getAnlFcstFileNameIdecies__(__fcstFileNameStructure__)
         fcstFiles = []
         for fcsthr in range(6, __max_long_fcst_hours__+1, 6):            
-            outFn = '_'.join([outfile, str(fcsthr).zfill(3) +'hr', 
-              _current_date_, simulated_hr.zfill(2)+'Z' + _fext_ + '.grib2'])
-            #outFn = os.path.join(_opPath_, outFn)
+            # generate the out file name based on actual informations                                 
+            outFn = __genAnlFcstOutFileName__(__fcstFileNameStructure__, 
+                                  outFnIndecies, _current_date_, fcsthr, 
+                                           simulated_hr, _preExtension_)  
             fcstFiles.append(outFn)
-        # end of for hr in range(6,241,6):
+        # end of for fcsthr in range(6, __max_long_fcst_hours__+1, 6):
          
         ## get the no of created anl/fcst 6hourly files  
         nprocesses = len(fcstFiles)        
@@ -1680,10 +1786,12 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
         # parallel end - 3    
     elif ftype in ['anl', 'analysis']:
         ## generate the analysis filename w.r.t simulated_hr
-        outfile = 'um_ana'
-        outFn = '_'.join([outfile, simulated_hr.zfill(3) +'hr', 
-              _current_date_, simulated_hr.zfill(2)+'Z' + _fext_ + '.grib2'])
-        #outFn = os.path.join(_opPath_, outFn)
+        # get the out fileName Structure based on pre / user defined indecies                       
+        outFnIndecies = __getAnlFcstFileNameIdecies__(__anlFileNameStructure__)       
+        # generate the out file name based on actual informations                                 
+        outFn = __genAnlFcstOutFileName__(__anlFileNameStructure__, 
+                                     outFnIndecies, _current_date_, 
+                        simulated_hr, simulated_hr, _preExtension_)  
         doShuffleVarsInOrder(outFn)
     # end of if ftype in ['fcst', 'forecast']: 
     print "Total time taken to convert and re-order all files was: %8.5f seconds \n" % (time.time()-_startT_)
@@ -1808,19 +1916,24 @@ def _checkInFilesStatus(path, ftype, pfnames):
 
 def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
     
-    global _fext_, __max_long_fcst_hours__
-
+    global _preExtension_, __max_long_fcst_hours__, __anlFileNameStructure__,\
+           __fcstFileNameStructure__
+           
     if ftype in ['ana', 'anl']:
-        ftype = 'ana'        
-        fhrs = [utc.zfill(3)] 
+        outFileNameStructure = __anlFileNameStructure__
+        fhrs = utc # ana_hour (short forecast hour) is same as simulated_hr (i.e. utc)
     elif ftype in ['fcst', 'prg']:
-        ftype = 'prg'
-        fhrs = [str(hr).zfill(3) for hr in range(6, __max_long_fcst_hours__+1, 6)]
+        outFileNameStructure = __fcstFileNameStructure__
+        fhrs = range(6, __max_long_fcst_hours__+1, 6)
     
+    # get the out fileName Structure based on pre / user defined indecies
+    outFnIndecies = __getAnlFcstFileNameIdecies__(outFileNameStructure)
     status = None
     for fhr in fhrs:
-        fname = 'um' + '_' + ftype + '_' + fhr + 'hr_' + date 
-        fname += '_' + utc.zfill(2) + 'Z.grib2'
+        # generate the out file name based on actual informations.
+        # here preExtension is empty string to create final needed out file name                        
+        fname = __genAnlFcstOutFileName__(outFileNameStructure, outFnIndecies,  
+                                                               date, fhr, utc)
         fpath = os.path.join(path, fname)        
         for ext in ['', '.ctl', '.idx']:
             fpath = os.path.join(path, fname+ext)
@@ -1843,11 +1956,11 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
         # end of for ext in ['', '.ctl', '.idx']:
     # end of for fhr in fhrs:
     
-    ifiles = [fname for fname in os.listdir(path) if _fext_ in fname]
+    ifiles = [fname for fname in os.listdir(path) if _preExtension_ in fname]
     if ifiles:        
         print "Intermediate files are exists in the outdirectory.", path
         for ifile in ifiles:        
-            if ftype in ifile and utc.zfill(2)+'Z'+_fext_ in ifile:
+            if outFileNameStructure[0] in ifile and utc in ifile and _preExtension_ in ifile:
                 os.remove(os.path.join(path, ifile))
                 status = 'IntermediateFilesExist'
                 print "removed intermediate nc file"                
@@ -1866,7 +1979,9 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
            
     global _targetGrid_, _targetGridRes_, _current_date_, _startT_, _tmpDir_, \
        _inDataPath_, _opPath_, _doRegrid_, _convertVars_, _requiredLat_, \
-       _requiredLon_, __LPRINT__, __utc__, __max_long_fcst_hours__
+       _requiredLon_, _createGrib2CtlIdxFiles_, _createGrib1CtlIdxFiles_, \
+       _convertGrib2FilestoGrib1Files_, __fcstFileNameStructure__, \
+       __LPRINT__, __utc__, __max_long_fcst_hours__
     
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -1878,10 +1993,15 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     latitude = kwarg.get('latitude', None)
     longitude = kwarg.get('longitude', None)
     max_long_fcst_hours = kwarg.get('max_long_fcst_hours', 240)
+    fcstFileNameStructure = kwarg.get('fcstFileNameStructure', None)
+    createGrib2CtlIdxFiles = kwarg.get('createGrib2CtlIdxFiles', True)
+    createGrib1CtlIdxFiles = kwarg.get('createGrib1CtlIdxFiles', False)
+    convertGrib2FilestoGrib1Files = kwarg.get('convertGrib2FilestoGrib1Files', False)
     
     # assign the convert vars list of tuples to global variable
     if convertVars: _convertVars_ = convertVars
-    
+    # assign the analysis file name structure
+    if fcstFileNameStructure: __fcstFileNameStructure__ = fcstFileNameStructure
     # set print variables details options
     __LPRINT__ = lprint    
     # update global variables
@@ -1890,6 +2010,9 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     _targetGridRes_ = str(targetGridResolution)
     _requiredLat_ = latitude
     _requiredLon_ = longitude
+    _createGrib2CtlIdxFiles_ = createGrib2CtlIdxFiles
+    _createGrib1CtlIdxFiles_ = createGrib1CtlIdxFiles
+    _convertGrib2FilestoGrib1Files_ = convertGrib2FilestoGrib1Files
     # forecast filenames partial name
     fcst_fnames = ['umglaa_pb','umglaa_pd', 'umglaa_pe', 'umglaa_pf', 'umglaa_pi'] 
 
@@ -1928,9 +2051,9 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
         _doRegrid_ = False  
     else:
         # define default global lat start, lon end points
-        slat, elat = (0., 360.)
+        slat, elat = (-90., 90.)
         # define default global lon start, lon end points 
-        slon, elon = (-90., 90.)
+        slon, elon = (0., 360.)
         # define user defined custom lat & lon start and end points
         if latitude: (slat, elat) = latitude
         if longitude: (slon, elon) = longitude
@@ -1969,8 +2092,10 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
        
     global _targetGrid_, _targetGridRes_, _current_date_, _startT_, _tmpDir_, \
        _inDataPath_, _opPath_, _doRegrid_, _convertVars_, _requiredLat_, \
-       _requiredLon_, __LPRINT__, __utc__, __max_long_fcst_hours__
-    
+       _requiredLon_, _createGrib2CtlIdxFiles_, _createGrib1CtlIdxFiles_, \
+       _convertGrib2FilestoGrib1Files_, __anlFileNameStructure__,  \
+       __LPRINT__, __utc__
+           
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
     date = kwarg.get('date', time.strftime('%Y%m%d'))
@@ -1981,18 +2106,25 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     latitude = kwarg.get('latitude', None)
     longitude = kwarg.get('longitude', None)
     max_long_fcst_hours = kwarg.get('max_long_fcst_hours', 240)
+    anlFileNameStructure = kwarg.get('anlFileNameStructure', None)
+    createGrib2CtlIdxFiles = kwarg.get('createGrib2CtlIdxFiles', True)
+    createGrib1CtlIdxFiles = kwarg.get('createGrib1CtlIdxFiles', False)
+    convertGrib2FilestoGrib1Files = kwarg.get('convertGrib2FilestoGrib1Files', False)
     
     # assign the convert vars list of tuples to global variable
     if convertVars: _convertVars_ = convertVars
-    
+    # assign the analysis file name structure
+    if anlFileNameStructure: __anlFileNameStructure__ = anlFileNameStructure
     # set print variables details options
     __LPRINT__ = lprint
     # update global variables
     __utc__ = utc
-    __max_long_fcst_hours__ = max_long_fcst_hours
     _targetGridRes_ = str(targetGridResolution)
     _requiredLat_ = latitude
     _requiredLon_ = longitude
+    _createGrib2CtlIdxFiles_ = createGrib2CtlIdxFiles
+    _createGrib1CtlIdxFiles_ = createGrib1CtlIdxFiles
+    _convertGrib2FilestoGrib1Files_ = convertGrib2FilestoGrib1Files
     # analysis filenames partial name
     anl_fnames = ['umglca_pb', 'umglca_pd', 'umglca_pe', 'umglca_pf', 'umglca_pi']  
     if utc == '00': anl_fnames.insert(0, 'qwqg00.pp0')
@@ -2030,9 +2162,9 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
         _doRegrid_ = False  
     else:
         # define default global lat start, lon end points
-        slat, elat = (0., 360.)
+        slat, elat = (-90., 90.)
         # define default global lon start, lon end points 
-        slon, elon = (-90., 90.)
+        slon, elon = (0., 360.)
         # define user defined custom lat & lon start and end points
         if latitude: (slat, elat) = latitude
         if longitude: (slon, elon) = longitude

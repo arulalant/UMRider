@@ -45,6 +45,24 @@ requiredLon = eval(cdic.get('longitude', 'None'))
 targetGridResolution = eval(cdic.get('targetGridResolution', 'None'))
 max_long_fcst_hours_at_00z = eval(cdic.get('max_long_fcst_hours_at_00z', '240'))
 max_long_fcst_hours_at_12z = eval(cdic.get('max_long_fcst_hours_at_12z', '120'))
+anlOutGrib2FilesNameStructure = eval(cdic.get('anlOutGrib2FilesNameStructure',
+                                                                       'None'))
+fcstOutGrib2FilesNameStructure = eval(cdic.get('fcstOutGrib2FilesNameStructure',
+                                                                       'None'))
+createGrib2CtlIdxFiles = eval(cdic.get('createGrib2CtlIdxFiles', 'True'))
+convertGrib2FilestoGrib1Files = eval(cdic.get('convertGrib2FilestoGrib1Files', 'False'))
+createGrib1CtlIdxFiles = eval(cdic.get('createGrib1CtlIdxFiles', 'False'))
+
+if anlOutGrib2FilesNameStructure:
+    if not anlOutGrib2FilesNameStructure[-1].endswith('2'):
+        raise ValueError('anlOutGrib2FilesNameStructure last option must endswith 2 to indicating that grib2 file')
+
+if fcstOutGrib2FilesNameStructure:
+    if not fcstOutGrib2FilesNameStructure[-1].endswith('2'):
+        raise ValueError('fcstOutGrib2FilesNameStructure last option must endswith 2 to indicating that grib2 file')
+        
+if createGrib1CtlIdxFiles and not convertGrib2FilestoGrib1Files:
+    raise ValueError("Enabled createGrib1CtlIdxFiles option, but not enabled convertGrib2FilestoGrib1Files option")
 
 if not isinstance(max_long_fcst_hours_at_00z, int):
     raise ValueError('max_long_fcst_hours_at_00z must be an integer')
@@ -121,6 +139,11 @@ print "latitude = ", requiredLat
 print "longitude = ", requiredLon
 print "max_long_fcst_hours_at_00z = ", max_long_fcst_hours_at_00z
 print "max_long_fcst_hours_at_12z = ", max_long_fcst_hours_at_12z
+if anlOutGrib2FilesNameStructure: print "anlOutGrib2FilesNameStructure = ", anlOutGrib2FilesNameStructure
+if fcstOutGrib2FilesNameStructure: print "fcstOutGrib2FilesNameStructure = ", fcstOutGrib2FilesNameStructure
+print "createGrib2CtlIdxFiles = ", createGrib2CtlIdxFiles
+print "convertGrib2FilestoGrib1Files = ", convertGrib2FilestoGrib1Files
+print "createGrib1CtlIdxFiles = ", createGrib1CtlIdxFiles
 print "Successfully loaded the above params from UMRIDER_SETUP configure file!", setupfile
 print "*" * 80
 print "Successfully loaded the below variables from UMRIDER_VARS configure file!", varfile 
