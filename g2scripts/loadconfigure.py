@@ -43,6 +43,7 @@ debug = eval(cdic.get('debug', 'False'))
 requiredLat = eval(cdic.get('latitude', 'None'))
 requiredLon = eval(cdic.get('longitude', 'None'))
 targetGridResolution = eval(cdic.get('targetGridResolution', 'None'))
+start_step_long_fcst_hour = eval(cdic.get('start_step_long_fcst_hour', '6'))
 max_long_fcst_hours_at_00z = eval(cdic.get('max_long_fcst_hours_at_00z', '240'))
 max_long_fcst_hours_at_12z = eval(cdic.get('max_long_fcst_hours_at_12z', '120'))
 anlOutGrib2FilesNameStructure = eval(cdic.get('anlOutGrib2FilesNameStructure',
@@ -129,6 +130,8 @@ neededVars = [j if len(j) == 2 else j[0] for j in
 if not neededVars:
     raise ValueError("Empty variables list loaded from %s" % varfile)
 
+neededVars = list(set(neededVars))
+
 print "*" * 80
 print "date = ", date
 print "targetGridResolution = ", targetGridResolution
@@ -137,6 +140,7 @@ print "overwriteFiles = ", overwriteFiles
 print "debug = ", debug
 print "latitude = ", requiredLat
 print "longitude = ", requiredLon
+print "start_step_long_fcst_hour = ", start_step_long_fcst_hour
 print "max_long_fcst_hours_at_00z = ", max_long_fcst_hours_at_00z
 print "max_long_fcst_hours_at_12z = ", max_long_fcst_hours_at_12z
 if anlOutGrib2FilesNameStructure: print "anlOutGrib2FilesNameStructure = ", anlOutGrib2FilesNameStructure

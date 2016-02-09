@@ -16,7 +16,8 @@ from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                    debug, targetGridResolution, overwriteFiles, neededVars, \
                    requiredLat, requiredLon, max_long_fcst_hours_at_12z, \
                    fcstOutGrib2FilesNameStructure, createGrib2CtlIdxFiles, \
-                   createGrib1CtlIdxFiles, convertGrib2FilestoGrib1Files
+                   createGrib1CtlIdxFiles, convertGrib2FilestoGrib1Files, \
+                   start_step_long_fcst_hour
 
 if loadg2utils == 'system':
     # Load g2utils from system python which has installed through setup.py
@@ -57,9 +58,10 @@ while sDay <= eDay:
              date=startdate, utc='12', convertVars=neededVars,
                   latitude=requiredLat, longitude=requiredLon, 
          fcstFileNameStructure=fcstOutGrib2FilesNameStructure, 
-                          createGrib2CtlIdxFiles=createGrib2CtlIdxFiles,
-             createGrib1CtlIdxFiles=createGrib1CtlIdxFiles,
- convertGrib2FilestoGrib1Files=convertGrib2FilestoGrib1Files, 
+                createGrib2CtlIdxFiles=createGrib2CtlIdxFiles,
+                createGrib1CtlIdxFiles=createGrib1CtlIdxFiles,
+  convertGrib2FilestoGrib1Files=convertGrib2FilestoGrib1Files, 
+          start_step_long_fcst_hour=start_step_long_fcst_hour,
                max_long_fcst_hours=max_long_fcst_hours_at_12z,
                        overwrite=overwriteFiles, lprint=debug)
     print "Time lag incremented by 1"
