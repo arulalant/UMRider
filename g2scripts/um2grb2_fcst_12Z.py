@@ -17,7 +17,8 @@ from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                    requiredLat, requiredLon, max_long_fcst_hours_at_12z, \
                    fcstOutGrib2FilesNameStructure, createGrib2CtlIdxFiles, \
                    createGrib1CtlIdxFiles, convertGrib2FilestoGrib1Files, \
-                   start_step_long_fcst_hour
+                   start_step_long_fcst_hour, grib1FilesNameSuffix, \
+                   removeGrib2FilesAfterGrib1FilesCreated
 
 if loadg2utils == 'system':
     # Load g2utils from system python which has installed through setup.py
@@ -60,7 +61,9 @@ while sDay <= eDay:
          fcstFileNameStructure=fcstOutGrib2FilesNameStructure, 
                 createGrib2CtlIdxFiles=createGrib2CtlIdxFiles,
                 createGrib1CtlIdxFiles=createGrib1CtlIdxFiles,
-  convertGrib2FilestoGrib1Files=convertGrib2FilestoGrib1Files, 
+  convertGrib2FilestoGrib1Files=convertGrib2FilestoGrib1Files,
+                    grib1FilesNameSuffix=grib1FilesNameSuffix,          
+  removeGrib2FilesAfterGrib1FilesCreated=removeGrib2FilesAfterGrib1FilesCreated, 
           start_step_long_fcst_hour=start_step_long_fcst_hour,
                max_long_fcst_hours=max_long_fcst_hours_at_12z,
                        overwrite=overwriteFiles, lprint=debug)

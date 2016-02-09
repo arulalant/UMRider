@@ -46,13 +46,13 @@ targetGridResolution = eval(cdic.get('targetGridResolution', 'None'))
 start_step_long_fcst_hour = eval(cdic.get('start_step_long_fcst_hour', '6'))
 max_long_fcst_hours_at_00z = eval(cdic.get('max_long_fcst_hours_at_00z', '240'))
 max_long_fcst_hours_at_12z = eval(cdic.get('max_long_fcst_hours_at_12z', '120'))
-anlOutGrib2FilesNameStructure = eval(cdic.get('anlOutGrib2FilesNameStructure',
-                                                                       'None'))
-fcstOutGrib2FilesNameStructure = eval(cdic.get('fcstOutGrib2FilesNameStructure',
-                                                                       'None'))
+anlOutGrib2FilesNameStructure = eval(cdic.get('anlOutGrib2FilesNameStructure', 'None'))
+fcstOutGrib2FilesNameStructure = eval(cdic.get('fcstOutGrib2FilesNameStructure','None'))
 createGrib2CtlIdxFiles = eval(cdic.get('createGrib2CtlIdxFiles', 'True'))
 convertGrib2FilestoGrib1Files = eval(cdic.get('convertGrib2FilestoGrib1Files', 'False'))
 createGrib1CtlIdxFiles = eval(cdic.get('createGrib1CtlIdxFiles', 'False'))
+removeGrib2FilesAfterGrib1FilesCreated = eval(cdic.get('removeGrib2FilesAfterGrib1FilesCreated', 'False'))
+grib1FilesNameSuffix = eval(cdic.get('grib1FilesNameSuffix', '.grib1'))
 
 if anlOutGrib2FilesNameStructure:
     if not anlOutGrib2FilesNameStructure[-1].endswith('2'):
@@ -147,7 +147,9 @@ if anlOutGrib2FilesNameStructure: print "anlOutGrib2FilesNameStructure = ", anlO
 if fcstOutGrib2FilesNameStructure: print "fcstOutGrib2FilesNameStructure = ", fcstOutGrib2FilesNameStructure
 print "createGrib2CtlIdxFiles = ", createGrib2CtlIdxFiles
 print "convertGrib2FilestoGrib1Files = ", convertGrib2FilestoGrib1Files
+print "grib1FilesNameSuffix = ", grib1FilesNameSuffix
 print "createGrib1CtlIdxFiles = ", createGrib1CtlIdxFiles
+print "removeGrib2FilesAfterGrib1FilesCreated = ", removeGrib2FilesAfterGrib1FilesCreated
 print "Successfully loaded the above params from UMRIDER_SETUP configure file!", setupfile
 print "*" * 80
 print "Successfully loaded the below variables from UMRIDER_VARS configure file!", varfile 

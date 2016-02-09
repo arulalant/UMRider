@@ -118,6 +118,10 @@ __outFileType__ = 'ana'
 __start_step_long_fcst_hour__ = 6
 # maximum long forecast hours produced by model
 __max_long_fcst_hours__ = 240
+# grib1 file suffix
+__grib1FilesNameSuffix__ = '.grib1'
+# flag for removing grib2 files after grib1 has been converted 
+__removeGrib2FilesAfterGrib1FilesCreated__ = False
 
 # Defining default out grib2 file name structure for analysis 
 __anlFileNameStructure__ = ('um_ana', '_', '*HHH*', 'hr', '_', 
@@ -1583,7 +1587,9 @@ def doShuffleVarsInOrder(fpath):
     global  _orderedVars_, _preExtension_, _ncfilesVars_, _inDataPath_, \
            _maskOverOceanVars_, _aod_pseudo_level_var_, _createGrib2CtlIdxFiles_, \
            _createGrib1CtlIdxFiles_, _convertGrib2FilestoGrib1Files_, \
-           __outFileType__, g2ctl, grib2ctl, gribmap, cnvgrib
+           __outFileType__, __grib1FilesNameSuffix__, \
+           __removeGrib2FilesAfterGrib1FilesCreated__, \
+           g2ctl, grib2ctl, gribmap, cnvgrib
     
     try:        
         f = iris.load(fpath)
@@ -1759,8 +1765,44 @@ def doShuffleVarsInOrder(fpath):
     for ncf in ncloadedfiles: os.remove(ncf)
         
     print "Created the variables in ordered fassion and saved into", g2filepath
+                
+    if _convertGrib2FilestoGrib1Files_:
+        g1filepath = '.'.join(g2filepath.split('.')[:-1])
+        g1filepath = g1filepath if g1filepath else g2filepath[:-1]
+        if __grib1FilesNameSuffix__: g1filepath += str(__grib1FilesNameSuffix__)
+        
+        if os.path.isfile(g1filepath): os.remove(g1filepath)
+        
+        cmd = [cnvgrib, '-g21', g2filepath, g1filepath]
+        subprocess.call(cmd, shell=False)
+        cmd = ['chmod', '644', g1filepath]
+        subprocess.call(cmd, shell=False)
+        print "Converted grib2 to grib1 file : -", g1filepath
+        
+        if  _createGrib1CtlIdxFiles_:
+            ## grib2ctl.pl usage option refer the below link 
+            ## https://tuxcoder.wordpress.com/2011/04/11/how-to-install-grib2ctl-pl-and-wgrib-in-linux/    
+            ctlfile = open(g1filepath+'.ctl', 'w')
+            if __outFileType__ in ['ana', 'anl']:
+                # create ctl & idx files for analysis file 
+                subprocess.call([grib2ctl, '-ts6hr', g1filepath], stdout=ctlfile)
+                subprocess.call([gribmap, '-ts6hr', '-0', '-i', g1filepath+'.ctl'])
+            elif __outFileType__ in ['prg', 'fcst']:
+                # create ctl & idx files for forecast file
+                subprocess.call([grib2ctl, '-ts6hr', '-verf', g1filepath], stdout=ctlfile)
+                subprocess.call([gribmap, '-i', g1filepath+'.ctl'])
+            else:
+                raise ValueError("unknown file type while executing grib2ctl.pl!!")
+            
+            print "Successfully created control and index file using grib2ctl !", g1filepath+'.ctl'
+    # end of if _createGrib1CtlIdxFiles_:
+    # end of if _convertGrib2FilestoGrib1Files_:
     
-    if _createGrib2CtlIdxFiles_:
+    if __removeGrib2FilesAfterGrib1FilesCreated__ and _convertGrib2FilestoGrib1Files_:
+        # grib1 files are converted. so we can remove grib2 files.
+        os.remove(g2filepath)
+        print "deleted grib2 file", g2filepath        
+    elif _createGrib2CtlIdxFiles_:
         ## g2ctl.pl usage option refer the below link 
         ## https://tuxcoder.wordpress.com/2011/08/31/how-to-install-g2ctl-pl-and-wgrib2-in-linux/        
         ctlfile = open(g2filepath+'.ctl', 'w')
@@ -1776,36 +1818,7 @@ def doShuffleVarsInOrder(fpath):
             raise ValueError("unknown file type while executing g2ctl.pl!!")
         
         print "Successfully created control and index file using g2ctl !", g2filepath+'.ctl'
-    # end of if _createGrib2CtlIdxFiles_:
-        
-    if _convertGrib2FilestoGrib1Files_:
-        g1filepath = g2filepath[:-1] + '1'
-        if not os.path.isfile(g1filepath):
-            cmd = [cnvgrib, '-g21', g2filepath, g1filepath]
-            subprocess.call(cmd, shell=False)
-            cmd = ['chmod', '644', g1filepath]
-            subprocess.call(cmd, shell=False)
-            print "Converted grib2 to grib1 file : -", g1filepath
-    # end of if _convertGrib2FilestoGrib1Files_:
-    
-    if  _createGrib1CtlIdxFiles_:
-        ## grib2ctl.pl usage option refer the below link 
-        ## https://tuxcoder.wordpress.com/2011/04/11/how-to-install-grib2ctl-pl-and-wgrib-in-linux/    
-        ctlfile = open(g1filepath+'.ctl', 'w')
-        if __outFileType__ in ['ana', 'anl']:
-            # create ctl & idx files for analysis file 
-            subprocess.call([grib2ctl, '-ts6hr', g1filepath], stdout=ctlfile)
-            subprocess.call([gribmap, '-ts6hr', '-0', '-i', g1filepath+'.ctl'])
-        elif __outFileType__ in ['prg', 'fcst']:
-            # create ctl & idx files for forecast file
-            subprocess.call([grib2ctl, '-ts6hr', '-verf', g1filepath], stdout=ctlfile)
-            subprocess.call([gribmap, '-i', g1filepath+'.ctl'])
-        else:
-            raise ValueError("unknown file type while executing grib2ctl.pl!!")
-        
-        print "Successfully created control and index file using grib2ctl !", g1filepath+'.ctl'
-    # end of if _createGrib1CtlIdxFiles_:
-    
+    # end of if __removeGrib2FilesAfterGrib1FilesCreated__:    
 # end of def doShuffleVarsInOrder(fpath):
 
 def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
@@ -2047,7 +2060,8 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
        _requiredLon_, _createGrib2CtlIdxFiles_, _createGrib1CtlIdxFiles_, \
        _convertGrib2FilestoGrib1Files_, __fcstFileNameStructure__, \
        __LPRINT__, __utc__, __start_step_long_fcst_hour__, \
-       __max_long_fcst_hours__, __outFileType__
+       __max_long_fcst_hours__, __outFileType__, __grib1FilesNameSuffix__, \
+       __removeGrib2FilesAfterGrib1FilesCreated__
     
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -2064,6 +2078,8 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     createGrib2CtlIdxFiles = kwarg.get('createGrib2CtlIdxFiles', True)
     createGrib1CtlIdxFiles = kwarg.get('createGrib1CtlIdxFiles', False)
     convertGrib2FilestoGrib1Files = kwarg.get('convertGrib2FilestoGrib1Files', False)
+    grib1FilesNameSuffix = kwarg.get('grib1FilesNameSuffix', '1')
+    removeGrib2FilesAfterGrib1FilesCreated = kwarg.get('removeGrib2FilesAfterGrib1FilesCreated', False)
     
     # assign out file type in global variable
     __outFileType__ = 'fcst'
@@ -2077,6 +2093,8 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     __utc__ = utc
     __start_step_long_fcst_hour__ = start_step_long_fcst_hour
     __max_long_fcst_hours__ = max_long_fcst_hours
+    __removeGrib2FilesAfterGrib1FilesCreated__ = removeGrib2FilesAfterGrib1FilesCreated
+    __grib1FilesNameSuffix__ = grib1FilesNameSuffix
     _targetGridRes_ = str(targetGridResolution)
     _requiredLat_ = latitude
     _requiredLon_ = longitude
@@ -2182,7 +2200,8 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
        _inDataPath_, _opPath_, _doRegrid_, _convertVars_, _requiredLat_, \
        _requiredLon_, _createGrib2CtlIdxFiles_, _createGrib1CtlIdxFiles_, \
        _convertGrib2FilestoGrib1Files_, __anlFileNameStructure__,  \
-       __LPRINT__, __utc__, __outFileType__
+       __LPRINT__, __utc__, __outFileType__, __grib1FilesNameSuffix__, \
+       __removeGrib2FilesAfterGrib1FilesCreated__
            
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -2198,6 +2217,8 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     createGrib2CtlIdxFiles = kwarg.get('createGrib2CtlIdxFiles', True)
     createGrib1CtlIdxFiles = kwarg.get('createGrib1CtlIdxFiles', False)
     convertGrib2FilestoGrib1Files = kwarg.get('convertGrib2FilestoGrib1Files', False)
+    grib1FilesNameSuffix = kwarg.get('grib1FilesNameSuffix', '1')
+    removeGrib2FilesAfterGrib1FilesCreated = kwarg.get('removeGrib2FilesAfterGrib1FilesCreated', False)
     
     # assign out file type in global variable
     __outFileType__ = 'ana'
@@ -2209,6 +2230,8 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     __LPRINT__ = lprint
     # update global variables
     __utc__ = utc
+    __removeGrib2FilesAfterGrib1FilesCreated__ = removeGrib2FilesAfterGrib1FilesCreated
+    __grib1FilesNameSuffix__ = grib1FilesNameSuffix
     _targetGridRes_ = str(targetGridResolution)
     _requiredLat_ = latitude
     _requiredLon_ = longitude
