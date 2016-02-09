@@ -1587,7 +1587,7 @@ def doShuffleVarsInOrder(fpath):
     global  _orderedVars_, _preExtension_, _ncfilesVars_, _inDataPath_, \
            _maskOverOceanVars_, _aod_pseudo_level_var_, _createGrib2CtlIdxFiles_, \
            _createGrib1CtlIdxFiles_, _convertGrib2FilestoGrib1Files_, \
-           __outFileType__, __grib1FilesNameSuffix__, \
+           _convertVars_, __outFileType__, __grib1FilesNameSuffix__, \
            __removeGrib2FilesAfterGrib1FilesCreated__, \
            g2ctl, grib2ctl, gribmap, cnvgrib
     
@@ -1620,14 +1620,28 @@ def doShuffleVarsInOrder(fpath):
         unOrderedNonPressureLevelVars[name] = i   
     
     # need to store the ordered variables in this empty list
-    orderedVars = []
-    for varName, STASH in _orderedVars_['PressureLevel']:
+    orderedVars = []    
+    if _convertVars_:
+        # user has passed their own ordered and limited vars 
+        orderedVarsList = _convertVars_
+    else:
+        # use inbuilt ordered list from this module itself
+        orderedVarsList = _orderedVars_['PressureLevel'] + _orderedVars_['nonPressureLevel']
+        
+    for (varName, STASH) in orderedVarsList:
+        # skip if user specified var not in pressure level vars list 
+        if not (varName, STASH) in _orderedVars_['PressureLevel']: continue
+        print "myorder", varName
+        # got pressure vars, add to ordered final vars list  
         if varName in unOrderedPressureLevelVars: orderedVars.append(unOrderedPressureLevelVars[varName])
     # end of for name, STASH in _orderedVars_['PressureLevel']:
             
     ncloaddic = {}
     ncloadedfiles = []
-    for varName, varSTASH in _orderedVars_['nonPressureLevel']:
+    for (varName, STASH) in orderedVarsList:
+        # skip if user specified var not in non-pressure level vars list 
+        if not (varName, STASH) in _orderedVars_['nonPressureLevel']: continue
+        # got non-pressure vars, add to ordered final vars list  
         if varName in unOrderedNonPressureLevelVars: 
             orderedVars.append(unOrderedNonPressureLevelVars[varName])
         elif (varName, varSTASH) in _ncfilesVars_:            
@@ -1665,7 +1679,7 @@ def doShuffleVarsInOrder(fpath):
                 else:
                     orderedVars.append(var[0])
             # end of if var:
-    # end of for name, STASH in _orderedVars_['PressureLevel']:
+    # end of for (varName, STASH) in orderedVarsList:
     
     if _maskOverOceanVars_:
         # store the land_binary_mask data into temporary variable

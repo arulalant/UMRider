@@ -10,6 +10,21 @@ import os, sys, time, datetime
 # get this script abspath
 scriptPath = os.path.dirname(os.path.abspath(__file__))
 
+def uniquifyListInOrder(seq, idfun=None): 
+   # link : http://www.peterbe.com/plog/uniqifiers-benchmark taken f5
+   # order preserving
+   if idfun is None:
+       def idfun(x): return x
+   seen = {}
+   result = []
+   for item in seq:
+       marker = idfun(item)       
+       if marker in seen: continue
+       seen[marker] = 1
+       result.append(item)
+   return result
+# end of def uniquifyListInOrder(seq, idfun=None): 
+
 # get environment variable for setup file otherwise load default local path 
 setupfile = os.environ.get('UMRIDER_SETUP', os.path.join(scriptPath, 'um2grb2_setup.cfg')).strip()
 if not os.path.isfile(setupfile):
@@ -130,7 +145,9 @@ neededVars = [j if len(j) == 2 else j[0] for j in
 if not neededVars:
     raise ValueError("Empty variables list loaded from %s" % varfile)
 
-neededVars = list(set(neededVars))
+# set() changes the order. So using this function retains the order and 
+# removing the duplicates.
+neededVars = uniquifyListInOrder(neededVars)
 
 print "*" * 80
 print "date = ", date
