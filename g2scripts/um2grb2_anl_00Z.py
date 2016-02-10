@@ -15,7 +15,8 @@ from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                 debug, targetGridResolution, overwriteFiles, neededVars, \
                 requiredLat, requiredLon, anlOutGrib2FilesNameStructure, \
                 createGrib2CtlIdxFiles, createGrib1CtlIdxFiles, \
-                convertGrib2FilestoGrib1Files
+                convertGrib2FilestoGrib1Files, grib1FilesNameSuffix, \
+                removeGrib2FilesAfterGrib1FilesCreated
 
 if loadg2utils == 'system':
     # Load g2utils from system python which has installed through setup.py
@@ -58,7 +59,9 @@ while sDay <= eDay:
             anlFileNameStructure=anlOutGrib2FilesNameStructure, 
                  createGrib2CtlIdxFiles=createGrib2CtlIdxFiles,
                  createGrib1CtlIdxFiles=createGrib1CtlIdxFiles,
-     convertGrib2FilestoGrib1Files=convertGrib2FilestoGrib1Files,                              
+   convertGrib2FilestoGrib1Files=convertGrib2FilestoGrib1Files,
+                     grib1FilesNameSuffix=grib1FilesNameSuffix,          
+   removeGrib2FilesAfterGrib1FilesCreated=removeGrib2FilesAfterGrib1FilesCreated,                    
                        overwrite=overwriteFiles, lprint=debug)
     print "Time lag incremented by 1"
     sDay += lag

@@ -10,6 +10,21 @@ import os, sys, time, datetime
 # get this script abspath
 scriptPath = os.path.dirname(os.path.abspath(__file__))
 
+def uniquifyListInOrder(seq, idfun=None): 
+   # link : http://www.peterbe.com/plog/uniqifiers-benchmark taken f5
+   # order preserving
+   if idfun is None:
+       def idfun(x): return x
+   seen = {}
+   result = []
+   for item in seq:
+       marker = idfun(item)       
+       if marker in seen: continue
+       seen[marker] = 1
+       result.append(item)
+   return result
+# end of def uniquifyListInOrder(seq, idfun=None): 
+
 # get environment variable for setup file otherwise load default local path 
 setupfile = os.environ.get('UMRIDER_SETUP', os.path.join(scriptPath, 'um2grb2_setup.cfg')).strip()
 if not os.path.isfile(setupfile):
@@ -43,15 +58,16 @@ debug = eval(cdic.get('debug', 'False'))
 requiredLat = eval(cdic.get('latitude', 'None'))
 requiredLon = eval(cdic.get('longitude', 'None'))
 targetGridResolution = eval(cdic.get('targetGridResolution', 'None'))
+start_step_long_fcst_hour = eval(cdic.get('start_step_long_fcst_hour', '6'))
 max_long_fcst_hours_at_00z = eval(cdic.get('max_long_fcst_hours_at_00z', '240'))
 max_long_fcst_hours_at_12z = eval(cdic.get('max_long_fcst_hours_at_12z', '120'))
-anlOutGrib2FilesNameStructure = eval(cdic.get('anlOutGrib2FilesNameStructure',
-                                                                       'None'))
-fcstOutGrib2FilesNameStructure = eval(cdic.get('fcstOutGrib2FilesNameStructure',
-                                                                       'None'))
+anlOutGrib2FilesNameStructure = eval(cdic.get('anlOutGrib2FilesNameStructure', 'None'))
+fcstOutGrib2FilesNameStructure = eval(cdic.get('fcstOutGrib2FilesNameStructure','None'))
 createGrib2CtlIdxFiles = eval(cdic.get('createGrib2CtlIdxFiles', 'True'))
 convertGrib2FilestoGrib1Files = eval(cdic.get('convertGrib2FilestoGrib1Files', 'False'))
 createGrib1CtlIdxFiles = eval(cdic.get('createGrib1CtlIdxFiles', 'False'))
+removeGrib2FilesAfterGrib1FilesCreated = eval(cdic.get('removeGrib2FilesAfterGrib1FilesCreated', 'False'))
+grib1FilesNameSuffix = eval(cdic.get('grib1FilesNameSuffix', '.grib1'))
 
 if anlOutGrib2FilesNameStructure:
     if not anlOutGrib2FilesNameStructure[-1].endswith('2'):
@@ -125,9 +141,13 @@ print "Reading configure file to load the paths"
 # clean it up and store as list of tuples contains both varName and varSTASH
 vl = [i.strip() for i in open(varfile).readlines() if i]
 neededVars = [j if len(j) == 2 else j[0] for j in 
-                    [eval(i) for i in vl if i and not i.startswith('#')]]
+                 [eval(i) for i in vl if i and not i.startswith(('#', '/', '!', '\n', '%'))]]
 if not neededVars:
     raise ValueError("Empty variables list loaded from %s" % varfile)
+
+# set() changes the order. So using this function retains the order and 
+# removing the duplicates.
+neededVars = uniquifyListInOrder(neededVars)
 
 print "*" * 80
 print "date = ", date
@@ -137,13 +157,16 @@ print "overwriteFiles = ", overwriteFiles
 print "debug = ", debug
 print "latitude = ", requiredLat
 print "longitude = ", requiredLon
+print "start_step_long_fcst_hour = ", start_step_long_fcst_hour
 print "max_long_fcst_hours_at_00z = ", max_long_fcst_hours_at_00z
 print "max_long_fcst_hours_at_12z = ", max_long_fcst_hours_at_12z
 if anlOutGrib2FilesNameStructure: print "anlOutGrib2FilesNameStructure = ", anlOutGrib2FilesNameStructure
 if fcstOutGrib2FilesNameStructure: print "fcstOutGrib2FilesNameStructure = ", fcstOutGrib2FilesNameStructure
 print "createGrib2CtlIdxFiles = ", createGrib2CtlIdxFiles
 print "convertGrib2FilestoGrib1Files = ", convertGrib2FilestoGrib1Files
+print "grib1FilesNameSuffix = ", grib1FilesNameSuffix
 print "createGrib1CtlIdxFiles = ", createGrib1CtlIdxFiles
+print "removeGrib2FilesAfterGrib1FilesCreated = ", removeGrib2FilesAfterGrib1FilesCreated
 print "Successfully loaded the above params from UMRIDER_SETUP configure file!", setupfile
 print "*" * 80
 print "Successfully loaded the below variables from UMRIDER_VARS configure file!", varfile 
