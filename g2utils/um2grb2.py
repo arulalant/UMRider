@@ -1628,19 +1628,18 @@ def doShuffleVarsInOrder(fpath):
         # use inbuilt ordered list from this module itself
         orderedVarsList = _orderedVars_['PressureLevel'] + _orderedVars_['nonPressureLevel']
         
-    for (varName, STASH) in orderedVarsList:
+    for (varName, varSTASH) in orderedVarsList:
         # skip if user specified var not in pressure level vars list 
-        if not (varName, STASH) in _orderedVars_['PressureLevel']: continue
-        print "myorder", varName
+        if not (varName, varSTASH) in _orderedVars_['PressureLevel']: continue
         # got pressure vars, add to ordered final vars list  
         if varName in unOrderedPressureLevelVars: orderedVars.append(unOrderedPressureLevelVars[varName])
     # end of for name, STASH in _orderedVars_['PressureLevel']:
             
     ncloaddic = {}
     ncloadedfiles = []
-    for (varName, STASH) in orderedVarsList:
+    for (varName, varSTASH) in orderedVarsList:
         # skip if user specified var not in non-pressure level vars list 
-        if not (varName, STASH) in _orderedVars_['nonPressureLevel']: continue
+        if not (varName, varSTASH) in _orderedVars_['nonPressureLevel']: continue
         # got non-pressure vars, add to ordered final vars list  
         if varName in unOrderedNonPressureLevelVars: 
             orderedVars.append(unOrderedNonPressureLevelVars[varName])

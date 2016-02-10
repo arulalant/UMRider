@@ -141,7 +141,7 @@ print "Reading configure file to load the paths"
 # clean it up and store as list of tuples contains both varName and varSTASH
 vl = [i.strip() for i in open(varfile).readlines() if i]
 neededVars = [j if len(j) == 2 else j[0] for j in 
-                    [eval(i) for i in vl if i and not i.startswith('#')]]
+                 [eval(i) for i in vl if i and not i.startswith(('#', '/', '!', '\n', '%'))]]
 if not neededVars:
     raise ValueError("Empty variables list loaded from %s" % varfile)
 
