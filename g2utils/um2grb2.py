@@ -199,6 +199,7 @@ _orderedVars_ = {'PressureLevel': [
 ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'),
 ('surface_downwelling_longwave_flux', 'm01s02i207'),
 ('surface_net_downward_longwave_flux', 'm01s02i201'), 
+('surface_net_downward_shortwave_flux', 'm01s01i202'),
 ('atmosphere_boundary_layer_thickness', 'm01s00i025'),
 ('atmosphere_optical_thickness_due_to_dust_ambient_aerosol', 'm01s02i422'),
 ('moisture_content_of_soil_layer', 'm01s08i223'),  # 4 layers 
@@ -602,6 +603,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                 ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'),
                 ('surface_downwelling_longwave_flux', 'm01s02i207'),
                 ('surface_net_downward_longwave_flux', 'm01s02i201'),
+                ('surface_net_downward_shortwave_flux', 'm01s01i202'),
                 ('toa_outgoing_longwave_flux', 'm01s02i205'),
                 ('toa_outgoing_longwave_flux_assuming_clear_sky', 'm01s02i206'), 
                 ('toa_incoming_shortwave_flux', 'm01s01i207'), 
@@ -739,6 +741,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
              ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'),
              ('surface_downwelling_longwave_flux', 'm01s02i207'),
              ('surface_net_downward_longwave_flux', 'm01s02i201'),
+             ('surface_net_downward_shortwave_flux', 'm01s01i202'),
              ('toa_outgoing_longwave_flux', 'm01s02i205'),
              ('toa_outgoing_longwave_flux_assuming_clear_sky', 'm01s02i206'), 
              ('toa_incoming_shortwave_flux', 'm01s01i207'), 
