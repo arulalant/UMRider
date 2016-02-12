@@ -120,8 +120,8 @@ GRIB2_TO_CF = {
     G2Param(2, 0, 6, 5): CFName('high_type_cloud_area_fraction', None, '%'),
     G2Param(2, 0, 6, 6): CFName('atmosphere_mass_content_of_cloud_liquid_water', None, 'kg m-2'),
     G2Param(2, 0, 6, 7): CFName('cloud_area_fraction_in_atmosphere_layer', None, '%'),
-    G2Param(2, 0, 7, 6): CFName('atmosphere_specific_convective_available_potential_energy', None, 'J kg-1'),
-    G2Param(2, 0, 7, 7): CFName(None, 'convective_inhibition', 'J kg-1'),
+#    G2Param(2, 0, 7, 6): CFName('atmosphere_specific_convective_available_potential_energy', None, 'J kg-1'),
+#    G2Param(2, 0, 7, 7): CFName(None, 'convective_inhibition', 'J kg-1'),
     G2Param(2, 0, 7, 8): CFName(None, 'storm_relative_helicity', 'J kg-1'),
     G2Param(2, 0, 14, 0): CFName('atmosphere_mole_content_of_ozone', None, 'Dobson'),
     G2Param(2, 0, 19, 1): CFName(None, 'grib_physical_atmosphere_albedo', '%'),
@@ -137,6 +137,11 @@ GRIB2_TO_CF = {
     G2Param(2, 10, 2, 0): CFName('sea_ice_area_fraction', None, '1'),
     G2Param(2, 10, 2, 1): CFName('sea_ice_thickness', None, 'm'),
     G2Param(2, 10, 3, 0): CFName('sea_surface_temperature', None, 'K'),        
+    
+    ## begin the ncum load rules cf names  
+    G2Param(2, 0, 7, 6): CFName('atmosphere_convective_available_potential_energy_wrt_surface', None, 'J kg-1'),
+    G2Param(2, 0, 7, 7): CFName('atmosphere_convective_inhibition_wrt_surface', None, 'J kg-1'),
+    ## end the ncum load rules cf names  
     
     # G2Param(grib version, discipline, parameter category, parameter no): CFName('standard_name', 'long_name', 'units') # paramid
     G2Param(2, 0, 2, 9): CFName('upward_air_velocity', None, 'm s-1'), # 500032
@@ -164,8 +169,8 @@ GRIB2_TO_CF = {
     G2Param(2, 3, 1, 196): CFName(None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_0.87um', '1'), # NCMRWF Local
     G2Param(2, 3, 1, 197): CFName(None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_1.02um', '1'), # NCMRWF Local
 
-    
-    
+    G2Param(2, 0, 0, 4): CFName(None, 'air_temperature_maximum', 'K'), # WMO deprecated
+    G2Param(2, 0, 0, 5): CFName(None, 'air_temperature_minimum', 'K'), # WMO deprecated
     
     # G2Param(grib version, discipline, parameter category, parameter no, typeOfFirstFixedSurface):
     G2Param(2, 0, 1, 60, 1): CFName(None, 'snow_depth_water_equivalent', 'kg m-2'), # 228141
@@ -184,9 +189,13 @@ GRIB2_TO_CF = {
     G2Param(2, 0, 1, 14): CFName('convective_snowfall_amount', None, 'kg m-2'), # 260011
     G2Param(2, 2, 0, 13): CFName('canopy_water_amount', None, 'kg m-2'), # 260189   
     ### NCEP map end ###    
-    
+   
 	G2Param(2, 0, 1, 47): CFName('stratiform_rainfall_amount', None, 'kg m-2'), # WMO    
     G2Param(2, 0, 1, 48): CFName('convective_rainfall_amount', None, 'kg m-2'), # WMO    
+    
+    G2Param(2, 0, 4, 8): CFName('surface_upwelling_shortwave_flux_in_air', None, 'W m-2'), # WMO 
+    G2Param(2, 0, 5, 4): CFName('surface_upwelling_longwave_flux_in_air', None, 'W m-2'),    
+    
     #WMO need to set surface level type as toa (Nominal top of the atmosphere, 8)
     G2Param(2, 0, 5, 4, 8): CFName('toa_outgoing_longwave_flux', None, 'W m-2'),   # WMO
     G2Param(2, 0, 4, 8, 8): CFName('toa_outgoing_shortwave_flux', None, 'W m-2'),  # WMO    
@@ -236,7 +245,7 @@ CF_TO_GRIB1_LOCAL = {
     }
 
 CF_TO_GRIB2 = {
-    CFName(None, 'convective_inhibition', 'J kg-1'): G2Param(2, 0, 7, 7),
+#    CFName(None, 'convective_inhibition', 'J kg-1'): G2Param(2, 0, 7, 7),
     CFName(None, 'ertel_potential_velocity', 'K m2 kg-1 s-1'): G2Param(2, 0, 2, 14),
     CFName(None, 'grib_physical_atmosphere_albedo', '%'): G2Param(2, 0, 19, 1),
     CFName(None, 'icao_standard_atmosphere_reference_height', 'm'): G2Param(2, 0, 3, 3),
@@ -251,7 +260,7 @@ CF_TO_GRIB2 = {
     CFName('atmosphere_mass_content_of_water', None, 'kg m-2'): G2Param(2, 0, 1, 51),
     CFName('atmosphere_mass_content_of_water_vapor', None, 'kg m-2'): G2Param(2, 0, 1, 64),
     CFName('atmosphere_mole_content_of_ozone', None, 'Dobson'): G2Param(2, 0, 14, 0),
-    CFName('atmosphere_specific_convective_available_potential_energy', None, 'J kg-1'): G2Param(2, 0, 7, 6),
+#    CFName('atmosphere_specific_convective_available_potential_energy', None, 'J kg-1'): G2Param(2, 0, 7, 6),
     CFName('cloud_area_fraction', None, '%'): G2Param(2, 0, 6, 1),
     CFName('cloud_area_fraction_in_atmosphere_layer', None, '%'): G2Param(2, 0, 6, 7),
     CFName('dew_point_temperature', None, 'K'): G2Param(2, 0, 0, 6),
@@ -284,6 +293,8 @@ CF_TO_GRIB2 = {
     CFName('surface_downwelling_shortwave_flux_in_air', None, 'W m-2'): G2Param(2, 0, 4, 7),    
     CFName('surface_net_downward_longwave_flux', None, 'W m-2'): G2Param(2, 0, 5, 5),
     CFName('surface_net_downward_shortwave_flux', None, 'W m-2'): G2Param(2, 0, 4, 9),
+    CFName('surface_upwelling_shortwave_flux_in_air', None, 'W m-2'): G2Param(2, 0, 4, 8),
+    CFName('surface_upwelling_longwave_flux_in_air', None, 'W m-2'): G2Param(2, 0, 5, 4),    
     CFName('surface_roughness_length', None, 'm'): G2Param(2, 2, 0, 1),
     CFName('surface_runoff_flux', None, 'kg m-2 s-1'): G2Param(2, 2, 0, 34),
     CFName('surface_temperature', None, 'K'): G2Param(2, 0, 0, 17),
@@ -324,6 +335,13 @@ CF_TO_GRIB2 = {
 ##    CFName('surface_downwelling_shortwave_flux_in_air_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 4, 196), #260342
 ##    CFName('surface_upwelling_shortwave_flux_in_air_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 4, 196), #260342
     
+    ## begin the ncum load rules cf names  
+    CFName('atmosphere_convective_available_potential_energy_wrt_surface', None, 'J kg-1'): G2Param(2, 0, 7, 6),
+    CFName('atmosphere_convective_inhibition_wrt_surface', None, 'J kg-1'): G2Param(2, 0, 7, 7),
+    ## end the ncum load rules cf names  
+    
+    CFName(None, 'air_temperature_maximum', 'K'): G2Param(2, 0, 0, 4), # WMO deprecated
+    CFName(None, 'air_temperature_minimum', 'K'): G2Param(2, 0, 0, 5), # WMO deprecated
     
     #WMO need to set surface level type as toa (Nominal top of the atmosphere, 8)
     CFName('toa_outgoing_longwave_flux', None, 'W m-2'): G2Param(2, 0, 5, 4, 8),  # WMO
@@ -342,8 +360,7 @@ CF_TO_GRIB2 = {
     ### since we made cf_standard_name as unique. so while writing into grib2 
     ### will not throw any error and for timebeing we are tweaking grib messages
     ### to set typeOfFirstFixedSurface for the above said varibles.
-    
-    
+        
     # G2Param(grib version, discipline, parameter category, parameter no, typeOfFirstFixedSurface):
     CFName(None, 'snow_depth_water_equivalent', 'kg m-2'): G2Param(2, 0, 1, 60, 1), # 228141
 #    CFName(None, 'land_sea_mask', '(0 - 1)'): G2Param(2, 2, 0, 0, 1), # 172

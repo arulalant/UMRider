@@ -671,9 +671,9 @@ def set_fixed_surfaces(cube, grib):
         output_unit = cf_units.Unit("m")
         v_coord = cube.coord("height")
 
-    # soil_model_level_number	##EDIT    
+    # depth_below_land_surface
     elif cube.coords("depth_below_land_surface"):
-        grib_v_code = 106
+        grib_v_code = 106   # required for NCMRWF  
         output_unit = cf_units.Unit("m")
         v_coord = cube.coord("depth_below_land_surface")
 
@@ -712,7 +712,7 @@ def set_fixed_surfaces(cube, grib):
         output_v = v_coord.units.convert(v_coord.points[0], output_unit)
         if output_v - abs(output_v):
             warnings.warn("Vertical level encoding problem: scaling required.")
-        output_v = round(output_v) # we must round it, so that WRF able understand!
+        output_v = round(output_v) # we must round it, so that WRF able understand! # required for NCMRWF
         gribapi.grib_set(grib, "typeOfFirstFixedSurface", grib_v_code)
         gribapi.grib_set(grib, "scaleFactorOfFirstFixedSurface", 0)
         gribapi.grib_set(grib, "scaledValueOfFirstFixedSurface", output_v)
