@@ -91,6 +91,8 @@ import multiprocessing.pool as mppool
 # by the top-level multiprocessing module.
 import datetime
 from iris.time import PartialDateTime
+from cubeutils import cubeAverager, cubeSubtractor
+from ncum_load_rules import update_cf_standard_name
 # End of importing business
 
 # We have to make sure that strict_grib_load as False, since we have to 
@@ -303,7 +305,6 @@ class myLog():
         self.log.close()
 # end of class #1
 
-## Start definition files
 # start definition #1
 def getCubeData(umFname):
     """
@@ -313,9 +314,12 @@ def getCubeData(umFname):
 
     :param umFname: UM fieldsfile filename passed as a string
     :return: Data for corresponding data file in Iris cube format
+    
+    Note : loaded cube may be update by callback function 
+            "update_cf_standard_name" of ncum_load_rules module.
     """
-
-    cubes = iris.load(umFname)
+    # check cf_standard_name of cubes and update it if necessary while loading 
+    cubes = iris.load(umFname, callback=update_cf_standard_name)
     
     return cubes
 # end of definition #1
@@ -799,127 +803,6 @@ def getCubeAttr(tmpCube):
 
     return stdNm, fcstTm, refTm, lat, lon
 # end of definition #3
-
-# start definition #4
-def cubeAverager(tmpCube, action='mean', dt='1 hour', 
-                actionIntervals='6 hour', tpoint='cbound', fpoint='cbound'):
-    """
-    This module was added by AAT to return a data variable depending on the nature of the field.
-    :param tmpCube:     The temporary cube data (in Iris format) with non-singleton time dimension
-    :param action:      mean| sum (accumulated fields are summed and instantaneous are averaged).
-    :param dt:   A standard string representing forecast step duration/intervals.
-    :param actionIntervals: A non standard string to add inside cell_methods comments section.
-    :param tpoint: cbound | lbound | rbound time point 
-    :param fpoint: cbound | lbound | rbound forecast period
-    :return: meanCube:  An Iris formatted cube date containing the resultant data either as
-                        averaged or summed.
-    ACK:
-    Started and initiated by AAT on 11/16/2015 and minor correction & standardization by MNRS on
-    11/29/15.
-    """
-
-    # extract time points 
-    tpoints = tmpCube.coord('forecast_period').points
-    # assign first time point data to mean data 
-    meanCube = tmpCube.extract(iris.Constraint(forecast_period=tpoints[0]))
-    # get the time coord of first time cube and set to mean
-    timeAxFirst = meanCube.coords('time')[0]
-    # get the fcst time coord of first time cube and set to mean
-    fcstAxFirst = meanCube.coords('forecast_period')[0]
-    
-    # loop through remaining time points 
-    for tp in tpoints[1:]:
-        # extract remaining time points and add to meanCube
-        lastCube = tmpCube.extract(iris.Constraint(forecast_period=tp))
-        meanCube = iris.analysis.maths.add(meanCube, lastCube) 
-    # end of for tp in tpoints[1:]:
-    
-    # get the time coord of last time cube and set to mean
-    timeAxLast = lastCube.coords('time')[0]
-    # get the fcst time coord of last time cube and set to mean
-    fcstAxLast = tmpCube[-1].coords('forecast_period')[0]
-    
-    if action == 'mean':
-        # to compute mean value of meanCube divide it by length of time
-        # points which we added before 
-        meanCube = iris.analysis.maths.divide(meanCube, float(len(tpoints)))
-        print "Converted cube to %s mean : %s" % (actionIntervals, tmpCube.standard_name)
-    elif action == 'sum':
-        # for sum action, we no need to do here anything, because already 
-        # we computed accumulation only!
-        print "Converted cube to %s accumulation : %s" % (actionIntervals, tmpCube.standard_name)
-    else:
-        raise ValueError('argument "%s" not support' % action)
-    # end of if not isAccumulation:
-
-    # get the bounds and time points from two extremes    
-    bounds = [timeAxFirst.bounds[0][0], timeAxLast.bounds[-1][-1]]
-    
-    if tpoint == 'cbound':
-        #### THE CENTRE POINT OF REFERENCE TIME BOUNDS
-        timepoint = [bounds[-1] + ((bounds[-1] - bounds[0]) / 2.0)]
-    elif tpoint == 'lbound':
-       ###### THE START BOUNDS OF REFERENCE TIME POINT
-        timepoint = [bounds[0]]        
-    elif tpoint == 'rbound':    
-        ###### THE END BOUNDS OF REFERENCE TIME POINT
-        timepoint = [bounds[-1]]   
-    # end of if tpoint == 'cbound':
-    
-    # update the time coordinate with new time point and time bounds
-    timeAxFirst.points = timepoint
-    timeAxFirst.bounds = bounds
-    # add the updated time coordinate to the meanCube
-    meanCube.add_aux_coord(timeAxFirst)
-    # get the bounds and time points from two extremes
-    bounds = [fcstAxFirst.bounds[0][0], fcstAxLast.bounds[-1][-1]]
-    
-    if action is 'sum' and bounds[0] != 0:
-        # this change is required only for _accumulationVars_ vars, since its 
-        # hourly accumulation, which we converting to 6-hourly accumulation.
-        # Instead of cross check by _accumulationVars_, here we are checking
-        # by action is 'sum', since sum arg passed only to _accumulationVars_.
-        bounds = [fcstAxFirst.bounds[0][1], fcstAxLast.bounds[-1][-1]]
-    # end of if ...:    
-    
-    if fpoint == 'cbound':
-        #### THE CENTRE POINT OF FORECAST TIME BOUNDS
-        fcstpoint = [bounds[0] + ((bounds[-1] - bounds[0]) / 2.0)]
-    elif fpoint == 'lbound':           
-        ###### THE START BOUNDS OF FORECAST TIME POINT
-        fcstpoint = [bounds[0]]         
-    elif fpoint == 'rbound':           
-        ###### THE END BOUNDS OF FORECAST TIME POINT
-        fcstpoint = [bounds[-1]] 
-    # end of if fpoint == 'cbound':   
-    
-    # update the time coordinate with new fcst time point and fcst time bounds
-    fcstAxFirst.points = fcstpoint
-    fcstAxFirst.bounds = bounds
-    # add the updated fcst time coordinate to the meanCube
-    meanCube.add_aux_coord(fcstAxFirst)
-    # add attributes back to meanCube
-    meanCube.attributes = tmpCube.attributes  
-    # add standard_name
-    meanCube.standard_name = tmpCube.standard_name
-    meanCube.long_name = tmpCube.long_name if tmpCube.long_name else tmpCube.standard_name
-    
-    if action == 'mean':
-        cm = iris.coords.CellMethod('mean', ('time',), intervals=(dt,), 
-                                     comments=(actionIntervals+' mean',))
-    elif action == 'sum':
-        cm = iris.coords.CellMethod('sum', ('time',), intervals=(dt,), 
-                                     comments=(actionIntervals+' accumulation',))
-                                     
-    # add cell_methods to the meanCube                                     
-    meanCube.cell_methods = (cm,) 
-
-    # make memory free
-    del tmpCube
-    
-    # return mean cube 
-    return meanCube
-# end of def cubeAverager(tmpCube):
 
 # create a class #2 to initiate mp daemon processes
 class _NoDaemonProcess(mp.Process):
