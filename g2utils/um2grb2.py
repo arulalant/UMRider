@@ -137,6 +137,7 @@ __fcstFileNameStructure__ = ('um_prg', '_', '*HHH*', 'hr', '_',
 # tuples (varName, varSTASH) will be converted, otherwise default variables 
 # of this module will be converted!
 _convertVars_ = []
+_removeVars_ = []   # used to store temporary vars 
 _current_date_ = None
 _startT_ = None
 _tmpDir_ = None
@@ -199,6 +200,7 @@ _orderedVars_ = {'PressureLevel': [
 ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'),
 ('surface_downwelling_longwave_flux', 'm01s02i207'),
 ('surface_net_downward_longwave_flux', 'm01s02i201'), 
+('surface_net_downward_shortwave_flux', 'm01s01i202'),
 ('atmosphere_boundary_layer_thickness', 'm01s00i025'),
 ('atmosphere_optical_thickness_due_to_dust_ambient_aerosol', 'm01s02i422'),
 ('moisture_content_of_soil_layer', 'm01s08i223'),  # 4 layers 
@@ -284,6 +286,24 @@ _maskOverOceanVars_ = ['volumetric_moisture_of_soil_layer',
 _aod_pseudo_level_var_ = {
 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol': [
 (1, '0.38'), (2, '0.44'), (3, '0.55'), (4, '0.67'), (5, '0.87'), (6, '1.02')]}
+
+## Define _depedendantVars_ where A is key, B is value. A is depedendant on B,
+## B is not. B not necessarily to be written in out file. User may just specify
+## only A in var.cfg configure file.
+_depedendantVars_ = {
+# land_binary_mask is needed to set ocean mask 
+('volumetric_moisture_of_soil_layer', 'm01s08i208'): [('land_binary_mask', 'm01s00i030')],
+('moisture_content_of_soil_layer', 'm01s08i208'): [('land_binary_mask', 'm01s00i030')],
+('soil_temperature', 'm01s03i238'): [('land_binary_mask', 'm01s00i030')],
+# need to calculate surface up sw/lw using surface down & net sw/lw fluxes
+('surface_upwelling_shortwave_flux_in_air', 'None'): [
+                 ('surface_net_downward_shortwave_flux', 'm01s01i202'),
+                 ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235')],
+                 
+('surface_upwelling_longwave_flux_in_air', 'None'): [
+                        ('surface_net_downward_longwave_flux', 'm01s02i201'), 
+                        ('surface_downwelling_longwave_flux', 'm01s02i207')]
+}
                                             
 # create a class #1 for capturing stdin, stdout and stderr
 class myLog():
@@ -602,6 +622,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                 ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'),
                 ('surface_downwelling_longwave_flux', 'm01s02i207'),
                 ('surface_net_downward_longwave_flux', 'm01s02i201'),
+                ('surface_net_downward_shortwave_flux', 'm01s01i202'),
                 ('toa_outgoing_longwave_flux', 'm01s02i205'),
                 ('toa_outgoing_longwave_flux_assuming_clear_sky', 'm01s02i206'), 
                 ('toa_incoming_shortwave_flux', 'm01s01i207'), 
@@ -739,6 +760,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
              ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'),
              ('surface_downwelling_longwave_flux', 'm01s02i207'),
              ('surface_net_downward_longwave_flux', 'm01s02i201'),
+             ('surface_net_downward_shortwave_flux', 'm01s01i202'),
              ('toa_outgoing_longwave_flux', 'm01s02i205'),
              ('toa_outgoing_longwave_flux_assuming_clear_sky', 'm01s02i206'), 
              ('toa_incoming_shortwave_flux', 'm01s01i207'), 
@@ -1272,8 +1294,6 @@ def regridAnlFcstFiles(arg):
             outFn = __genAnlFcstOutFileName__(outFileNameStructure, 
                                  outFnIndecies, _current_date_, hr, 
                                            __utc__, _preExtension_) 
-            print "Arul -", outFn
-            print outFileNameStructure, outFnIndecies, _current_date_, hr, __utc__, _preExtension_
             # get the file full name except last extension, for the purpose
             # of writing intermediate nc files
             ofname = outFn.split(fileExtension)[0]                    
@@ -1471,7 +1491,7 @@ def doShuffleVarsInOrder(fpath):
            _maskOverOceanVars_, _aod_pseudo_level_var_, _createGrib2CtlIdxFiles_, \
            _createGrib1CtlIdxFiles_, _convertGrib2FilestoGrib1Files_, \
            _convertVars_, __outFileType__, __grib1FilesNameSuffix__, \
-           __removeGrib2FilesAfterGrib1FilesCreated__, \
+           __removeGrib2FilesAfterGrib1FilesCreated__, _removeVars_, \
            g2ctl, grib2ctl, gribmap, cnvgrib
     
     try:        
@@ -1563,85 +1583,146 @@ def doShuffleVarsInOrder(fpath):
             # end of if var:
     # end of for (varName, STASH) in orderedVarsList:
     
-    if _maskOverOceanVars_:
-        # store the land_binary_mask data into temporary variable
-        land_binary_mask = [var for var in orderedVars 
-                                if var.standard_name == 'land_binary_mask']
-        if land_binary_mask:
-            land_binary_mask = land_binary_mask[0].data < 1
-            # here we are masking less than 1. we can do just simply == 0 also, 
-            # but somehow it retains fraction values between 0 to 1. To get 
-            # ride out of this fraction values, just mask out < 1.
-            # get the shapes
-            lsh = land_binary_mask.shape
-            # Define constraint to extract latitude from 60S to 60N
-            lat_60S_60N = iris.Constraint(latitude=lambda cell: -60 < cell < 60)
-            lat_30S_30N = iris.Constraint(latitude=lambda cell: -30 < cell < 30)
-            for vidx, var in enumerate(orderedVars):
-                vname = var.standard_name if var.standard_name else var.long_name
-                if vname in _maskOverOceanVars_:    
-                    # Lets reset zero values lies within 60S to 60N band
-                    # with 0.0051, before ocean region has been masked.
-                    # Now extract data only lies between 60S to 60N
-                    var_60S_60N = var.extract(lat_60S_60N)
-                    if vname == 'volumetric_moisture_of_soil_layer':
-                        # reset the minimum values as 0.0051
-                        var_60S_60N.data[var_60S_60N.data < 0.005] = 0.0051
-                    elif vname == 'soil_temperature':
-                        # We should assign min of extra tropical band !
-                        # because polar minimum might have been assigned 
-                        # while extracting data (function regridAnlFcstFiles).
-                        # So lets re-set here!
-                        # zero will not make sense when temperature unit is Kelvin
-                        # get tropical data 
-                        var_30S_30N = var.extract(lat_30S_30N) 
-                        # find next mean value of tropical data 
-                        nmean = numpy.ma.masked_less_equal(var_30S_30N.data, var_30S_30N.data.min()).mean()
-                        # make memory free 
-                        del var_30S_30N
-                        # set mean value (of tropical data 30S to 30N) as 
-                        # min value full extra tropical data (60S to 60N).
-                        # This will solve the abnormal temperature values over 
-                        # small islands in tropical ocean regions.
-                        var_60S_60N.data[var_60S_60N.data <= var_60S_60N.data.min()] = nmean
-                    # end of if vname == 'volumetric_moisture_of_soil_layer':
-                    
-                    # extract latitude coords of 60S to 60N data 
-                    lat_60S_60N_points = var_60S_60N.coords('latitude')[0].points
-                    # get its start and end lat values of 60S and 60N
-                    lat_60S_start, lat_60N_end = lat_60S_60N_points[0], lat_60S_60N_points[-1]
-                    # get the original global data latitude points 
-                    originalLat = var.coords('latitude')[0].points.tolist()
-                    # find the 60S index in original global latitude
-                    lat_60S_index = originalLat.index(lat_60S_start)
-                    # find the 60N index in original global latitude
-                    lat_60N_index = originalLat.index(lat_60N_end) + 1
-                    # Lets insert the updated data (0.0051) within the 
-                    # original global data itself.
-                    # Now Lets do masking over Ocean regions!
-                    vsh = var.shape
-                    if lsh != vsh:
-                        # first dimension points 4 layer depth_below_land_surface
-                        # so second dimension points latitude.
-                        var.data[:, lat_60S_index: lat_60N_index, :] = var_60S_60N.data                        
-                        # get the ocean mask by masking 0s of land_binary_mask 
-                        # (0-sea, 1-land) and set it to the required variables. 
-                        land_binary_mask_grown = land_binary_mask.reshape(1, lsh[0], lsh[-1])
-                        land_binary_mask_grown = land_binary_mask_grown.repeat(vsh[0], axis=0)                    
-                        var.data = numpy.ma.masked_where(land_binary_mask_grown, var.data)
-                    else:    
-                        # single layer only. so first dimension points latitude
-                        var.data[lat_60S_index: lat_60N_index, :] = var_60S_60N.data
-                        # get the ocean mask by masking 0s of land_binary_mask 
-                        # (0-sea, 1-land) and set it to the required variables. 
-                        var.data = numpy.ma.masked_where(land_binary_mask, var.data)
-                    # end of if lsh != vsh:
-                    print "updated ocean masked vars"
-            # end of for vidx, var in enumerate(orderedVars):
-        # end of if land_binary_mask:
-    # end of if _maskOverOceanVars_:
+    # store the land_binary_mask data into temporary variable
+    land_binary_mask_var = [var for var in orderedVars 
+                            if var.standard_name == 'land_binary_mask']
+                                
+    if _maskOverOceanVars_ and land_binary_mask_var:
         
-    # generate correct file name by removing _preExtension_ preExtension
+        land_binary_mask = land_binary_mask_var[0].data < 1
+        # here we are masking less than 1. we can do just simply == 0 also, 
+        # but somehow it retains fraction values between 0 to 1. To get 
+        # ride out of this fraction values, just mask out < 1.
+        # get the shapes
+        lsh = land_binary_mask.shape
+        # Define constraint to extract latitude from 60S to 60N
+        lat_60S_60N = iris.Constraint(latitude=lambda cell: -60 < cell < 60)
+        lat_30S_30N = iris.Constraint(latitude=lambda cell: -30 < cell < 30)
+        for vidx, var in enumerate(orderedVars):
+            vname = var.standard_name if var.standard_name else var.long_name
+            if vname in _maskOverOceanVars_:    
+                # Lets reset zero values lies within 60S to 60N band
+                # with 0.0051, before ocean region has been masked.
+                # Now extract data only lies between 60S to 60N
+                var_60S_60N = var.extract(lat_60S_60N)
+                if vname == 'volumetric_moisture_of_soil_layer':
+                    # reset the minimum values as 0.0051
+                    var_60S_60N.data[var_60S_60N.data < 0.005] = 0.0051
+                elif vname == 'soil_temperature':
+                    # We should assign min of extra tropical band !
+                    # because polar minimum might have been assigned 
+                    # while extracting data (function regridAnlFcstFiles).
+                    # So lets re-set here!
+                    # zero will not make sense when temperature unit is Kelvin
+                    # get tropical data 
+                    var_30S_30N = var.extract(lat_30S_30N) 
+                    # find next mean value of tropical data 
+                    nmean = numpy.ma.masked_less_equal(var_30S_30N.data, var_30S_30N.data.min()).mean()
+                    # make memory free 
+                    del var_30S_30N
+                    # set mean value (of tropical data 30S to 30N) as 
+                    # min value full extra tropical data (60S to 60N).
+                    # This will solve the abnormal temperature values over 
+                    # small islands in tropical ocean regions.
+                    var_60S_60N.data[var_60S_60N.data <= var_60S_60N.data.min()] = nmean
+                # end of if vname == 'volumetric_moisture_of_soil_layer':
+                
+                # extract latitude coords of 60S to 60N data 
+                lat_60S_60N_points = var_60S_60N.coords('latitude')[0].points
+                # get its start and end lat values of 60S and 60N
+                lat_60S_start, lat_60N_end = lat_60S_60N_points[0], lat_60S_60N_points[-1]
+                # get the original global data latitude points 
+                originalLat = var.coords('latitude')[0].points.tolist()
+                # find the 60S index in original global latitude
+                lat_60S_index = originalLat.index(lat_60S_start)
+                # find the 60N index in original global latitude
+                lat_60N_index = originalLat.index(lat_60N_end) + 1
+                # Lets insert the updated data (0.0051) within the 
+                # original global data itself.
+                # Now Lets do masking over Ocean regions!
+                vsh = var.shape
+                if lsh != vsh:
+                    # first dimension points 4 layer depth_below_land_surface
+                    # so second dimension points latitude.
+                    var.data[:, lat_60S_index: lat_60N_index, :] = var_60S_60N.data                        
+                    # get the ocean mask by masking 0s of land_binary_mask 
+                    # (0-sea, 1-land) and set it to the required variables. 
+                    land_binary_mask_grown = land_binary_mask.reshape(1, lsh[0], lsh[-1])
+                    land_binary_mask_grown = land_binary_mask_grown.repeat(vsh[0], axis=0)                    
+                    var.data = numpy.ma.masked_where(land_binary_mask_grown, var.data)
+                else:    
+                    # single layer only. so first dimension points latitude
+                    var.data[lat_60S_index: lat_60N_index, :] = var_60S_60N.data
+                    # get the ocean mask by masking 0s of land_binary_mask 
+                    # (0-sea, 1-land) and set it to the required variables. 
+                    var.data = numpy.ma.masked_where(land_binary_mask, var.data)
+                # end of if lsh != vsh:
+                print "updated ocean masked vars"
+        # end of for vidx, var in enumerate(orderedVars):
+    # end of if _maskOverOceanVars_:
+    
+    # removing land_binary_mask_var from out files if it is forecast grib2 files.
+    # why do we need to repeat the same static variables in all the 
+    # forecast files... So removing it, but keeps in analysis file.
+    if __outFileType__ in ['prg', 'fcst'] and land_binary_mask_var: 
+        orderedVars.remove(land_binary_mask_var[0])
+    # But still we have to use land_binary_mask variable to set 
+    # ocean mask for the soil variables. Thats why we included it in vars list.
+
+    if ('surface_upwelling_shortwave_flux_in_air', 'None') in _convertVars_:
+        # find the index in _convertVars_
+        idx = _convertVars_.index(('surface_upwelling_shortwave_flux_in_air', 'None'))
+        # store the surface_net_downward_shortwave_flux data into temporary variable
+        surface_net_downward_shortwave_flux = [var for var in orderedVars 
+               if var.standard_name == 'surface_net_downward_shortwave_flux']    
+        if not surface_net_downward_shortwave_flux:
+            raise ValueError("Can not calculate surface_upwelling_shortwave_flux, because unable to load surface_net_downward_shortwave")    
+        # store the surface_downwelling_shortwave_flux_in_air data into temporary variable
+        surface_downwelling_shortwave_flux = [var for var in orderedVars 
+               if var.standard_name == 'surface_downwelling_shortwave_flux_in_air']
+        if not surface_downwelling_shortwave_flux:
+            raise ValueError("Can not calculate surface_upwelling_shortwave_flux, because unable to load surface_downwelling_shortwave_flux")
+        # calculate 'surface_upwelling_shortwave_flux' by subtract 'surface_net_downward_shortwave_flux'
+        # from 'surface_downwelling_shortwave_flux'       
+        surface_upwelling_shortwave_flux = cubeSubtractor(surface_downwelling_shortwave_flux[0], 
+                                           surface_net_downward_shortwave_flux[0], 
+                       standard_name='surface_upwelling_shortwave_flux_in_air',
+                                                              removeSTASH=True)
+        # store the 'surface_upwelling_shortwave_flux' into orderedVars
+        orderedVars.insert(idx, surface_upwelling_shortwave_flux)
+    # end of if ('surface_upwelling_shortwave_flux_in_air', 'None') in _convertVars_:
+    
+    if ('surface_upwelling_longwave_flux_in_air', 'None') in _convertVars_:
+        # find the index in _convertVars_
+        idx = _convertVars_.index(('surface_upwelling_longwave_flux_in_air', 'None'))
+        # store the surface_net_downward_longwave_flux data into temporary variable
+        surface_net_downward_longwave_flux = [var for var in orderedVars 
+               if var.standard_name == 'surface_net_downward_longwave_flux'] 
+        if not surface_net_downward_longwave_flux:
+            raise ValueError("Can not calculate surface_upwelling_longwave_flux, because unable to load surface_downwelling_longwave_flux")           
+        # store the surface_downwelling_longwave_flux data into temporary variable
+        surface_downwelling_longwave_flux = [var for var in orderedVars 
+               if var.standard_name == 'surface_downwelling_longwave_flux']
+        if not surface_downwelling_longwave_flux:
+            raise ValueError("Can not calculate surface_upwelling_longwave_flux, because unable to load surface_downwelling_shortwave_flux")
+        # calculate 'surface_upwelling_longwave_flux' by subtract 'surface_net_downward_longwave_flux'
+        # from 'surface_downwelling_longwave_flux'       
+        surface_upwelling_longwave_flux = cubeSubtractor(surface_downwelling_longwave_flux[0], 
+                                           surface_net_downward_longwave_flux[0], 
+                       standard_name='surface_upwelling_longwave_flux_in_air',
+                                                              removeSTASH=True)
+        # store the 'surface_upwelling_longwave_flux' into orderedVars
+        orderedVars.insert(idx, surface_upwelling_longwave_flux)
+    # end of if ('surface_upwelling_longwave_flux_in_air', 'None') in _convertVars_:
+    
+    # remove temporary variables from ordered vars list 
+    for dvar, dSTASH in _removeVars_:
+        for ovar in orderedVars:
+            # removed temporary vars from ordered vars list        
+            if ovar.standard_name == dvar: orderedVars.remove(ovar)
+    # end of for dvar in _removeVars_:
+
+    # generate correct file name by removing _preExtension_
     g2filepath = fpath.split(_preExtension_)
     g2filepath = g2filepath[0] + g2filepath[-1]
     # now lets save the ordered variables into same file
@@ -1655,7 +1736,10 @@ def doShuffleVarsInOrder(fpath):
         print " So skipping this without saving data"
         return 
     # end of try:
-
+    
+    # make memory free 
+    del orderedVars
+    
     # remove the older file 
     os.remove(fpath)
     for ncf in ncloadedfiles: os.remove(ncf)
@@ -1745,7 +1829,7 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
                                            simulated_hr, _preExtension_)  
             fcstFiles.append(outFn)
         # end of for fcsthr in range(6, __max_long_fcst_hours__+1, 6):
-         
+
         ## get the no of created anl/fcst 6hourly files  
         nprocesses = len(fcstFiles)        
         # parallel begin - 3
@@ -1957,8 +2041,8 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
        _convertGrib2FilestoGrib1Files_, __fcstFileNameStructure__, \
        __LPRINT__, __utc__, __start_step_long_fcst_hour__, \
        __max_long_fcst_hours__, __outFileType__, __grib1FilesNameSuffix__, \
-       __removeGrib2FilesAfterGrib1FilesCreated__
-    
+       __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, _removeVars_
+     
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
     date = kwarg.get('date', time.strftime('%Y%m%d'))
@@ -2016,6 +2100,15 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     # end of if not os.path.exists(_inDataPath_):
     
     if convertVars:
+        # check either depedendant vars are need to be loaded 
+        for var, dvars in _depedendantVars_.iteritems():
+            if var in convertVars:
+                for dvar in dvars:
+                    if dvar not in convertVars:               
+                        _convertVars_.append(dvar)  # include depedendant var
+                        _removeVars_.append(dvar)   # remove depedendant var at last
+        # end of for var, dvar in _depedendantVars_.iteritems():
+                
         # load only required file names to avoid unnneccessary computations
         # by cross checking with user defined variables list.
         for fpname in fcst_fnames[:]:   
@@ -2097,7 +2190,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
        _requiredLon_, _createGrib2CtlIdxFiles_, _createGrib1CtlIdxFiles_, \
        _convertGrib2FilestoGrib1Files_, __anlFileNameStructure__,  \
        __LPRINT__, __utc__, __outFileType__, __grib1FilesNameSuffix__, \
-       __removeGrib2FilesAfterGrib1FilesCreated__
+       __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, _removeVars_
            
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -2154,6 +2247,15 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     # end of if not os.path.exists(_inDataPath_):
     
     if convertVars:
+        # check either depedendant vars are need to be loaded 
+        for var, dvars in _depedendantVars_.iteritems():
+            if var in convertVars:
+                for dvar in dvars:
+                    if dvar not in convertVars:                 
+                        _convertVars_.append(dvar)  # include depedendant var
+                        _removeVars_.append(dvar)   # remove depedendant var at last
+        # end of for var, dvar in _depedendantVars_.iteritems():
+        
         # load only required file names to avoid unnneccessary computations
         # by cross checking with user defined variables list.
         for fpname in anl_fnames[:]:
