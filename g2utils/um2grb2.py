@@ -2101,11 +2101,12 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     
     if convertVars:
         # check either depedendant vars are need to be loaded 
-        for var, dvar in _depedendantVars_.iteritems():
+        for var, dvars in _depedendantVars_.iteritems():
             if var in convertVars:
-                if not dvar in convertVars:                     
-                    _convertVars_.extend(dvar)  # include depedendant var
-                    _removeVars_.extend(dvar)   # remove depedendant var at last
+                for dvar in dvars:
+                    if dvar not in convertVars:               
+                        _convertVars_.append(dvar)  # include depedendant var
+                        _removeVars_.append(dvar)   # remove depedendant var at last
         # end of for var, dvar in _depedendantVars_.iteritems():
                 
         # load only required file names to avoid unnneccessary computations
@@ -2247,11 +2248,12 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     
     if convertVars:
         # check either depedendant vars are need to be loaded 
-        for var, dvar in _depedendantVars_.iteritems():
+        for var, dvars in _depedendantVars_.iteritems():
             if var in convertVars:
-                if not dvar in convertVars:                     
-                    _convertVars_.extend(dvar)  # include depedendant var
-                    _removeVars_.extend(dvar)   # remove depedendant var at last
+                for dvar in dvars:
+                    if dvar not in convertVars:                 
+                        _convertVars_.append(dvar)  # include depedendant var
+                        _removeVars_.append(dvar)   # remove depedendant var at last
         # end of for var, dvar in _depedendantVars_.iteritems():
         
         # load only required file names to avoid unnneccessary computations
