@@ -1553,7 +1553,7 @@ def doShuffleVarsInOrder(fpath):
            _createGrib1CtlIdxFiles_, _convertGrib2FilestoGrib1Files_, \
            _convertVars_, __outFileType__, __grib1FilesNameSuffix__, \
            __removeGrib2FilesAfterGrib1FilesCreated__, _removeVars_, \
-           g2ctl, grib2ctl, gribmap, cnvgrib
+           __start_step_long_fcst_hour__, g2ctl, grib2ctl, gribmap, cnvgrib
     
     try:        
         f = iris.load(fpath)
@@ -1725,14 +1725,23 @@ def doShuffleVarsInOrder(fpath):
     # removing land_binary_mask_var from out files if it is forecast grib2 files.
     # why do we need to repeat the same static variables in all the 
     # forecast files... So removing it, but keeps in analysis file.
-    if __outFileType__ in ['prg', 'fcst'] and land_binary_mask_var: 
+    if __outFileType__ in ['prg', 'fcst'] and land_binary_mask_var and \
+                                  __start_step_long_fcst_hour__ in [6]: 
+        # remove only for 6 hourly ncum post prodction. Not for others!
+        # say for 3 hourly hycom model input landsea binary mask needed in all
+        # forecast files.
         orderedVars.remove(land_binary_mask_var[0])
     # But still we have to use land_binary_mask variable to set 
     # ocean mask for the soil variables. Thats why we included it in vars list.
-
+    
+    oidx = None
     if ('surface_upwelling_shortwave_flux_in_air', 'None') in _convertVars_:
         # find the index in _convertVars_
         idx = _convertVars_.index(('surface_upwelling_shortwave_flux_in_air', 'None'))
+        # adjust the current index by subtract 1, because in previous insertion 
+        # causes order index increased by 1.
+        idx = idx-1 if (idx and oidx is None) else idx
+        oidx = idx
         # store the surface_net_downward_shortwave_flux data into temporary variable
         surface_net_downward_shortwave_flux = [var for var in orderedVars 
                if var.standard_name == 'surface_net_downward_shortwave_flux']    
@@ -1756,6 +1765,10 @@ def doShuffleVarsInOrder(fpath):
     if ('surface_upwelling_longwave_flux_in_air', 'None') in _convertVars_:
         # find the index in _convertVars_
         idx = _convertVars_.index(('surface_upwelling_longwave_flux_in_air', 'None'))
+        # adjust the current index by subtract 1, because in previous insertion 
+        # causes order index increased by 1.
+        idx = idx-1 if (idx and oidx is None) else idx
+        oidx = idx
         # store the surface_net_downward_longwave_flux data into temporary variable
         surface_net_downward_longwave_flux = [var for var in orderedVars 
                if var.standard_name == 'surface_net_downward_longwave_flux'] 
