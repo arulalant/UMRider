@@ -507,7 +507,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
 
     :return: varNamesSTASH: a list of tuples (Variable name and its STASH code) 
     :return: fcstHours: Time slices of the cube as an array/scalar - integer (number)
-    :return: do6HourlyMean: Logical expression as either True or False, indicating
+    :return: doMultiHourlyMean: Logical expression as either True or False, indicating
                             whether the field is instantaneous or accumulated
     :return: infile: It returns absolute path of infile by inDataPath and fname.
                      Also it updates inDataPath yesterday, hour for analysis pf files
@@ -540,7 +540,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # the cube contains Instantaneous data at every 24-hours.        
         # but we need to extract every 0th hours instantaneous.
         fcstHours = numpy.array([0,])     
-        do6HourlyMean = False
+        doMultiHourlyMean = False
             
     elif fname.startswith('umglca_pb'):              # umglca_pb
         # available for use
@@ -564,7 +564,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # the cube contains Instantaneous data at every 3-hours.        
         # but we need to extract every 6th hours instantaneous.
         fcstHours = numpy.array([0,])     
-        do6HourlyMean = False
+        doMultiHourlyMean = False
         
     elif fname.startswith('umglca_pd'):            # umglca_pd
         # consider variable
@@ -586,7 +586,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # the cube contains Instantaneous data at every 3-hours.
         # but we need to extract only every 6th hours instantaneous.
         fcstHours = numpy.array([0,])     
-        do6HourlyMean = False
+        doMultiHourlyMean = False
         
     elif fname.startswith('umglca_pe'):            # umglca_pe
         if inDataPathHour == '00':
@@ -613,11 +613,11 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # The precipitation_amount, *snowfall_amount, and *rainfall_amount 
         # variable must be at the last in this list. we will have to do 
         # 6 hourly accumulation instead of taking an instantaneous fileds. 
-        # so we need to change do6HourlyMean as True, but rest of the other 
+        # so we need to change doMultiHourlyMean as True, but rest of the other 
         # above variables are instantaneous fileds, so we can't simply make 
-        # do6HourlyMean as True. Here we will make do6HourlyMean as False, 
+        # doMultiHourlyMean as True. Here we will make doMultiHourlyMean as False, 
         # but while extrating the following 5 amount variables we will change 
-        # option do6HourlyMean as True. For this purpose we must keep these 
+        # option doMultiHourlyMean as True. For this purpose we must keep these 
         # 5 variables at the last in the varNamesSTASH!
         varNamesSTASH2 = [('precipitation_amount', 'm01s05i226'),
                           ('stratiform_snowfall_amount', 'm01s04i202'),
@@ -629,7 +629,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # the cube contains Instantaneous data at every 1-hours.
         # but we need to extract only every 6th hours instantaneous.
         fcstHours = numpy.array([0,])     
-        do6HourlyMean = False
+        doMultiHourlyMean = False
 
     elif fname.startswith('umglca_pf'):         # umglca_pf
         # other vars (these vars will be created as 6-hourly averaged)
@@ -653,7 +653,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # the cube contains data of every 3-hourly average or accumutated.
         # but we need to make only every 6th hourly average or accumutated.
         fcstHours = numpy.array([(1, 5)])
-        do6HourlyMean = True
+        doMultiHourlyMean = True
         # get the updated infile w.r.t analysis 00 simulated_hr or 06,12,18hr
         infile = __getTodayOrYesterdayInfile__(inDataPath, fname)
         
@@ -671,11 +671,11 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         
         # the dust aod contain 3-hourly averaged data. But soil temperature 
         # and moisture_content_of_soil_layer are 3-hourly instantaneous data.
-        # though, here we set up fcstHours and do6HourlyMean values w.r.t 
+        # though, here we set up fcstHours and doMultiHourlyMean values w.r.t 
         # dust aod only. For other 2 soil vars, we are fixing the values 
         # before extract those vars!
         fcstHours = numpy.array([(1, 5)])
-        do6HourlyMean = True
+        doMultiHourlyMean = True
         # get the updated infile w.r.t analysis 00 simulated_hr or 06,12,18hr
         # needed for atmosphere_optical_thickness_due_to_dust_ambient_aerosol,
         # but for soil_temperature and moisture_content_of_soil_layer we need 
@@ -705,13 +705,18 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('snowfall_amount', 'm01s00i023')] 
         # the cube contains Instantaneous data at every 3-hours.        
         # but we need to extract every 6th hours instantaneous.
-        if __start_step_long_fcst_hour__ == 6:
+        if __start_step_long_fcst_hour__ == 3:
+            # applicable only for 3 hour instantaneous/intervals
+            fcstHours = numpy.array([3, 6, 9, 12, 15, 18, 21, 24]) + hr
+        elif __start_step_long_fcst_hour__ == 6:
             # applicable only for 6 hour instantaneous/intervals
             fcstHours = numpy.array([6, 12, 18, 24]) + hr
         elif __start_step_long_fcst_hour__ == 24:
             # applicable only for 24 hour instantaneous/intervals
             fcstHours = numpy.array([24]) + hr
-        do6HourlyMean = False
+        # we are extracting at particular instantaneous value, so no need to 
+        # do hourly mean.
+        doMultiHourlyMean = False
         
     elif fname.startswith('umglaa_pd'):            # umglaa_pd
         # consider variable
@@ -724,14 +729,18 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('upward_air_velocity', 'm01s15i242')]
         # the cube contains Instantaneous data at every 3-hours.
         # but we need to extract only every 6th hours instantaneous.
-        if __start_step_long_fcst_hour__ == 6:
+        if __start_step_long_fcst_hour__ == 3:
+            # applicable only for 3 hour instantaneous/intervals
+            fcstHours = numpy.array([3, 6, 9, 12, 15, 18, 21, 24]) + hr
+        elif __start_step_long_fcst_hour__ == 6:
             # applicable only for 6 hour instantaneous/intervals
             fcstHours = numpy.array([6, 12, 18, 24]) + hr
         elif __start_step_long_fcst_hour__ == 24:
             # applicable only for 24 hour instantaneous/intervals
-            fcstHours = numpy.array([24]) + hr
-            
-        do6HourlyMean = False
+            fcstHours = numpy.array([24]) + hr      
+        # we are extracting at particular instantaneous value, so no need to 
+        # do hourly mean.      
+        doMultiHourlyMean = False
         
     elif fname.startswith('umglaa_pe'):            # umglaa_pe
         varNamesSTASH = [('high_type_cloud_area_fraction', 'm01s09i205'),
@@ -747,12 +756,12 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     # *rainfall_amount variable must be at the last
                     # in this list. we will have to do 6 hourly accumulation
                     # instead of taking an instantaneous fileds. so we need 
-                    # to change do6HourlyMean as True, but rest of the other 
+                    # to change doMultiHourlyMean as True, but rest of the other 
                     # above variables are instantaneous fileds, so we cant
-                    # simply make do6HourlyMean as True. Here we will make 
-                    # do6HourlyMean as False, but while extrating the 
+                    # simply make doMultiHourlyMean as True. Here we will make 
+                    # doMultiHourlyMean as False, but while extrating the 
                     # following 5 amount variables we will change option 
-                    # do6HourlyMean as True. For this purpose we must keep 
+                    # doMultiHourlyMean as True. For this purpose we must keep 
                     # these 5 variables at the last in the varNamesSTASH!
                     ('precipitation_amount', 'm01s05i226'),
                     ('stratiform_snowfall_amount', 'm01s04i202'),
@@ -761,13 +770,18 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('convective_rainfall_amount', 'm01s05i201'),]
         # the cube contains Instantaneous data at every 1-hours.
         # but we need to extract only every 6th hours instantaneous.
-        if __start_step_long_fcst_hour__ == 6:
+        if __start_step_long_fcst_hour__ == 3:
+            # applicable only for 3 hour instantaneous/intervals
+            fcstHours = numpy.array([3, 6, 9, 12, 15, 18, 21, 24]) + hr
+        elif __start_step_long_fcst_hour__ == 6:
             # applicable only for 6 hour instantaneous/intervals
             fcstHours = numpy.array([6, 12, 18, 24]) + hr
         elif __start_step_long_fcst_hour__ == 24:
             # applicable only for 24 hour instantaneous/intervals
             fcstHours = numpy.array([24]) + hr
-        do6HourlyMean = False
+        # we are extracting at particular instantaneous value, so no need to 
+        # do hourly mean.
+        doMultiHourlyMean = False
 
     elif fname.startswith('umglaa_pf'):             # umglaa_pf        
         # other vars (these vars will be created as 6-hourly averaged)
@@ -788,9 +802,25 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
              ('precipitation_flux', 'm01s05i216'),                          
              ('rainfall_flux', 'm01s05i214'),]
         # the cube contains data of every 3-hourly average or accumutated.
-        # but we need to make only every 6th hourly average or accumutated.
-        fcstHours = numpy.array([(1, 5), (7, 11), (13, 17), (19, 23)]) + hr    
-        do6HourlyMean = True    
+        # but we need to make only every 6th hourly average or accumutated. 
+        if __start_step_long_fcst_hour__ == 3:
+            # applicable only for 3 hour average or accumutated.
+            fcstHours = numpy.array([1.5, 4.5, 7.5, 10.5, 13.5, 16.5, 19.5, 22.5]) + hr
+            # model itself produced 3 hourly average or accumutated. So we 
+            # no need to do average/accumulation explicitly.
+            doMultiHourlyMean = False
+        elif __start_step_long_fcst_hour__ == 6:       
+            # applicable only for 6 hour average or accumutated.
+            fcstHours = numpy.array([(1, 5), (7, 11), (13, 17), (19, 23)]) + hr  
+            # model produced 3 hourly average or accumutated. So we must 
+            # need to do 6 hourly average/accumulation explicitly.
+            doMultiHourlyMean = True  
+        elif __start_step_long_fcst_hour__ == 24:
+            # applicable only for 24 hour average or accumutated.
+            fcstHours = numpy.array([(1, 23)]) + hr  
+            # model produced 3 hourly average or accumutated. So we must 
+            # need to do 24 hourly average/accumulation explicitly.
+            doMultiHourlyMean = True    
         
     elif fname.startswith('umglaa_pi'):             # umglaa_pi        
         # other vars (these vars will be created as 6-hourly averaged)
@@ -806,19 +836,34 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         
         # the dust aod contain 3-hourly averaged data. But soil temperature 
         # and moisture_content_of_soil_layer are 3-hourly instantaneous data.
-        # though, here we set up fcstHours and do6HourlyMean values w.r.t 
+        # though, here we set up fcstHours and doMultiHourlyMean values w.r.t 
         # dust aod only. For other 2 soil vars, we are fixing the values 
         # before extract those vars!
-        
-        fcstHours = numpy.array([(1, 5), (7, 11), (13, 17), (19, 23)]) + hr    
-        do6HourlyMean = True    
+        if __start_step_long_fcst_hour__ == 3:
+            # applicable only for 3 hour average or accumutated.
+            fcstHours = numpy.array([1.5, 4.5, 7.5, 10.5, 13.5, 16.5, 19.5, 22.5]) + hr
+            # model itself produced 3 hourly average or accumutated. So we 
+            # no need to do average/accumulation explicitly.
+            doMultiHourlyMean = False
+        elif __start_step_long_fcst_hour__ == 6:
+            # applicable only for 6 hour average or accumutated.
+            fcstHours = numpy.array([(1, 5), (7, 11), (13, 17), (19, 23)]) + hr 
+            # model produced 3 hourly average or accumutated. So we must 
+            # need to do 6 hourly average/accumulation explicitly.
+            doMultiHourlyMean = True 
+        elif __start_step_long_fcst_hour__ == 24:
+            # applicable only for 24 hour average or accumutated.
+            fcstHours = numpy.array([(1, 23)]) + hr     
+            # model produced 3 hourly average or accumutated. So we must 
+            # need to do 24 hourly average/accumulation explicitly.
+            doMultiHourlyMean = True    
         
     ##### FORECAST FILE END
     else:
         raise ValueError("Filename not implemented yet!")
     # end if-loop
 
-    return varNamesSTASH, fcstHours, do6HourlyMean, infile
+    return varNamesSTASH, fcstHours, doMultiHourlyMean, infile
 # end of definition #2
 
 # start definition #3
@@ -1003,7 +1048,7 @@ def regridAnlFcstFiles(arg):
     fname = os.path.join(_inDataPath_, fileName)        
     
     # call definition to get variable indices
-    varNamesSTASH, fcstHours, do6HourlyMean, infile = getVarInOutFilesDetails(_inDataPath_,
+    varNamesSTASH, fcstHours, doMultiHourlyMean, infile = getVarInOutFilesDetails(_inDataPath_,
                                                                                fileName, hr)
    
     if not os.path.isfile(fname): 
@@ -1125,7 +1170,7 @@ def regridAnlFcstFiles(arg):
             # as 6 hourly accumulation, but other variables from pe files
             # are instantaneous fileds (no need to 6 hourly mean/sum).
             # both analysis & forecast need to be accumulation.
-            do6HourlyMean = True
+            doMultiHourlyMean = True
             if dtype == 'fcst':
                 # for forecast pe file, and this varibale we need to set the 
                 # extract time as follows. 
@@ -1191,7 +1236,7 @@ def regridAnlFcstFiles(arg):
                 _convert2WEASD(tmpCube)
             # end of if (varName, varSTASH) == ('snowfall_amount', 'm01s00i023'):
             
-            if do6HourlyMean and (tmpCube.coords('forecast_period')[0].shape[0] > 1):              
+            if doMultiHourlyMean and (tmpCube.coords('forecast_period')[0].shape[0] > 1):              
                 # grab the variable which is f(t,z,y,x)
                 # tmpCube corresponds to each variable for the SYNOP hours from
                 # start to end of short time period mean (say 3-hourly)                                
@@ -1208,7 +1253,7 @@ def regridAnlFcstFiles(arg):
                 tmpCube = cubeAverager(tmpCube, action, dt='1 hour', 
                                            actionIntervals='6 hour', 
                                   tpoint=timebound, fpoint=fcstbound)
-            # end of if do6HourlyMean and tmpCube.coords('forecast_period')[0].shape[0] > 1:     
+            # end of if doMultiHourlyMean and tmpCube.coords('forecast_period')[0].shape[0] > 1:     
 
             # interpolate it as per targetGridResolution deg resolution by 
             # setting up sample points based on coord
@@ -1508,7 +1553,7 @@ def doShuffleVarsInOrder(fpath):
            _createGrib1CtlIdxFiles_, _convertGrib2FilestoGrib1Files_, \
            _convertVars_, __outFileType__, __grib1FilesNameSuffix__, \
            __removeGrib2FilesAfterGrib1FilesCreated__, _removeVars_, \
-           g2ctl, grib2ctl, gribmap, cnvgrib
+           __start_step_long_fcst_hour__, g2ctl, grib2ctl, gribmap, cnvgrib
     
     try:        
         f = iris.load(fpath)
@@ -1680,14 +1725,23 @@ def doShuffleVarsInOrder(fpath):
     # removing land_binary_mask_var from out files if it is forecast grib2 files.
     # why do we need to repeat the same static variables in all the 
     # forecast files... So removing it, but keeps in analysis file.
-    if __outFileType__ in ['prg', 'fcst'] and land_binary_mask_var: 
+    if __outFileType__ in ['prg', 'fcst'] and land_binary_mask_var and \
+                                  __start_step_long_fcst_hour__ in [6]: 
+        # remove only for 6 hourly ncum post prodction. Not for others!
+        # say for 3 hourly hycom model input landsea binary mask needed in all
+        # forecast files.
         orderedVars.remove(land_binary_mask_var[0])
     # But still we have to use land_binary_mask variable to set 
     # ocean mask for the soil variables. Thats why we included it in vars list.
-
+    
+    oidx = None
     if ('surface_upwelling_shortwave_flux_in_air', 'None') in _convertVars_:
         # find the index in _convertVars_
         idx = _convertVars_.index(('surface_upwelling_shortwave_flux_in_air', 'None'))
+        # adjust the current index by subtract 1, because in previous insertion 
+        # causes order index increased by 1.
+        idx = idx-1 if (idx and oidx is None) else idx
+        oidx = idx
         # store the surface_net_downward_shortwave_flux data into temporary variable
         surface_net_downward_shortwave_flux = [var for var in orderedVars 
                if var.standard_name == 'surface_net_downward_shortwave_flux']    
@@ -1711,6 +1765,10 @@ def doShuffleVarsInOrder(fpath):
     if ('surface_upwelling_longwave_flux_in_air', 'None') in _convertVars_:
         # find the index in _convertVars_
         idx = _convertVars_.index(('surface_upwelling_longwave_flux_in_air', 'None'))
+        # adjust the current index by subtract 1, because in previous insertion 
+        # causes order index increased by 1.
+        idx = idx-1 if (idx and oidx is None) else idx
+        oidx = idx
         # store the surface_net_downward_longwave_flux data into temporary variable
         surface_net_downward_longwave_flux = [var for var in orderedVars 
                if var.standard_name == 'surface_net_downward_longwave_flux'] 
@@ -1844,9 +1902,9 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
                                   outFnIndecies, _current_date_, fcsthr, 
                                            simulated_hr, _preExtension_)  
             fcstFiles.append(outFn)
-        # end of for fcsthr in range(6, __max_long_fcst_hours__+1, 6):
+        # end of for fcsthr in range(...):
 
-        ## get the no of created anl/fcst 6hourly files  
+        ## get the no of created anl/fcst files  
         nprocesses = len(fcstFiles)        
         # parallel begin - 3
         pool = _MyPool(nprocesses)
