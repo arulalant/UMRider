@@ -422,6 +422,10 @@ def __getAnlFcstFileNameIdecies__(fileNameStructure):
     # get the utcIdx of utc pattern
     utcIdx = [idx[0] for idx in findInList(fileNameStructure, 
                             ['*Z*', '*ZZ*', '*ZZZ*']) if idx]
+                            
+    # get the resolution pattern
+    pIdx = [idx[0] for idx in findInList(fileNameStructure, 
+                                            ['*pXp*']) if idx]
     if hourIdx:
         hourIdx = hourIdx[0]        
         hr = fileNameStructure[hourIdx]
@@ -438,16 +442,20 @@ def __getAnlFcstFileNameIdecies__(fileNameStructure):
         day = fileNameStructure[dayIdx]
         dayFill = len(day.split('*')[1])
     
+    if pIdx: pIdx = pIdx[0]
+            
     return [(dateIdx, dateFormat), (hourIdx, hrFill), 
-                (utcIdx, utcFill), (dayIdx, dayFill)]
+                (utcIdx, utcFill), (dayIdx, dayFill), (pIdx, None)]
 # end of def _genAnlFcstFileName(fileNameStructure):
 
 
 def __genAnlFcstOutFileName__(fileNameStructure, indecies, fcstDate, fcstHour, 
-                                                    fcstUTC, preExtension=''):
+                             fcstUTC, preExtension='', modelResolution='0.17'):
+    
+    global _targetGridRes_
     
     # get the indecies 
-    (dateIdx, dateFormat), (hourIdx, hrFill), (utcIdx, utcFill), (dayIdx, dayFill) = indecies
+    (dateIdx, dateFormat), (hourIdx, hrFill), (utcIdx, utcFill), (dayIdx, dayFill), (pIdx, _) = indecies
     # copy the argument list into local list, so that it wont change the arg.
     fileNameStructure = list(fileNameStructure) # copy of the original
 
@@ -473,6 +481,14 @@ def __genAnlFcstOutFileName__(fileNameStructure, indecies, fcstDate, fcstHour,
     # update the utc 
     if utcIdx and utcFill:
         fileNameStructure[utcIdx] = str(int(fcstUTC)).zfill(utcFill)
+    
+    # update resolution
+    if pIdx:
+        res = _targetGridRes_ if _targetGridRes_ else modelResolution
+        if not '.' in res: res = str(float(res))
+        res = res.replace('.', 'p')
+        fileNameStructure[pIdx] = res + 'X' + res
+        
     # insert pre-extension string
     fileNameStructure.insert(-1, preExtension)
     
