@@ -1296,7 +1296,9 @@ def regridAnlFcstFiles(arg):
                 # convert data into masked array
                 regdCube.data = numpy.ma.masked_array(regdCube.data, dtype=numpy.float64)
                                                 
-                if (varName, varSTASH) == ('moisture_content_of_soil_layer', 'm01s08i223'):
+                if (varName, varSTASH) in [('moisture_content_of_soil_layer', 'm01s08i223'),
+                                           ('sea_ice_area_fraction', 'm01s00i031'),
+                                           ('sea_ice_thickness', 'm01s00i032'),]:
                     # We should assign 0 instead 1e-15 only for this var!
                     regdCube.data[regdCube.data <= 1e-15] = 0.0
                 elif (varName, varSTASH) == ('soil_temperature', 'm01s03i238'):
@@ -1458,9 +1460,9 @@ def tweaked_messages(cubeList):
         for cube, grib_message in iris.fileformats.grib.as_pairs(cube):
             print "Tweaking begin ", cube.standard_name
             # post process the GRIB2 message, prior to saving
-            gribapi.grib_set_long(grib_message, "centre", 28) # RMC of India
+            gribapi.grib_set_long(grib_message, "centre", 29) # RMC of India
             gribapi.grib_set_long(grib_message, "subCentre", 0) # No subcentre
-            print "reset the centre as 28"
+            print "reset the centre as 29"
             if cube.coord("forecast_period").bounds is not None:        
                 # if we set bounds[0][0] = 0, wgrib2 gives error for 0 fcst time.
                 # so we need to set proper time intervals 
@@ -1722,7 +1724,7 @@ def doShuffleVarsInOrder(fpath):
         # end of for vidx, var in enumerate(orderedVars):
     # end of if _maskOverOceanVars_:
     
-    # removing land_binary_mask_var from out files if it is forecast grib2 files.
+    # removing land_binary_mask_var from out files if it is forecast grib2 file
     # why do we need to repeat the same static variables in all the 
     # forecast files... So removing it, but keeps in analysis file.
     if __outFileType__ in ['prg', 'fcst'] and land_binary_mask_var and \
