@@ -2,7 +2,7 @@
 *  Name : ncmr grib2 local table
 *  Filename : ncmr_grib2_local_table
 *  Institute : National Centre for Medium Range Weather Forecasting, India
-*  Centre Code : 28, New Delhi
+*  Centre Code : 29, New Delhi
 *  Local Table Version No : 1
 *  Local Table Created By : Arulalan.T, Project Scientist - C
 *  Contact : arulalan@ncmrwf.gov.in
@@ -32,13 +32,13 @@
 * Comment lines end
 */
 * ncmr grib2 local table entries begin
-0:1:0:10:28:1:1:192:FOG:Fog Area Cover:%
-0:1:0:10:28:1:4:198:CSUSF:Clear Sky Upward Solar Flux:W m-2
-0:1:0:10:28:1:5:195:CSULF:Clear Sky Upward Long Wave Flux:W m-2
-3:1:0:10:28:1:1:192:DAOT038:Dust Aerosol Optical Thickness at 0.38 µm:unitless
-3:1:0:10:28:1:1:193:DAOT044:Dust Aerosol Optical Thickness at 0.44 µm:unitless
-3:1:0:10:28:1:1:194:DAOT055:Dust Aerosol Optical Thickness at 0.55 µm:unitless
-3:1:0:10:28:1:1:195:DAOT067:Dust Aerosol Optical Thickness at 0.67 µm:unitless
-3:1:0:10:28:1:1:196:DAOT087:Dust Aerosol Optical Thickness at 0.87 µm:unitless
-3:1:0:10:28:1:1:197:DAOT102:Dust Aerosol Optical Thickness at 1.02 µm:unitless
+0:1:0:10:29:1:1:192:FOG:Fog Area Cover:%
+0:1:0:10:29:1:4:198:CSUSF:Clear Sky Upward Solar Flux:W m-2
+0:1:0:10:29:1:5:195:CSULF:Clear Sky Upward Long Wave Flux:W m-2
+3:1:0:10:29:1:1:192:DAOT038:Dust Aerosol Optical Thickness at 0.38 µm:unitless
+3:1:0:10:29:1:1:193:DAOT044:Dust Aerosol Optical Thickness at 0.44 µm:unitless
+3:1:0:10:29:1:1:194:DAOT055:Dust Aerosol Optical Thickness at 0.55 µm:unitless
+3:1:0:10:29:1:1:195:DAOT067:Dust Aerosol Optical Thickness at 0.67 µm:unitless
+3:1:0:10:29:1:1:196:DAOT087:Dust Aerosol Optical Thickness at 0.87 µm:unitless
+3:1:0:10:29:1:1:197:DAOT102:Dust Aerosol Optical Thickness at 1.02 µm:unitless
 * ncmr grib2 local table entries end  

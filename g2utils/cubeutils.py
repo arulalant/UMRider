@@ -139,11 +139,8 @@ def cubeSubtractor(cube, otherCube, standard_name=None,
     unit = cube.units 
     # do the simple substraction
     subtracted = cube.data - otherCube.data
-    # just set proper masked array
-    subtracted = numpy.ma.masked_less(subtracted, 1e-15)
-    subtracted  = numpy.ma.masked_greater(subtracted, 1e+15)                              
-    numpy.ma.set_fill_value(subtracted, 9.999e+20) 
-    
+    # set fill_value 
+    numpy.ma.set_fill_value(subtracted, 9.999e+20)    
     subtracted = iris.cube.Cube(data=subtracted, units=unit, standard_name=sname, 
                        long_name=lname, attributes=attr, cell_methods=(cm,))
     idx = 0
