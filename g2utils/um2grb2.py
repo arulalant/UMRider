@@ -1458,9 +1458,9 @@ def tweaked_messages(cubeList):
         for cube, grib_message in iris.fileformats.grib.as_pairs(cube):
             print "Tweaking begin ", cube.standard_name
             # post process the GRIB2 message, prior to saving
-            gribapi.grib_set_long(grib_message, "centre", 28) # RMC of India
+            gribapi.grib_set_long(grib_message, "centre", 29) # RMC of India
             gribapi.grib_set_long(grib_message, "subCentre", 0) # No subcentre
-            print "reset the centre as 28"
+            print "reset the centre as 29"
             if cube.coord("forecast_period").bounds is not None:        
                 # if we set bounds[0][0] = 0, wgrib2 gives error for 0 fcst time.
                 # so we need to set proper time intervals 
