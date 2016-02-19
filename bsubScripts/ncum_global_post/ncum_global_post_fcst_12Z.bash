@@ -5,8 +5,8 @@
 #BSUB -W 06:00                # wall-clock time (hrs:mins)
 #BSUB -n 20                   # number of tasks in job
 #BSUB -q small             	  # queue
-#BSUB -e um2grb2.fcst.12hr.err.%J.hybrid     # error file name in which %J is replaced by the job ID
-#BSUB -o um2grb2.fcst.12hr.out.%J.hybrid     # output file name in which %J is replaced by the job ID
+#BSUB -e /gpfs3/home/umfcst/UMRiderLogs/post/bsub/um2grb2.fcst.12hr.err.%J.hybrid     # error file name in which %J is replaced by the job ID
+#BSUB -o /gpfs3/home/umfcst/UMRiderLogs/post/bsub/um2grb2.fcst.12hr.out.%J.hybrid     # output file name in which %J is replaced by the job ID
 
 # find out the directory of this bash script after submitted to bsub
 DIR="$( cd "$( dirname "${BASH_SOURCE[1]}" )" && pwd )"
@@ -30,6 +30,8 @@ echo "export UMRIDER_SETUP="$UMRIDER_SETUP
 echo "export UMRIDER_VARS="$UMRIDER_VARS
 echo "export GRIB2TABLE="$GRIB2TABLE
 
+# temporarily sourcing umtid_bashrc until module load python-uvcdat-iris gets ready!
+source "$DIR/../umtid_bashrc"
 # execute the script
 /gpfs2/home/umtid/Pythons/Python-2.7.9/bin/python $g2script
 
