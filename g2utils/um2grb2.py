@@ -2164,7 +2164,10 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     _tmpDir_ = tmpPath
     _current_date_ = date
     print "\n _current_date_ is %s" % _current_date_
-    sys.stdout = myLog(os.path.join(_tmpDir_, "log2.log"))
+    logpath = os.path.join(_tmpDir_, _current_date_)
+    if not os.path.exists(logpath): os.makedirs(logpath)
+    logfile = 'um2grb2_fcst_stdout_'+ _current_date_ +'_' + utc +'Z.log'
+    sys.stdout = myLog(os.path.join(logpath, logfile])
     
     # start the timer now
     _startT_ = time.time()
@@ -2252,10 +2255,6 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     
     # do re-order variables within files in parallel
     doShuffleVarsInOrderInParallel('fcst', utc)
-    
-    cmdStr = ['mv', _tmpDir_+'log2.log', _tmpDir_+'um2grib2_fcst_stdout_'+
-                                         _current_date_ +'_' + utc +'Z.log']
-    subprocess.call(cmdStr)     
 # end of def convertFcstFiles(...):
 
 
@@ -2311,7 +2310,10 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     _tmpDir_ = tmpPath
     _current_date_ = date
     print "\n _current_date_ is %s" % _current_date_
-    sys.stdout = myLog(os.path.join(_tmpDir_, "log1.log"))
+    logpath = os.path.join(_tmpDir_, _current_date_)
+    if not os.path.exists(logpath): os.makedirs(logpath)
+    logfile = 'um2grb2_anal_stdout_'+ _current_date_ +'_' + utc +'Z.log'
+    sys.stdout = myLog(os.path.join(logpath, logfile])
     
     # start the timer now
     _startT_ = time.time()
@@ -2397,10 +2399,6 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     
     # do re-order variables within files in parallel
     doShuffleVarsInOrderInParallel('anl', utc)
-    
-    cmdStr = ['mv', _tmpDir_+'log1.log', _tmpDir_+ 'um2grib2_anl_stdout_'+
-                                           _current_date_ +'_' +utc+'Z.log']
-    subprocess.call(cmdStr)  
 # end of def convertAnlFiles(...):
 
 
