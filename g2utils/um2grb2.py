@@ -2167,7 +2167,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     logpath = os.path.join(_tmpDir_, _current_date_)
     if not os.path.exists(logpath): os.makedirs(logpath)
     logfile = 'um2grb2_fcst_stdout_'+ _current_date_ +'_' + utc +'Z.log'
-    sys.stdout = myLog(os.path.join(logpath, logfile])
+    sys.stdout = myLog(os.path.join(logpath, logfile))
     
     # start the timer now
     _startT_ = time.time()
@@ -2313,7 +2313,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     logpath = os.path.join(_tmpDir_, _current_date_)
     if not os.path.exists(logpath): os.makedirs(logpath)
     logfile = 'um2grb2_anal_stdout_'+ _current_date_ +'_' + utc +'Z.log'
-    sys.stdout = myLog(os.path.join(logpath, logfile])
+    sys.stdout = myLog(os.path.join(logpath, logfile))
     
     # start the timer now
     _startT_ = time.time()
