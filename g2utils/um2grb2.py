@@ -71,8 +71,7 @@ Code History:
 References:
 1. Iris. v1.8.1 03-Jun-2015. Met Office. UK. https://github.com/SciTools/iris/archive/v1.8.1.tar.gz
 2. myLog() based on http://mail.python.org/pipermail/python-list/2007-May/438106.html
-3. Data understanding: /gpfs2/home/umfcst/ShortJobs/Subset-WRF/ncum_subset_24h.sh
-4. Saji M. (2014), "Utility to convert UM fieldsfile output to NCEP GRIB1 format:
+3. Saji M. (2014), "Utility to convert UM fieldsfile output to NCEP GRIB1 format:
                     A User Guide", NMRF/TR/01/2014, April 2014, pp. 51, available at
                     http://www.ncmrwf.gov.in/umfld2grib.pdf
 
@@ -116,6 +115,8 @@ cnvgrib = "/gpfs1/home/Libs/INTEL/cnvgrib-1.4.0/cnvgrib"
 __LPRINT__ = False
 __utc__ = '00'
 __outFileType__ = 'ana'
+# start and step hour in short forecast files
+__anl_step_hour__ = 6
 # start and step hour in long forecast files
 __start_step_long_fcst_hour__ = 6
 # maximum long forecast hours produced by model
@@ -518,7 +519,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
     Updated : 07-12-2015
     Updated : 10-12-2015
     """
-    global __start_step_long_fcst_hour__
+    global __anl_step_hour__, __start_step_long_fcst_hour__
     
     hr = int(hr)
     
@@ -561,9 +562,17 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     # liquid_water_content_of_surface_snow by convert it into
                     # water equivalent of snow amount.
                     ('snowfall_amount', 'm01s00i023')] 
-        # the cube contains Instantaneous data at every 3-hours.        
-        # but we need to extract every 6th hours instantaneous.
-        fcstHours = numpy.array([0,])     
+        # the cube contains Instantaneous data at every 3-hours.
+        if __anl_step_hour__ == 3:
+            # applicable only for 3 hour instantaneous/intervals
+            fcstHours = numpy.array([0, 3,]) # yes, it must have both '0' & '3'
+            # to get both 0 & 3 rd hour instantaneous data.
+        elif __anl_step_hour__ == 6:
+            # applicable only for 6 hour instantaneous/intervals
+            fcstHours = numpy.array([0,])  # Yes, it must be just '0' only.
+            # i.e. 0th hour instantaneous at 00, 06, 12, 18utc cycles for 6-hourly data.
+        # we are extracting at particular instantaneous value, so no need to 
+        # do hourly mean.
         doMultiHourlyMean = False
         
     elif fname.startswith('umglca_pd'):            # umglca_pd
@@ -584,8 +593,16 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # end of if inDataPathHour == '00':             
         
         # the cube contains Instantaneous data at every 3-hours.
-        # but we need to extract only every 6th hours instantaneous.
-        fcstHours = numpy.array([0,])     
+        if __anl_step_hour__ == 3:
+            # applicable only for 3 hour instantaneous/intervals
+            fcstHours = numpy.array([0, 3,]) # yes, it must have both '0' & '3'
+            # to get both 0 & 3 rd hour instantaneous data.
+        elif __anl_step_hour__ == 6:
+            # applicable only for 6 hour instantaneous/intervals
+            fcstHours = numpy.array([0,])  # Yes, it must be just '0' only.
+            # i.e. 0th hour instantaneous at 00, 06, 12, 18utc cycles for 6-hourly data.
+        # we are extracting at particular instantaneous value, so no need to 
+        # do hourly mean.
         doMultiHourlyMean = False
         
     elif fname.startswith('umglca_pe'):            # umglca_pe
@@ -626,9 +643,17 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                           ('convective_rainfall_amount', 'm01s05i201'),]
         # all vars 
         varNamesSTASH = varNamesSTASH1 + varNamesSTASH2
-        # the cube contains Instantaneous data at every 1-hours.
-        # but we need to extract only every 6th hours instantaneous.
-        fcstHours = numpy.array([0,])     
+        # the cube contains Instantaneous data at every 3-hours.
+        if __anl_step_hour__ == 3:
+            # applicable only for 3 hour instantaneous/intervals
+            fcstHours = numpy.array([0, 3,]) # yes, it must have both '0' & '3'
+            # to get both 0 & 3 rd hour instantaneous data.
+        elif __anl_step_hour__ == 6:
+            # applicable only for 6 hour instantaneous/intervals
+            fcstHours = numpy.array([0,])  # Yes, it must be just '0' only.
+            # i.e. 0th hour instantaneous at 00, 06, 12, 18utc cycles for 6-hourly data.
+        # we are extracting at particular instantaneous value, so no need to 
+        # do hourly mean.
         doMultiHourlyMean = False
 
     elif fname.startswith('umglca_pf'):         # umglca_pf
@@ -650,10 +675,28 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                 ('precipitation_flux', 'm01s05i216'),                          
                 ('rainfall_flux', 'm01s05i214'),]
             
-        # the cube contains data of every 3-hourly average or accumutated.
-        # but we need to make only every 6th hourly average or accumutated.
-        fcstHours = numpy.array([(1, 5)])
-        doMultiHourlyMean = True
+        # the cube contains data of every 3-hourly average or accumutated.        
+        if __anl_step_hour__ == 3:
+            # applicable only for 3 hour average or accumutated.
+            fcstHours = numpy.array([4.5, 1.5])     
+            # CAUTION : this must be 4.5 and then followed by 1.5 only. why ??
+            # 4.5 extract data from yesterday date or previous 6 hourly cycle
+            # simulated_hr data. whereas 1.5 extract data from current simulated_hr.
+            # i.e. 1.5 means 0-3 hour from current simulated_hr
+            # i.e. 4.5 means 3-6 hour from previous simulated_hr
+            # such way we are changing the input file before extraction.
+            # so we should not change this order 4.5 and then 1.5 ....
+            
+            # model itself produced 3 hourly average or accumutated. So we 
+            # no need to do average/accumulation explicitly.
+            doMultiHourlyMean = False
+        elif __anl_step_hour__ == 6:       
+            # applicable only for 6 hour average or accumutated.
+            fcstHours = numpy.array([(1, 5)])
+            # model produced 3 hourly average or accumutated. So we must 
+            # need to do 6 hourly average/accumulation explicitly.
+            doMultiHourlyMean = True
+        
         # get the updated infile w.r.t analysis 00 simulated_hr or 06,12,18hr
         infile = __getTodayOrYesterdayInfile__(inDataPath, fname)
         
@@ -674,8 +717,26 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # though, here we set up fcstHours and doMultiHourlyMean values w.r.t 
         # dust aod only. For other 2 soil vars, we are fixing the values 
         # before extract those vars!
-        fcstHours = numpy.array([(1, 5)])
-        doMultiHourlyMean = True
+        if __anl_step_hour__ == 3:
+            # applicable only for 3 hour average or accumutated.
+            fcstHours = numpy.array([4.5, 1.5])
+            # CAUTION : this must be 4.5 and then followed by 1.5 only. why ??
+            # 4.5 extract data from yesterday date or previous 6 hourly cycle
+            # simulated_hr data. whereas 1.5 extract data from current simulated_hr.
+            # i.e. 1.5 means 0-3 hour from current simulated_hr
+            # i.e. 4.5 means 3-6 hour from previous simulated_hr
+            # such way we are changing the input file before extraction.
+            # so we should not change this order 4.5 and then 1.5 ....
+            
+            # model itself produced 3 hourly average or accumutated. So we 
+            # no need to do average/accumulation explicitly.
+            doMultiHourlyMean = False
+        elif __anl_step_hour__ == 6:       
+            # applicable only for 6 hour average or accumutated.
+            fcstHours = numpy.array([(1, 5)])
+            # model produced 3 hourly average or accumutated. So we must 
+            # need to do 6 hourly average/accumulation explicitly.
+            doMultiHourlyMean = True
         # get the updated infile w.r.t analysis 00 simulated_hr or 06,12,18hr
         # needed for atmosphere_optical_thickness_due_to_dust_ambient_aerosol,
         # but for soil_temperature and moisture_content_of_soil_layer we need 
@@ -703,8 +764,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     # liquid_water_content_of_surface_snow by convert it into
                     # water equivalent of snow amount.
                     ('snowfall_amount', 'm01s00i023')] 
-        # the cube contains Instantaneous data at every 3-hours.        
-        # but we need to extract every 6th hours instantaneous.
+        # the cube contains Instantaneous data at every 3-hours.
         if __start_step_long_fcst_hour__ == 3:
             # applicable only for 3 hour instantaneous/intervals
             fcstHours = numpy.array([3, 6, 9, 12, 15, 18, 21, 24]) + hr
@@ -728,7 +788,6 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('y_wind', 'm01s15i244'),
                     ('upward_air_velocity', 'm01s15i242')]
         # the cube contains Instantaneous data at every 3-hours.
-        # but we need to extract only every 6th hours instantaneous.
         if __start_step_long_fcst_hour__ == 3:
             # applicable only for 3 hour instantaneous/intervals
             fcstHours = numpy.array([3, 6, 9, 12, 15, 18, 21, 24]) + hr
@@ -769,7 +828,6 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('stratiform_rainfall_amount', 'm01s04i201'),
                     ('convective_rainfall_amount', 'm01s05i201'),]
         # the cube contains Instantaneous data at every 1-hours.
-        # but we need to extract only every 6th hours instantaneous.
         if __start_step_long_fcst_hour__ == 3:
             # applicable only for 3 hour instantaneous/intervals
             fcstHours = numpy.array([3, 6, 9, 12, 15, 18, 21, 24]) + hr
@@ -802,7 +860,6 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
              ('precipitation_flux', 'm01s05i216'),                          
              ('rainfall_flux', 'm01s05i214'),]
         # the cube contains data of every 3-hourly average or accumutated.
-        # but we need to make only every 6th hourly average or accumutated. 
         if __start_step_long_fcst_hour__ == 3:
             # applicable only for 3 hour average or accumutated.
             fcstHours = numpy.array([1.5, 4.5, 7.5, 10.5, 13.5, 16.5, 19.5, 22.5]) + hr
@@ -832,7 +889,6 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                          ('soil_temperature', 'm01s03i238'),]
                 
         # the cube contains data of every 3-hourly average or instantaneous.
-        # but we need to make only every 6th hourly average or instantaneous.
         
         # the dust aod contain 3-hourly averaged data. But soil temperature 
         # and moisture_content_of_soil_layer are 3-hourly instantaneous data.
@@ -1038,7 +1094,8 @@ def regridAnlFcstFiles(arg):
     global _lock_, _targetGrid_, _targetGridRes_, _current_date_, _startT_, \
            _inDataPath_, _opPath_, _preExtension_, _accumulationVars_, _ncfilesVars_, \
            _convertVars_, _requiredLat_, _requiredLon_, _doRegrid_, __utc__, \
-           __anlFileNameStructure__, __fcstFileNameStructure__, __LPRINT__ 
+           __anlFileNameStructure__, __fcstFileNameStructure__, __LPRINT__, \
+           __start_step_long_fcst_hour__, __anl_step_hour__ 
    
     fpname, hr = arg 
     
@@ -1083,9 +1140,11 @@ def regridAnlFcstFiles(arg):
     if fpname.startswith('umglaa'):
         dtype = 'fcst'         
         outFileNameStructure = __fcstFileNameStructure__
+        start_step_fcst_hour = __start_step_long_fcst_hour__
     elif fpname.startswith(('umglca', 'qwqg00')):
         dtype = 'ana'
         outFileNameStructure = __anlFileNameStructure__
+        start_step_fcst_hour = __anl_step_hour__
     # end of if fpname.startswith('umglaa'):
     
     # get the out fileName Structure based on pre / user defined indecies                       
@@ -1095,7 +1154,7 @@ def regridAnlFcstFiles(arg):
     #####
     ### setting timebound, fcstbound as 'centre' bounds, will not affect
     ### in g2ctl.pl because it uses flag -verf by default which will set 
-    ### access time point as end bound time. 
+    ### access time point as end time point of fcst bounds.
     timebound = 'cbound'            # TESTED, OK, on 05-01-2016
     fcstbound = 'cbound'            # TESTED, OK, on 05-01-2016
     if dtype == 'fcst':        
@@ -1108,9 +1167,19 @@ def regridAnlFcstFiles(arg):
         ### But if we want to set access time point as per out file hour's
         ### ref time, then we can enable the following options. otherwise 
         ### disable it, because 'cbound' will works for ctl file.
-        timebound = 'rbound'        # TESTED, OK, on 05-01-2016
-        fcstbound = 'lbound'        # TESTED, OK, on 05-01-2016
+        timebound = 'lbound'        # TESTED, OK, on 23-02-2016
+        fcstbound = 'lbound'        # TESTED, OK, on 23-02-2016
+        ## g2ctl -verf option bring end forecast time bounds to set time in 
+        ## ctl file. So we no need to pass options like -0 or -b.
+        ## here lbound in both timebound and fcstbound will give correct 
+        ## time reference and forecast time in both grib2 files and grads 
+        ## control files.           # TESTED, OK, on 23-02-2016
     # end of if dtype == 'fcst':
+    
+    # Note : if we are not correcting ana, fcst fcstbound as above, in g2ctl
+    # ctl file will has 2 time points. To avoid that we have to tell to g2ctl
+    # to use start time bound for analysis and last time bound for fcst, 
+    # which brings to  1 time point.
     
     # Define default lat, lon contraint (None just bring model global data)
     latConstraint, lonConstraint = None, None
@@ -1210,12 +1279,29 @@ def regridAnlFcstFiles(arg):
             # and forecast hour constraint
             if __LPRINT__: print varConstraint, STASHConstraint, fhr,
             if __LPRINT__: print fcstRefTimeConstraint, latConstraint, lonConstraint
-            
-            # extract cube with possible and required constraints
-            tmpCube = cubes.extract(varConstraint & STASHConstraint & 
+
+            if __anl_step_hour__ == 3 and fhr == 1.5:
+                # Load from current date instead of yesterday date 
+                ana_today_infile = os.path.join(_inDataPath_, fileName)                 
+                if ana_today_infile != infile: 
+                    a3_1p5_cube = getCubeData(ana_today_infile)   
+                    a3_simulated_hr = int(ana_today_infile.split('/')[-2])
+                    a3_fcstRefTime = iris.Constraint(forecast_reference_time=PartialDateTime(hour=a3_simulated_hr))
+                    # extract based on new constraints which are all applicable only to ana 1.5 hours.
+                    tmpCube = a3_1p5_cube.extract(varConstraint & 
+                                    STASHConstraint & a3_fcstRefTime &
+                                    iris.Constraint(forecast_period=fhr) &
+                                    latConstraint & lonConstraint)[0]
+                    print "special load of ana_hour 1.5"
+                    print varName, "loaded from today infile, ", ana_today_infile
+                    print "simulated_hr = ", simulated_hr            
+            else:
+                # extract cube with possible and required constraints
+                tmpCube = cubes.extract(varConstraint & STASHConstraint & 
                                     fcstRefTimeConstraint &
                                     iris.Constraint(forecast_period=fhr) &
                                     latConstraint & lonConstraint)[0]
+            # end of if __anl_step_hour__ == 3 and fhr == 1.5:
             if __LPRINT__: print "extract end", infile, fhr, varName
             if __LPRINT__: print "tmpCube =>", tmpCube
             if tmpCube.has_lazy_data():
@@ -1251,7 +1337,7 @@ def regridAnlFcstFiles(arg):
                 # '1 hour' to dt intervals argument. 
                 if __LPRINT__: print "action = ", action
                 tmpCube = cubeAverager(tmpCube, action, dt='1 hour', 
-                                           actionIntervals='6 hour', 
+                                           actionIntervals=str(start_step_fcst_hour)+' hour', 
                                   tpoint=timebound, fpoint=fcstbound)
             # end of if doMultiHourlyMean and tmpCube.coords('forecast_period')[0].shape[0] > 1:     
 
@@ -1324,35 +1410,37 @@ def regridAnlFcstFiles(arg):
             stdNm, fcstTm, refTm, lat1, lon1 = getCubeAttr(regdCube)
             if __LPRINT__: print "Got attributes from regdCube"
             # save the cube in append mode as a grib2 file       
-            if _inDataPath_.endswith(('00', '12')):
-                if dtype == 'ana' and _inDataPath_.endswith('12'):
-                    # get the hour from infile path as 'least dirname'
-                    # this is needed for analysis 12th simulated_hr
-                    hr = _inDataPath_.split('/')[-1]
-                else:
-                    if fcstTm.bounds is not None:
-                        # (need this for pf files)
-                        if dtype == 'ana':
-                            # this is needed for analysis 00th simulated_hr
-                            # get the first hour from bounds
-                            hr = str(int(fcstTm.bounds[-1][0]))
-                        elif dtype == 'fcst':
-                            # this is needed for forecast 00th simulated_hr
-                            # get the last hour from bounds
+
+            if fcstTm.bounds is not None:
+                # (need this for pf files)
+                if dtype == 'ana':
+                    # this is needed for analysis 00th simulated_hr
+                    # get the first hour from bounds
+                    if __anl_step_hour__ == 3:                        
+                        # for 3-hourly ana file, we need to subtract 3 to get
+                        # corresponding out hr. 
+                        # i.e. 3 means 0. Do not applicable for instantaneous fields.
+                        if fhr == 1.5:
                             hr = str(int(fcstTm.bounds[-1][-1]))
-                        if __LPRINT__: print "Bounds comes in ", hr, fcstTm.bounds, fileName                        
-                    else:
-                        # get the fcst time point 
-                        # this is needed for analysis/forecast 00th simulated_hr
-                        hr = str(int(fcstTm.points))
-                        if __LPRINT__: print "points comes in ", hr, fileName 
-                    # end of if fcstTm.bounds:
+                        elif fhr == 4.5:
+                            hr = str(int(fcstTm.bounds[-1][0]) - 3)
+                    elif __anl_step_hour__ == 6:
+                        hr = str(int(fcstTm.bounds[-1][0]))
+                elif dtype == 'fcst':
+                    # this is needed for forecast 00th simulated_hr
+                    # get the last hour from bounds
+                    hr = str(int(fcstTm.bounds[-1][-1]))
+                if __LPRINT__: print "Bounds comes in ", hr, fcstTm.bounds, fileName                        
             else:
-                # get the hour from infile path as 'least dirname'
-                # this is needed for analysis 06, 18th simulated_hr
-                hr = _inDataPath_.split('/')[-1]
-            # end of if _inDataPath_.endswith('00'):
-                        
+                # get the fcst time point 
+                # this is needed for analysis/forecast 00th simulated_hr
+                hr = str(int(fcstTm.points))
+                if __LPRINT__: print "points comes in ", hr, fileName 
+            # end of if fcstTm.bounds:
+            
+            if dtype == 'ana':
+                hr = str(int(hr) + int(_inDataPath_.split('/')[-1]))
+              
             # generate the out file name based on actual informations                                 
             outFn = __genAnlFcstOutFileName__(outFileNameStructure, 
                                  outFnIndecies, _current_date_, hr, 
@@ -1860,19 +1948,19 @@ def doShuffleVarsInOrder(fpath):
         print "deleted grib2 file", g2filepath        
     elif _createGrib2CtlIdxFiles_:
         ## g2ctl.pl usage option refer the below link 
-        ## https://tuxcoder.wordpress.com/2011/08/31/how-to-install-g2ctl-pl-and-wgrib2-in-linux/        
+        ## https://tuxcoder.wordpress.com/2011/08/31/how-to-install-g2ctl-pl-and-wgrib2-in-linux/
+        ## though options says -verf for forecast end time, -0 for analysis time 
+        ## -b for forecast start time, its all about setting reference in ctl file.
+        ## Nothing more than that. We already set correct reference and forecast time bounds 
+        ## in analysis files (whichever variables are actually taken from previous short forecast 0-6 hours).
+        ## so here we no need to pass any options like -0 or -b. 
+        ## By default g2ctl takes -verf option, same option we are passing 
+        ## here to make sure that in future it will not affect.
         ctlfile = open(g2filepath+'.ctl', 'w')
-        if __outFileType__ in ['ana', 'anl']:
-            # create ctl & idx files for analysis file 
-            subprocess.call([g2ctl, '-ts6hr', '-0', g2filepath], stdout=ctlfile)
-            subprocess.call([gribmap, '-ts6hr', '-0', '-i', g2filepath+'.ctl'])
-        elif __outFileType__ in ['prg', 'fcst']:
-            # create ctl & idx files for forecast file
-            subprocess.call([g2ctl, '-ts6hr', g2filepath], stdout=ctlfile)
-            subprocess.call([gribmap, '-i', g2filepath+'.ctl'])
-        else:
-            raise ValueError("unknown file type while executing g2ctl.pl!!")
-        
+        # create ctl & idx files for forecast file
+        # by default -verf as passed which takes end time of fcst bounds to set as base time.
+        subprocess.call([g2ctl, '-ts6hr', '-verf', g2filepath], stdout=ctlfile)
+        subprocess.call([gribmap, '-i', g2filepath+'.ctl'])                
         print "Successfully created control and index file using g2ctl !", g2filepath+'.ctl'
     # end of if __removeGrib2FilesAfterGrib1FilesCreated__:    
 # end of def doShuffleVarsInOrder(fpath):
@@ -1881,7 +1969,7 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
             
     global _current_date_, _opPath_, _preExtension_, __max_long_fcst_hours__, \
            __anlFileNameStructure__, __fcstFileNameStructure__, \
-           __max_long_fcst_hours__, __start_step_long_fcst_hour__
+           __max_long_fcst_hours__, __start_step_long_fcst_hour__, __utc__
             
     print "Lets re-order variables for all the files!!!"
     #####
@@ -1906,7 +1994,7 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
             fcstFiles.append(outFn)
         # end of for fcsthr in range(...):
 
-        ## get the no of created anl/fcst files  
+        ## get the no of created fcst files  
         nprocesses = len(fcstFiles)        
         # parallel begin - 3
         pool = _MyPool(nprocesses)
@@ -1921,11 +2009,29 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
         ## generate the analysis filename w.r.t simulated_hr
         # get the out fileName Structure based on pre / user defined indecies                       
         outFnIndecies = __getAnlFcstFileNameIdecies__(__anlFileNameStructure__) 
-        # generate the out file name based on actual informations                                 
-        outFn = __genAnlFcstOutFileName__(__anlFileNameStructure__, 
-                                     outFnIndecies, _current_date_, 
-                        simulated_hr, simulated_hr, _preExtension_)  
-        doShuffleVarsInOrder(outFn)
+        anlFiles = []
+        simulated_hr = int(__utc__)
+        # since ncum producing analysis files 00, 06, 12, 18 utc cycles and 
+        # its forecast time starting from 0 and reference time based on utc.
+        # so we should calculate correct hour as below.
+        for fcsthr in range(0+simulated_hr, 6+simulated_hr, __anl_step_hour__):            
+            # generate the out file name based on actual informations                                 
+            outFn = __genAnlFcstOutFileName__(__anlFileNameStructure__, 
+                                  outFnIndecies, _current_date_, fcsthr, 
+                                           simulated_hr, _preExtension_)  
+            anlFiles.append(outFn)
+        # end of for fcsthr in range(...):
+        ## get the no of created anl files  
+        nprocesses = len(anlFiles)        
+        # parallel begin - 3
+        pool = _MyPool(nprocesses)
+        print "Creating %d (non-daemon) workers and jobs in doShuffleVarsInOrder process." % nprocesses
+        results = pool.map(doShuffleVarsInOrder, anlFiles)   
+        
+        # closing and joining master pools
+        pool.close()     
+        pool.join()
+        # parallel end - 3        
     # end of if ftype in ['fcst', 'forecast']: 
     print "Total time taken to convert and re-order all files was: %8.5f seconds \n" % (time.time()-_startT_)
     # reset current working directory
@@ -2050,11 +2156,17 @@ def _checkInFilesStatus(path, ftype, pfnames):
 def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
     
     global _preExtension_, __max_long_fcst_hours__, __anlFileNameStructure__,\
-           __fcstFileNameStructure__, __start_step_long_fcst_hour__
+           __fcstFileNameStructure__, __start_step_long_fcst_hour__, \
+           __anl_step_hour__, __utc__
            
     if ftype in ['ana', 'anl']:
         outFileNameStructure = __anlFileNameStructure__
         fhrs = [utc] # ana_hour (short forecast hour) is same as simulated_hr (i.e. utc)
+        simulated_hr = int(__utc__)
+        # since ncum producing analysis files 00, 06, 12, 18 utc cycles and 
+        # its forecast time starting from 0 and reference time based on utc.
+        # so we should calculate correct hour as below.
+        fhrs = range(0+simulated_hr, 6+simulated_hr, __anl_step_hour__)     
     elif ftype in ['fcst', 'prg']:
         outFileNameStructure = __fcstFileNameStructure__
         fhrs = range(__start_step_long_fcst_hour__, __max_long_fcst_hours__+1, 
@@ -2128,7 +2240,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     convertVars = kwarg.get('convertVars', None)
     latitude = kwarg.get('latitude', None)
     longitude = kwarg.get('longitude', None)
-    start_step_long_fcst_hour = kwarg.get('start_step_long_fcst_hour', '6')
+    start_step_long_fcst_hour = kwarg.get('start_step_long_fcst_hour', 6)
     max_long_fcst_hours = kwarg.get('max_long_fcst_hours', 240)
     fcstFileNameStructure = kwarg.get('fcstFileNameStructure', None)
     createGrib2CtlIdxFiles = kwarg.get('createGrib2CtlIdxFiles', True)
@@ -2265,7 +2377,8 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
        _requiredLon_, _createGrib2CtlIdxFiles_, _createGrib1CtlIdxFiles_, \
        _convertGrib2FilestoGrib1Files_, __anlFileNameStructure__,  \
        __LPRINT__, __utc__, __outFileType__, __grib1FilesNameSuffix__, \
-       __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, _removeVars_
+       __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, _removeVars_, \
+       __anl_step_hour__
            
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -2276,7 +2389,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     convertVars = kwarg.get('convertVars', None)
     latitude = kwarg.get('latitude', None)
     longitude = kwarg.get('longitude', None)
-    max_long_fcst_hours = kwarg.get('max_long_fcst_hours', 240)
+    anl_step_hour = kwarg.get('anl_step_hour', 6)
     anlFileNameStructure = kwarg.get('anlFileNameStructure', None)
     createGrib2CtlIdxFiles = kwarg.get('createGrib2CtlIdxFiles', True)
     createGrib1CtlIdxFiles = kwarg.get('createGrib1CtlIdxFiles', False)
@@ -2294,6 +2407,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     __LPRINT__ = lprint
     # update global variables
     __utc__ = utc
+    __anl_step_hour__ = anl_step_hour
     __removeGrib2FilesAfterGrib1FilesCreated__ = removeGrib2FilesAfterGrib1FilesCreated
     __grib1FilesNameSuffix__ = grib1FilesNameSuffix
     _targetGridRes_ = str(targetGridResolution)
