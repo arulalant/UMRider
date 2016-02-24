@@ -176,6 +176,8 @@ _orderedVars_ = {'PressureLevel': [
 ('specific_humidity', 'm01s03i237'),
 ('air_temperature', 'm01s03i236'),
 ('dew_point_temperature', 'm01s03i250'),
+('atmosphere_convective_available_potential_energy_wrt_surface', 'm01s05i233'), # CAPE
+('atmosphere_convective_inhibition_wrt_surface', 'm01s05i234'), #CIN
 ('high_type_cloud_area_fraction', 'm01s09i205'),
 ('medium_type_cloud_area_fraction', 'm01s09i204'),
 ('low_type_cloud_area_fraction', 'm01s09i203'), 
@@ -625,7 +627,10 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                         ('specific_humidity', 'm01s03i237'),
                         ('surface_air_pressure', 'm01s00i409'),
                         ('x_wind', 'm01s03i209'), 
-                        ('y_wind', 'm01s03i210'),]
+                        ('y_wind', 'm01s03i210'),
+                        ('atmosphere_convective_available_potential_energy_wrt_surface', 'm01s05i233'), # CAPE
+                        ('atmosphere_convective_inhibition_wrt_surface', 'm01s05i234'), #CIN
+                        ]
         
         # The precipitation_amount, *snowfall_amount, and *rainfall_amount 
         # variable must be at the last in this list. we will have to do 
@@ -811,6 +816,8 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('surface_air_pressure', 'm01s00i409'),
                     ('x_wind', 'm01s03i209'), 
                     ('y_wind', 'm01s03i210'),
+                    ('atmosphere_convective_available_potential_energy_wrt_surface', 'm01s05i233'), # CAPE
+                    ('atmosphere_convective_inhibition_wrt_surface', 'm01s05i234'), #CIN
                     # The precipitation_amount, *snowfall_amount, and
                     # *rainfall_amount variable must be at the last
                     # in this list. we will have to do 6 hourly accumulation

@@ -258,7 +258,6 @@ CF_TO_GRIB2 = {
     CFName('atmosphere_mass_content_of_water', None, 'kg m-2'): G2Param(2, 0, 1, 51),
     CFName('atmosphere_mass_content_of_water_vapor', None, 'kg m-2'): G2Param(2, 0, 1, 64),
     CFName('atmosphere_mole_content_of_ozone', None, 'Dobson'): G2Param(2, 0, 14, 0),
-#    CFName('atmosphere_specific_convective_available_potential_energy', None, 'J kg-1'): G2Param(2, 0, 7, 6),
     CFName('cloud_area_fraction', None, '%'): G2Param(2, 0, 6, 1),
     CFName('cloud_area_fraction_in_atmosphere_layer', None, '%'): G2Param(2, 0, 6, 7),
     CFName('dew_point_temperature', None, 'K'): G2Param(2, 0, 0, 6),
