@@ -49,50 +49,51 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour',
         raise ValueError('argument "%s" not support' % action)
     # end of if not isAccumulation:
 
-    # get the bounds and time points from two extremes    
-    bounds = [timeAxFirst.bounds[0][0], timeAxLast.bounds[-1][-1]]
+    # get the reference time bounds and time points from two extremes    
+    rbounds = [timeAxFirst.bounds[0][0], timeAxLast.bounds[-1][-1]]
     
     if tpoint == 'cbound':
         #### THE CENTRE POINT OF REFERENCE TIME BOUNDS
-        timepoint = [bounds[-1] + ((bounds[-1] - bounds[0]) / 2.0)]
+        timepoint = [rbounds[-1] + ((rbounds[-1] - rbounds[0]) / 2.0)]
     elif tpoint == 'lbound':
        ###### THE START BOUNDS OF REFERENCE TIME POINT
-        timepoint = [bounds[0]]        
+        timepoint = [rbounds[0]]
     elif tpoint == 'rbound':    
         ###### THE END BOUNDS OF REFERENCE TIME POINT
-        timepoint = [bounds[-1]]   
+        timepoint = [rbounds[-1]]
     # end of if tpoint == 'cbound':
     
     # update the time coordinate with new time point and time bounds
     timeAxFirst.points = timepoint
-    timeAxFirst.bounds = bounds
+    timeAxFirst.bounds = rbounds
     # add the updated time coordinate to the meanCube
     meanCube.add_aux_coord(timeAxFirst)
-    # get the bounds and time points from two extremes
-    bounds = [fcstAxFirst.bounds[0][0], fcstAxLast.bounds[-1][-1]]
     
-    if action is 'sum' and bounds[0] != 0:
+    # get the forecat time bounds and time points from two extremes 
+    fbounds = [fcstAxFirst.bounds[0][0], fcstAxLast.bounds[-1][-1]]
+
+    if action is 'sum' and fbounds[0] != 0:
         # this change is required only for _accumulationVars_ vars, since its 
         # hourly accumulation, which we converting to 6-hourly accumulation.
         # Instead of cross check by _accumulationVars_, here we are checking
         # by action is 'sum', since sum arg passed only to _accumulationVars_.
-        bounds = [fcstAxFirst.bounds[0][1], fcstAxLast.bounds[-1][-1]]
+        fbounds = [fcstAxFirst.bounds[0][1], fcstAxLast.bounds[-1][-1]]
     # end of if ...:    
     
     if fpoint == 'cbound':
         #### THE CENTRE POINT OF FORECAST TIME BOUNDS
-        fcstpoint = [bounds[0] + ((bounds[-1] - bounds[0]) / 2.0)]
+        fcstpoint = [fbounds[0] + ((fbounds[-1] - fbounds[0]) / 2.0)]
     elif fpoint == 'lbound':           
         ###### THE START BOUNDS OF FORECAST TIME POINT
-        fcstpoint = [bounds[0]]         
+        fcstpoint = [fbounds[0]]         
     elif fpoint == 'rbound':           
         ###### THE END BOUNDS OF FORECAST TIME POINT
-        fcstpoint = [bounds[-1]] 
+        fcstpoint = [fbounds[-1]]        
     # end of if fpoint == 'cbound':   
     
     # update the time coordinate with new fcst time point and fcst time bounds
     fcstAxFirst.points = fcstpoint
-    fcstAxFirst.bounds = bounds
+    fcstAxFirst.bounds = fbounds
     # add the updated fcst time coordinate to the meanCube
     meanCube.add_aux_coord(fcstAxFirst)
     # add attributes back to meanCube
