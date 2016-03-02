@@ -4,6 +4,7 @@ and cross check either all the paths are valid or not.
 
 Written by : Arulalan.T
 Date : 07.Dec.2015
+Update : 02.Mar.2016
 """
 
 import os, sys, time, datetime  
@@ -69,6 +70,8 @@ convertGrib2FilestoGrib1Files = eval(cdic.get('convertGrib2FilestoGrib1Files', '
 createGrib1CtlIdxFiles = eval(cdic.get('createGrib1CtlIdxFiles', 'False'))
 removeGrib2FilesAfterGrib1FilesCreated = eval(cdic.get('removeGrib2FilesAfterGrib1FilesCreated', 'False'))
 grib1FilesNameSuffix = eval(cdic.get('grib1FilesNameSuffix', '.grib1'))
+callBackScript = cdic.get('callBackScript', None)
+callBackScript = None if callBackScript in ['None', ''] else callBackScript
 
 if anlOutGrib2FilesNameStructure:
     if not anlOutGrib2FilesNameStructure[-1].endswith('2'):
@@ -107,7 +110,8 @@ else:
 # end of if requiredLon:
 
 # check the variable's path 
-for name, path in [('inPath', inPath), ('outPath', outPath), ('tmpPath', tmpPath)]:
+for name, path in [('inPath', inPath), ('outPath', outPath), 
+                   ('tmpPath', tmpPath), ('callBackScript', callBackScript)]:
     if path is None:
         raise ValueError("In configure file, '%s' path is not defined !" % name)
     if not os.path.exists(path):
@@ -169,6 +173,7 @@ print "convertGrib2FilestoGrib1Files = ", convertGrib2FilestoGrib1Files
 print "grib1FilesNameSuffix = ", grib1FilesNameSuffix
 print "createGrib1CtlIdxFiles = ", createGrib1CtlIdxFiles
 print "removeGrib2FilesAfterGrib1FilesCreated = ", removeGrib2FilesAfterGrib1FilesCreated
+if callBackScript: print "callBackScript = ", callBackScript
 print "Successfully loaded the above params from UMRIDER_SETUP configure file!", setupfile
 print "*" * 80
 print "Successfully loaded the below variables from UMRIDER_VARS configure file!", varfile 
