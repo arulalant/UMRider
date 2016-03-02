@@ -17,7 +17,7 @@ from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                 createGrib2CtlIdxFiles, createGrib1CtlIdxFiles, \
                 convertGrib2FilestoGrib1Files, grib1FilesNameSuffix, \
                 removeGrib2FilesAfterGrib1FilesCreated, \
-                anl_step_hour
+                anl_step_hour, callBackScript
 
 if loadg2utils == 'system':
     # Load g2utils from system python which has installed through setup.py
@@ -64,7 +64,8 @@ while sDay <= eDay:
                      grib1FilesNameSuffix=grib1FilesNameSuffix,          
    removeGrib2FilesAfterGrib1FilesCreated=removeGrib2FilesAfterGrib1FilesCreated,  
                                   anl_step_hour=anl_step_hour,
-                       overwrite=overwriteFiles, lprint=debug)
+                       overwrite=overwriteFiles, lprint=debug,
+                                callBackScript=callBackScript)
     print "Time lag incremented by 1"
     sDay += lag
     startdate = sDay.strftime('%Y%m%d')

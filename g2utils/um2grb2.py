@@ -608,18 +608,8 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         doMultiHourlyMean = False
         
     elif fname.startswith('umglca_pe'):            # umglca_pe
-        if inDataPathHour == '00':
-            varNamesSTASH1 = [('high_type_cloud_area_fraction', 'm01s09i205'), 
-                        ('medium_type_cloud_area_fraction', 'm01s09i204'),
-                        ('low_type_cloud_area_fraction', 'm01s09i203'),
-                        ('air_temperature', 'm01s03i236'),                    
-                        ('specific_humidity', 'm01s03i237'),                        
-                        ('x_wind', 'm01s03i209'), 
-                        ('y_wind', 'm01s03i210'),]
-            # rest of them (i.e 'air_pressure_at_sea_level', 
-            #'surface_air_pressure') taken already from qwqg00.pp0 file.
-        else:
-            varNamesSTASH1 = [('high_type_cloud_area_fraction', 'm01s09i205'), 
+        
+        varNamesSTASH1 = [('high_type_cloud_area_fraction', 'm01s09i205'), 
                         ('medium_type_cloud_area_fraction', 'm01s09i204'),
                         ('low_type_cloud_area_fraction', 'm01s09i203'),
                         ('air_temperature', 'm01s03i236'),              
@@ -631,6 +621,13 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                         ('atmosphere_convective_available_potential_energy_wrt_surface', 'm01s05i233'), # CAPE
                         ('atmosphere_convective_inhibition_wrt_surface', 'm01s05i234'), #CIN
                         ]
+       
+        if inDataPathHour == '00':
+            for varST in [('air_pressure_at_sea_level', 'm01s16i222'), 
+                            ('surface_air_pressure', 'm01s00i409'),]:
+                # these vars taken already from qwqg00.pp0 file. so remove it.
+                varNamesSTASH1.remove(varST)         
+        # end of if inDataPathHour == '00':
         
         # The precipitation_amount, *snowfall_amount, and *rainfall_amount 
         # variable must be at the last in this list. we will have to do 
@@ -1706,7 +1703,7 @@ def doShuffleVarsInOrder(fpath):
             orderedVars.append(unOrderedNonPressureLevelVars[varName])
         elif (varName, varSTASH) in _ncfilesVars_:            
             ## generate nc file name 
-            ncfpath = varSTASH + '_' + ''.join(fpath.split('.')[:-1]) + '.nc'
+            ncfpath = varSTASH + '_' + '.'.join(fpath.split('.')[:-1]) + '.nc'
             if not os.path.isfile(ncfpath): continue
             if varSTASH not in ncloaddic:
                 try:
@@ -2255,6 +2252,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     convertGrib2FilestoGrib1Files = kwarg.get('convertGrib2FilestoGrib1Files', False)
     grib1FilesNameSuffix = kwarg.get('grib1FilesNameSuffix', '1')
     removeGrib2FilesAfterGrib1FilesCreated = kwarg.get('removeGrib2FilesAfterGrib1FilesCreated', False)
+    callBackScript = kwarg.get('callBackScript', None)
     
     # assign out file type in global variable
     __outFileType__ = 'fcst'
@@ -2374,6 +2372,17 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     
     # do re-order variables within files in parallel
     doShuffleVarsInOrderInParallel('fcst', utc)
+    
+    if callBackScript:
+        callBackScript = os.path.abspath(callBackScript)
+        if not os.path.exists(callBackScript): 
+            print "callBackScript '%s' doenst exist" % callBackScript
+            return 
+        kwargs = ' --date=%s --outpath=%s --oftype=forecast --utc=%s' % (_current_date_, _opPath_, utc)
+        scriptExecuteCmd = callBackScript + ' ' + kwargs
+        # execute user defined call back script with keyword arguments
+        subprocess.call(scriptExecuteCmd, shell=True)
+    # end of if callBackScript:
 # end of def convertFcstFiles(...):
 
 
@@ -2403,6 +2412,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     convertGrib2FilestoGrib1Files = kwarg.get('convertGrib2FilestoGrib1Files', False)
     grib1FilesNameSuffix = kwarg.get('grib1FilesNameSuffix', '1')
     removeGrib2FilesAfterGrib1FilesCreated = kwarg.get('removeGrib2FilesAfterGrib1FilesCreated', False)
+    callBackScript = kwarg.get('callBackScript', None)
     
     # assign out file type in global variable
     __outFileType__ = 'ana'
@@ -2520,6 +2530,17 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     
     # do re-order variables within files in parallel
     doShuffleVarsInOrderInParallel('anl', utc)
+    
+    if callBackScript:
+        callBackScript = os.path.abspath(callBackScript)
+        if not os.path.exists(callBackScript): 
+            print "callBackScript '%s' doenst exist" % callBackScript
+            return 
+        kwargs = ' --date=%s --outpath=%s --oftype=analysis --utc=%s' % (_current_date_, _opPath_, utc)
+        scriptExecuteCmd = callBackScript + ' ' + kwargs
+        # execute user defined call back script with keyword arguments
+        subprocess.call(scriptExecuteCmd, shell=True)
+    # end of if callBackScript:
 # end of def convertAnlFiles(...):
 
 
