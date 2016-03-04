@@ -110,14 +110,18 @@ else:
 # end of if requiredLon:
 
 # check the variable's path 
-for name, path in [('inPath', inPath), ('outPath', outPath), 
-                   ('tmpPath', tmpPath), ('callBackScript', callBackScript)]:
+for name, path in [('inPath', inPath), ('outPath', outPath), ('tmpPath', tmpPath)]:
     if path is None:
         raise ValueError("In configure file, '%s' path is not defined !" % name)
     if not os.path.exists(path):
         raise ValueError("In configure file, '%s = %s' path does not exists" % (name, path))
     print name, " = ", path
 # end of for name, path in [...]:
+
+if callBackScript is not None:
+    if not os.path.exists(callBackScript):
+        raise ValueError("In configure file, callBackScript = %s' path does not exists" % callBackScript)
+# end of if callBackScript is not None:
 
 # get the current date if not specified
 if startdate == 'YYYYMMDD': startdate = time.strftime('%Y%m%d')
