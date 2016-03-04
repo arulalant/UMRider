@@ -622,12 +622,16 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                         ('atmosphere_convective_inhibition_wrt_surface', 'm01s05i234'), #CIN
                         ]
        
-        if inDataPathHour == '00':
+        if inDataPathHour == '00' and __anl_step_hour__ != 3:
+            # remove only if __anl_step_hour__ is 6 hours.
+            # for 3 hour analysis, (3rd hour) we need to extract these vars
+            # from the umglca_pe file. But for 00th analysis the following vars 
+            # need to be extracted from qwqg00.pp0 file. 
             for varST in [('air_pressure_at_sea_level', 'm01s16i222'), 
                             ('surface_air_pressure', 'm01s00i409'),]:
                 # these vars taken already from qwqg00.pp0 file. so remove it.
                 varNamesSTASH1.remove(varST)         
-        # end of if inDataPathHour == '00':
+        # end of if inDataPathHour == '00' and ...:
         
         # The precipitation_amount, *snowfall_amount, and *rainfall_amount 
         # variable must be at the last in this list. we will have to do 
@@ -1283,7 +1287,14 @@ def regridAnlFcstFiles(arg):
             # and forecast hour constraint
             if __LPRINT__: print varConstraint, STASHConstraint, fhr,
             if __LPRINT__: print fcstRefTimeConstraint, latConstraint, lonConstraint
-
+            
+            if __anl_step_hour__ == 3 and fhr == 0 and fpname.startswith('umglca_pe'):
+                if (varName, varSTASH) in [('air_pressure_at_sea_level', 'm01s16i222'), 
+                            ('surface_air_pressure', 'm01s00i409'),]:
+                    # these vars taken already from qwqg00.pp0 file. 
+                    continue                    
+            # end of if __anl_step_hour__ == 3 and fhr == 0:
+                
             if __anl_step_hour__ == 3 and fhr == 1.5:
                 # Load from current date instead of yesterday date 
                 ana_today_infile = os.path.join(_inDataPath_, fileName)                 
