@@ -18,7 +18,7 @@ from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                     createGrib2CtlIdxFiles, createGrib1CtlIdxFiles, \
                     convertGrib2FilestoGrib1Files, grib1FilesNameSuffix, \
                     removeGrib2FilesAfterGrib1FilesCreated, \
-                    anl_step_hour, callBackScript
+                    anl_step_hour, pressureLevels, callBackScript
 
 if loadg2utils == 'system':
     # Load g2utils from system python which has installed through setup.py
@@ -58,6 +58,7 @@ while sDay <= eDay:
                     targetGridResolution=targetGridResolution, 
              date=startdate, utc='18', convertVars=neededVars, 
                   latitude=requiredLat, longitude=requiredLon,
+                                pressureLevels=pressureLevels,
            anlFileNameStructure=anlOutGrib2FilesNameStructure, 
                 createGrib2CtlIdxFiles=createGrib2CtlIdxFiles,
                 createGrib1CtlIdxFiles=createGrib1CtlIdxFiles,
