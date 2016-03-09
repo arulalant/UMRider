@@ -31,7 +31,7 @@ echo "export UMRIDER_SETUP="$UMRIDER_SETUP
 echo "export UMRIDER_VARS="$UMRIDER_VARS
 echo "export GRIB2TABLE="$GRIB2TABLE
 
-# temporarily sourcing umtid_bashrc until module load python-uvcdat-iris gets ready!
+# sourcing umtid_bashrc to load module python-uvcdat-iris!
 source "$DIR/../umtid_bashrc"
 # execute the script
 /gpfs2/home/umtid/Pythons/Python-2.7.9/bin/python $g2script
