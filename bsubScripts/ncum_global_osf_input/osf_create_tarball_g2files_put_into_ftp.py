@@ -16,7 +16,6 @@
 
 import os, subprocess, datetime, getopt, sys
 
-
 def createTarBalls(path, today, utc, stephr=6):
     # create tar balls only if present utc is 00, otherwise skip it!    
     if utc != '00': return
@@ -35,7 +34,7 @@ def createTarBalls(path, today, utc, stephr=6):
         cmd = 'mv ../%s/%s .' % (yDay, yf)
         subprocess.call(cmd, shell=True)
     # end of for yf in yanal_files:
-    
+    if not os.path.exists('../TarFiles'): os.makedirs('../TarFiles')
     # create analysis files tar file 
     anal_files = '  '.join(yanal_files + tanal_files)    
     cmd = "tar cvjf  %s/ncum_anal_%s.tar.bz2   %s" % ('../TarFiles', today, anal_files)
@@ -48,15 +47,29 @@ def createTarBalls(path, today, utc, stephr=6):
     subprocess.call(cmd, shell=True)
     cmd = "rm ncum_fcst_%s*.grb2" % today
     subprocess.call(cmd, shell=True)
-    
-    os.chdir(cdir)
+     
     # remove yesterday's empty directory, not today directory!!!
     yDayPath = os.path.join(path, '../%s' % yDay)
-    os.rmdir(yDayPath)    
+    os.rmdir(yDayPath) 
+    
+    # do scp the tar files to ftp_server and nkn_server
+    cmd = 'rsh ncmr0102 "scp -p ../TarFiles/ncum_anal_%s.tar.bz2  %s:/data/ftp/pub/outgoing/NCUM_INCOIS/OSF/"' % (today, ftp_server)
+    subprocess.call(cmd, shell=True)
+    cmd = 'rsh ncmr0102 "scp -p ../TarFiles/ncum_anal_%s.tar.bz2  %s:NCUM/osf/"' % (today, nkn_server)
+    subprocess.call(cmd, shell=True)
+    
+    cmd = 'rsh ncmr0102 "scp -p ../TarFiles/ncum_fcst_%s.tar.bz2  %s:/data/ftp/pub/outgoing/NCUM_INCOIS/OSF/"' % (today, ftp_server)
+    subprocess.call(cmd, shell=True)
+    cmd = 'rsh ncmr0102 "scp -p ../TarFiles/ncum_fcst_%s.tar.bz2  %s:NCUM/osf/"' % (today, nkn_server)
+    subprocess.call(cmd, shell=True)
+    
+    os.chdir(cdir)   
 # end of def createTarBalls(path, today, ...):
 
 if __name__ == '__main__':
 
+    nkn_server="incois@nkn"
+    ftp_server="prod@ftp"
     date = None
     outpath = None
     oftype = None
