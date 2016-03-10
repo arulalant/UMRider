@@ -1,6 +1,6 @@
 # Change Log
 
-## [v1.0.1](https://github.com/NCMRWF/UMRider/tree/v1.0.1) (2016-03-09)
+## [v1.0.1](https://github.com/NCMRWF/UMRider/tree/v1.0.1) (2016-03-10)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.0...v1.0.1)
 
 **Implemented enhancements:**
@@ -15,10 +15,12 @@
 - Need to support for IND REGION [\#14](https://github.com/NCMRWF/UMRider/issues/14)
 - Need to support for OSF  [\#13](https://github.com/NCMRWF/UMRider/issues/13)
 - Need to support for VSDB Input [\#12](https://github.com/NCMRWF/UMRider/issues/12)
+- Make startdate, enddate as environmental variable  [\#63](https://github.com/NCMRWF/UMRider/issues/63)
 - Need to support for IMD MFI Input [\#54](https://github.com/NCMRWF/UMRider/issues/54)
 - support for call back script [\#53](https://github.com/NCMRWF/UMRider/issues/53)
 - support for tar ball  [\#41](https://github.com/NCMRWF/UMRider/issues/41)
 - Need to extract 3 hourly data and write into 3 hourly files [\#16](https://github.com/NCMRWF/UMRider/issues/16)
+- create tar.bz2 in parallel using pbzip2 [\#61](https://github.com/NCMRWF/UMRider/pull/61) ([arulalant](https://github.com/arulalant))
 
 **Fixed bugs:**
 
@@ -33,6 +35,8 @@
 
 **Merged pull requests:**
 
+- support for UMRIDER\_STARTDATE & UMRIDER\_ENDDATE environmental vars [\#64](https://github.com/NCMRWF/UMRider/pull/64) ([arulalant](https://github.com/arulalant))
+- update on IMD MFI grib2 with -set\_radius as 0 [\#62](https://github.com/NCMRWF/UMRider/pull/62) ([arulalant](https://github.com/arulalant))
 - out, tmp, log, paths update [\#60](https://github.com/NCMRWF/UMRider/pull/60) ([arulalant](https://github.com/arulalant))
 - update on osf, hycom path [\#59](https://github.com/NCMRWF/UMRider/pull/59) ([arulalant](https://github.com/arulalant))
 - 	added pressureLevels option [\#58](https://github.com/NCMRWF/UMRider/pull/58) ([arulalant](https://github.com/arulalant))
