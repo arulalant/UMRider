@@ -1,0 +1,44 @@
+/* asterix (*) Indicates comment lines
+*  Name : ncmr grib2 local table
+*  Filename : ncmr_grib2_local_table
+*  Institute : National Centre for Medium Range Weather Forecasting, India
+*  Centre Code : 29, New Delhi
+*  Local Table Version No : 1
+*  Local Table Created By : Arulalan.T, Project Scientist - C
+*  Contact : arulalan@ncmrwf.gov.in
+*  Release Version : 0.1, No of Entries : 9, Date : 21-Jan-2016
+*  Export Command : export GRIB2TABLE=/path/to/localdir/ncmr_grib2_local_table
+*  Once we exported, then wgrib2 & g2ctl.pl will be able to read these
+*               local variables properly
+*  Reference Link : http://www.cpc.ncep.noaa.gov/products/wesley/wgrib2/user_grib2tables.html
+* 
+*
+  struct gribtable_s {
+    int disc;      // Section 0 Discipline                                
+    int mtab_set;  // Section 1 Master Tables Version Number used by set_var      
+    int mtab_low;  // Section 1 Master Tables Version Number low range of tables  
+    int mtab_high; // Section 1 Master Tables Version Number high range of tables 
+    int cntr;      // Section 1 originating centre, used for local tables 
+    int ltab;      // Section 1 Local Tables Version Number               
+    int pcat;      // Section 4 Template 4.0 Parameter category           
+    int pnum;      // Section 4 Template 4.0 Parameter number             
+    const char *name;
+    const char *desc;
+    const char *unit;
+  };
+
+* ParameterDiscipline : MasterTableVersionSet : MasterTableVersionStart : MasterTableVersionEnd : Centre Code : LocalTablesVersion: ParameterCategory : ParameterNumber: VariableShortName : VariableDescription : VariableUnit
+* 
+* Comment lines end
+*/
+* ncmr grib2 local table entries begin
+0:1:0:10:29:1:1:192:FOG:Fog Area Cover:%
+0:1:0:10:29:1:4:198:CSUSF:Clear Sky Upward Solar Flux:W m-2
+0:1:0:10:29:1:5:195:CSULF:Clear Sky Upward Long Wave Flux:W m-2
+3:1:0:10:29:1:1:192:DAOT038:Dust Aerosol Optical Thickness at 0.38 µm:unitless
+3:1:0:10:29:1:1:193:DAOT044:Dust Aerosol Optical Thickness at 0.44 µm:unitless
+3:1:0:10:29:1:1:194:DAOT055:Dust Aerosol Optical Thickness at 0.55 µm:unitless
+3:1:0:10:29:1:1:195:DAOT067:Dust Aerosol Optical Thickness at 0.67 µm:unitless
+3:1:0:10:29:1:1:196:DAOT087:Dust Aerosol Optical Thickness at 0.87 µm:unitless
+3:1:0:10:29:1:1:197:DAOT102:Dust Aerosol Optical Thickness at 1.02 µm:unitless
+* ncmr grib2 local table entries end  
