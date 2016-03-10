@@ -149,6 +149,7 @@ _targetGrid_ = None
 _targetGridRes_ = None
 _requiredLat_ = None
 _requiredLon_ = None
+_requiredPressureLevels_ = None
 _preExtension_ = '_unOrdered'
 _createGrib2CtlIdxFiles_ = True
 _createGrib1CtlIdxFiles_ = False
@@ -608,18 +609,8 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         doMultiHourlyMean = False
         
     elif fname.startswith('umglca_pe'):            # umglca_pe
-        if inDataPathHour == '00':
-            varNamesSTASH1 = [('high_type_cloud_area_fraction', 'm01s09i205'), 
-                        ('medium_type_cloud_area_fraction', 'm01s09i204'),
-                        ('low_type_cloud_area_fraction', 'm01s09i203'),
-                        ('air_temperature', 'm01s03i236'),                    
-                        ('specific_humidity', 'm01s03i237'),                        
-                        ('x_wind', 'm01s03i209'), 
-                        ('y_wind', 'm01s03i210'),]
-            # rest of them (i.e 'air_pressure_at_sea_level', 
-            #'surface_air_pressure') taken already from qwqg00.pp0 file.
-        else:
-            varNamesSTASH1 = [('high_type_cloud_area_fraction', 'm01s09i205'), 
+        
+        varNamesSTASH1 = [('high_type_cloud_area_fraction', 'm01s09i205'), 
                         ('medium_type_cloud_area_fraction', 'm01s09i204'),
                         ('low_type_cloud_area_fraction', 'm01s09i203'),
                         ('air_temperature', 'm01s03i236'),              
@@ -631,6 +622,17 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                         ('atmosphere_convective_available_potential_energy_wrt_surface', 'm01s05i233'), # CAPE
                         ('atmosphere_convective_inhibition_wrt_surface', 'm01s05i234'), #CIN
                         ]
+       
+        if inDataPathHour == '00' and __anl_step_hour__ != 3:
+            # remove only if __anl_step_hour__ is 6 hours.
+            # for 3 hour analysis, (3rd hour) we need to extract these vars
+            # from the umglca_pe file. But for 00th analysis the following vars 
+            # need to be extracted from qwqg00.pp0 file. 
+            for varST in [('air_pressure_at_sea_level', 'm01s16i222'), 
+                            ('surface_air_pressure', 'm01s00i409'),]:
+                # these vars taken already from qwqg00.pp0 file. so remove it.
+                varNamesSTASH1.remove(varST)         
+        # end of if inDataPathHour == '00' and ...:
         
         # The precipitation_amount, *snowfall_amount, and *rainfall_amount 
         # variable must be at the last in this list. we will have to do 
@@ -1102,7 +1104,7 @@ def regridAnlFcstFiles(arg):
            _inDataPath_, _opPath_, _preExtension_, _accumulationVars_, _ncfilesVars_, \
            _convertVars_, _requiredLat_, _requiredLon_, _doRegrid_, __utc__, \
            __anlFileNameStructure__, __fcstFileNameStructure__, __LPRINT__, \
-           __start_step_long_fcst_hour__, __anl_step_hour__ 
+           __start_step_long_fcst_hour__, __anl_step_hour__, _requiredPressureLevels_ 
    
     fpname, hr = arg 
     
@@ -1188,8 +1190,8 @@ def regridAnlFcstFiles(arg):
     # to use start time bound for analysis and last time bound for fcst, 
     # which brings to  1 time point.
     
-    # Define default lat, lon contraint (None just bring model global data)
-    latConstraint, lonConstraint = None, None
+    # Define default lat, lon, pressure contraint (None just bring model global data)
+    latConstraint, lonConstraint, pressureConstraint = None, None, None
     if _requiredLat_: 
         # make constraint of required latitude
         latConstraint = iris.Constraint(latitude=lambda cell: 
@@ -1198,7 +1200,14 @@ def regridAnlFcstFiles(arg):
         # make constraint of required longitude
         lonConstraint = iris.Constraint(longitude=lambda cell: 
                                 _requiredLon_[0] <= cell <= _requiredLon_[-1])
-                                
+    
+    if _requiredPressureLevels_:
+        # make constraint of required pressure 
+        # To slice out particular pressure levels (like 850, 200, 1000 alone)
+        # then the following way is essential.       
+        pressureConstraint = iris.Constraint(pressure=lambda cell: 
+                                int(cell.point) in _requiredPressureLevels_)
+                            
     # open for-loop-1 -- for all the variables in the cube
     for varName, varSTASH in varNamesSTASH:
         # define variable name constraint
@@ -1286,7 +1295,14 @@ def regridAnlFcstFiles(arg):
             # and forecast hour constraint
             if __LPRINT__: print varConstraint, STASHConstraint, fhr,
             if __LPRINT__: print fcstRefTimeConstraint, latConstraint, lonConstraint
-
+            
+            if __anl_step_hour__ == 3 and fhr == 0 and fpname.startswith('umglca_pe'):
+                if (varName, varSTASH) in [('air_pressure_at_sea_level', 'm01s16i222'), 
+                            ('surface_air_pressure', 'm01s00i409'),]:
+                    # these vars taken already from qwqg00.pp0 file. 
+                    continue                    
+            # end of if __anl_step_hour__ == 3 and fhr == 0:
+                
             if __anl_step_hour__ == 3 and fhr == 1.5:
                 # Load from current date instead of yesterday date 
                 ana_today_infile = os.path.join(_inDataPath_, fileName)                 
@@ -1309,6 +1325,12 @@ def regridAnlFcstFiles(arg):
                                     iris.Constraint(forecast_period=fhr) &
                                     latConstraint & lonConstraint)[0]
             # end of if __anl_step_hour__ == 3 and fhr == 1.5:
+            
+            # extract pressure levels
+            if pressureConstraint and tmpCube.coords('pressure'): 
+                tmpCube = tmpCube.extract(pressureConstraint)
+            # ene of if pressureConstraint and tmpCube.coords('pressure'): 
+            
             if __LPRINT__: print "extract end", infile, fhr, varName
             if __LPRINT__: print "tmpCube =>", tmpCube
             if tmpCube.has_lazy_data():
@@ -1706,7 +1728,7 @@ def doShuffleVarsInOrder(fpath):
             orderedVars.append(unOrderedNonPressureLevelVars[varName])
         elif (varName, varSTASH) in _ncfilesVars_:            
             ## generate nc file name 
-            ncfpath = varSTASH + '_' + ''.join(fpath.split('.')[:-1]) + '.nc'
+            ncfpath = varSTASH + '_' + '.'.join(fpath.split('.')[:-1]) + '.nc'
             if not os.path.isfile(ncfpath): continue
             if varSTASH not in ncloaddic:
                 try:
@@ -2236,7 +2258,8 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
        _convertGrib2FilestoGrib1Files_, __fcstFileNameStructure__, \
        __LPRINT__, __utc__, __start_step_long_fcst_hour__, \
        __max_long_fcst_hours__, __outFileType__, __grib1FilesNameSuffix__, \
-       __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, _removeVars_
+       __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, \
+       _removeVars_, _requiredPressureLevels_
      
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -2247,6 +2270,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     convertVars = kwarg.get('convertVars', None)
     latitude = kwarg.get('latitude', None)
     longitude = kwarg.get('longitude', None)
+    pressureLevels = kwarg.get('pressureLevels', None)
     start_step_long_fcst_hour = kwarg.get('start_step_long_fcst_hour', 6)
     max_long_fcst_hours = kwarg.get('max_long_fcst_hours', 240)
     fcstFileNameStructure = kwarg.get('fcstFileNameStructure', None)
@@ -2255,6 +2279,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     convertGrib2FilestoGrib1Files = kwarg.get('convertGrib2FilestoGrib1Files', False)
     grib1FilesNameSuffix = kwarg.get('grib1FilesNameSuffix', '1')
     removeGrib2FilesAfterGrib1FilesCreated = kwarg.get('removeGrib2FilesAfterGrib1FilesCreated', False)
+    callBackScript = kwarg.get('callBackScript', None)
     
     # assign out file type in global variable
     __outFileType__ = 'fcst'
@@ -2273,6 +2298,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     _targetGridRes_ = str(targetGridResolution)
     _requiredLat_ = latitude
     _requiredLon_ = longitude
+    _requiredPressureLevels_ = pressureLevels    
     _createGrib2CtlIdxFiles_ = createGrib2CtlIdxFiles
     _createGrib1CtlIdxFiles_ = createGrib1CtlIdxFiles
     _convertGrib2FilestoGrib1Files_ = convertGrib2FilestoGrib1Files
@@ -2374,6 +2400,17 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     
     # do re-order variables within files in parallel
     doShuffleVarsInOrderInParallel('fcst', utc)
+    
+    if callBackScript:
+        callBackScript = os.path.abspath(callBackScript)
+        if not os.path.exists(callBackScript): 
+            print "callBackScript '%s' doenst exist" % callBackScript
+            return 
+        kwargs = ' --date=%s --outpath=%s --oftype=forecast --utc=%s' % (_current_date_, _opPath_, utc)
+        scriptExecuteCmd = callBackScript + ' ' + kwargs
+        # execute user defined call back script with keyword arguments
+        subprocess.call(scriptExecuteCmd, shell=True)
+    # end of if callBackScript:
 # end of def convertFcstFiles(...):
 
 
@@ -2384,8 +2421,8 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
        _requiredLon_, _createGrib2CtlIdxFiles_, _createGrib1CtlIdxFiles_, \
        _convertGrib2FilestoGrib1Files_, __anlFileNameStructure__,  \
        __LPRINT__, __utc__, __outFileType__, __grib1FilesNameSuffix__, \
-       __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, _removeVars_, \
-       __anl_step_hour__
+       __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, \
+       _removeVars_, __anl_step_hour__, _requiredPressureLevels_
            
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -2396,6 +2433,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     convertVars = kwarg.get('convertVars', None)
     latitude = kwarg.get('latitude', None)
     longitude = kwarg.get('longitude', None)
+    pressureLevels = kwarg.get('pressureLevels', None)
     anl_step_hour = kwarg.get('anl_step_hour', 6)
     anlFileNameStructure = kwarg.get('anlFileNameStructure', None)
     createGrib2CtlIdxFiles = kwarg.get('createGrib2CtlIdxFiles', True)
@@ -2403,6 +2441,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     convertGrib2FilestoGrib1Files = kwarg.get('convertGrib2FilestoGrib1Files', False)
     grib1FilesNameSuffix = kwarg.get('grib1FilesNameSuffix', '1')
     removeGrib2FilesAfterGrib1FilesCreated = kwarg.get('removeGrib2FilesAfterGrib1FilesCreated', False)
+    callBackScript = kwarg.get('callBackScript', None)
     
     # assign out file type in global variable
     __outFileType__ = 'ana'
@@ -2420,6 +2459,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     _targetGridRes_ = str(targetGridResolution)
     _requiredLat_ = latitude
     _requiredLon_ = longitude
+    _requiredPressureLevels_ = pressureLevels    
     _createGrib2CtlIdxFiles_ = createGrib2CtlIdxFiles
     _createGrib1CtlIdxFiles_ = createGrib1CtlIdxFiles
     _convertGrib2FilestoGrib1Files_ = convertGrib2FilestoGrib1Files
@@ -2520,6 +2560,17 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     
     # do re-order variables within files in parallel
     doShuffleVarsInOrderInParallel('anl', utc)
+    
+    if callBackScript:
+        callBackScript = os.path.abspath(callBackScript)
+        if not os.path.exists(callBackScript): 
+            print "callBackScript '%s' doenst exist" % callBackScript
+            return 
+        kwargs = ' --date=%s --outpath=%s --oftype=analysis --utc=%s' % (_current_date_, _opPath_, utc)
+        scriptExecuteCmd = callBackScript + ' ' + kwargs
+        # execute user defined call back script with keyword arguments
+        subprocess.call(scriptExecuteCmd, shell=True)
+    # end of if callBackScript:
 # end of def convertAnlFiles(...):
 
 

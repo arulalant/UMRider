@@ -4,6 +4,7 @@ and cross check either all the paths are valid or not.
 
 Written by : Arulalan.T
 Date : 07.Dec.2015
+Update : 02.Mar.2016
 """
 
 import os, sys, time, datetime  
@@ -58,6 +59,7 @@ debug = eval(cdic.get('debug', 'False'))
 requiredLat = eval(cdic.get('latitude', 'None'))
 requiredLon = eval(cdic.get('longitude', 'None'))
 targetGridResolution = eval(cdic.get('targetGridResolution', 'None'))
+pressureLevels = eval(cdic.get('pressureLevels', 'None'))
 anl_step_hour = eval(cdic.get('anl_step_hour', '6'))
 start_step_long_fcst_hour = eval(cdic.get('start_step_long_fcst_hour', '6'))
 max_long_fcst_hours_at_00z = eval(cdic.get('max_long_fcst_hours_at_00z', '240'))
@@ -69,6 +71,8 @@ convertGrib2FilestoGrib1Files = eval(cdic.get('convertGrib2FilestoGrib1Files', '
 createGrib1CtlIdxFiles = eval(cdic.get('createGrib1CtlIdxFiles', 'False'))
 removeGrib2FilesAfterGrib1FilesCreated = eval(cdic.get('removeGrib2FilesAfterGrib1FilesCreated', 'False'))
 grib1FilesNameSuffix = eval(cdic.get('grib1FilesNameSuffix', '.grib1'))
+callBackScript = cdic.get('callBackScript', None)
+callBackScript = None if callBackScript in ['None', ''] else callBackScript
 
 if anlOutGrib2FilesNameStructure:
     if not anlOutGrib2FilesNameStructure[-1].endswith('2'):
@@ -115,6 +119,14 @@ for name, path in [('inPath', inPath), ('outPath', outPath), ('tmpPath', tmpPath
     print name, " = ", path
 # end of for name, path in [...]:
 
+if callBackScript is not None:
+    if not os.path.exists(callBackScript):
+        raise ValueError("In configure file, callBackScript = %s' path does not exists" % callBackScript)
+# end of if callBackScript is not None:
+
+# get the environment variable startdate and enddate, if not then get it from setup config file.
+startdate = os.environ.get('UMRIDER_STARTDATE', startdate).strip()
+enddate = os.environ.get('UMRIDER_ENDDATE', enddate).strip()
 # get the current date if not specified
 if startdate == 'YYYYMMDD': startdate = time.strftime('%Y%m%d')
 if enddate == 'YYYYMMDD': enddate = time.strftime('%Y%m%d')
@@ -158,6 +170,7 @@ print "overwriteFiles = ", overwriteFiles
 print "debug = ", debug
 print "latitude = ", requiredLat
 print "longitude = ", requiredLon
+print "pressureLevels = ", pressureLevels
 print "anl_step_hour = ", anl_step_hour
 print "start_step_long_fcst_hour = ", start_step_long_fcst_hour
 print "max_long_fcst_hours_at_00z = ", max_long_fcst_hours_at_00z
@@ -169,6 +182,7 @@ print "convertGrib2FilestoGrib1Files = ", convertGrib2FilestoGrib1Files
 print "grib1FilesNameSuffix = ", grib1FilesNameSuffix
 print "createGrib1CtlIdxFiles = ", createGrib1CtlIdxFiles
 print "removeGrib2FilesAfterGrib1FilesCreated = ", removeGrib2FilesAfterGrib1FilesCreated
+if callBackScript: print "callBackScript = ", callBackScript
 print "Successfully loaded the above params from UMRIDER_SETUP configure file!", setupfile
 print "*" * 80
 print "Successfully loaded the below variables from UMRIDER_VARS configure file!", varfile 
