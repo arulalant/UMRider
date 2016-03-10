@@ -48,12 +48,21 @@ def renameFiles(outpath):
         subprocess.call(cmd, shell=True)
         os.remove(gf)
         print "created IMD MFI standard grib2 file from %s to %s" % (gf, mfi_g2out_name)
+        # do scp the grb2 files to ftp_server and nkn_server        
+        cmd = 'rsh ncmr0102 "scp -p %s  %s:NCUM_MFI/DATA/"' % (mfi_g2out_name, nkn_server)
+        subprocess.call(cmd, shell=True)
     # end of for gf in gfiles:
     os.chdir(cdir)
+    
+    cmd = 'rsh ncmr0102 "scp -r %s  %s:NCUM_MFI/DATA/"' % (outpath, ftp_server)
+    subprocess.call(cmd, shell=True)
+    
 # end of def renameFiles(outpath):
 
 if __name__ == '__main__':
-
+    
+    nkn_server="imd@nkn"
+    ftp_server="prod@ftp"
     date = None
     outpath = None
     oftype = None
