@@ -16,6 +16,8 @@
 
 import os, subprocess, datetime, getopt, sys
 
+pbzip2 = '/gpfs1/home/Libs/GNU/ZIPUTIL/pbzip2'
+
 def createTarBalls(path, today, utc, stephr=6):
     # create tar balls only if present utc is 00, otherwise skip it!    
     if utc != '00': return
@@ -35,13 +37,19 @@ def createTarBalls(path, today, utc, stephr=6):
         subprocess.call(cmd, shell=True)
     # end of for yf in yanal_files:
     if not os.path.exists('../TarFiles'): os.makedirs('../TarFiles')
-    # create analysis files tar file 
-    anal_files = '  '.join(yanal_files + tanal_files)    
-    cmd = "tar cvjf  %s/ncum_anal_%s.tar.bz2   %s" % ('../TarFiles', today, anal_files)
+    
+    # normal "$ tar cvjf fcst_20160223.tar.bz2 *fcst*grb2" cmd takes 6 minutes 43 seconds.
+    #
+    # where as in parallel bz2, "$ tar -c *fcst*grb2 | pbzip2 -v -c -f -p32 -m500 > fcst_20160223_parallel.tar.bz2" cmd takes only just 23 seconds alone, with 32 processors and 500MB RAM memory.
+    #
+    # create analysis files tar file in parallel
+    anal_files = '  '.join(yanal_files + tanal_files)  
+    cmd = "tar -c  %s | %s -v  -c -f -p32 -m500 > %s/ncum_anal_%s.tar.bz2" % (anal_files, pbzip2, '../TarFiles', today)
     subprocess.call(cmd, shell=True)
-    # create forecast files tar file 
-    cmd = "tar cvjf %s/ncum_fcst_%s.tar.bz2 fcst*.grb2" % ('../TarFiles', today)
+    # create forecast files tar file in parallel
+    cmd = "tar -c fcst*.grb2 | %s  -v  -c -f -p32 -m500 > %s/ncum_fcst_%s.tar.bz2" % (pbzip2, '../TarFiles', today)
     subprocess.call(cmd, shell=True)
+    
     # delete analysis & forecasts files, after tar ball has been created!
     cmd = "rm %s" % anal_files
     subprocess.call(cmd, shell=True)
