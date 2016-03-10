@@ -11,7 +11,7 @@
 ## Arulalan.T
 ## 02-Mar-2016.
 
-import os, sys, getopt
+import os, sys, getopt, subprocess
 
 
 def renameFiles(outpath):
@@ -43,8 +43,11 @@ def renameFiles(outpath):
         # updating RANDOM
         mfi_g2out_name[1] = rval
         mfi_g2out_name = '_'.join(mfi_g2out_name)
-        os.rename(gf, mfi_g2out_name)
-        print "renamed grib2 file from %s to %s" % (gf, mfi_g2out_name)
+        # IMD MFI requires shapeOfEarth should be 0, not 1 (iris standard)!
+        cmd = '/gpfs1/home/Libs/GNU/WGRIB2/v2.0.1/wgrib2 -set_radius 0 %s -grib %s' % (gf, mfi_g2out_name)
+        subprocess.call(cmd, shell=True)
+        os.remove(gf)
+        print "created IMD MFI standard grib2 file from %s to %s" % (gf, mfi_g2out_name)
     # end of for gf in gfiles:
     os.chdir(cdir)
 # end of def renameFiles(outpath):
