@@ -1,6 +1,6 @@
 # Change Log
 
-## [v1.0.1](https://github.com/NCMRWF/UMRider/tree/v1.0.1) (2016-03-10)
+## [v1.0.1](https://github.com/NCMRWF/UMRider/tree/v1.0.1) (2016-03-11)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.0...v1.0.1)
 
 **Implemented enhancements:**
@@ -35,6 +35,8 @@
 
 **Merged pull requests:**
 
+- cleanup [\#66](https://github.com/NCMRWF/UMRider/pull/66) ([arulalant](https://github.com/arulalant))
+- 	bug fixes; update python path; update doc [\#65](https://github.com/NCMRWF/UMRider/pull/65) ([arulalant](https://github.com/arulalant))
 - support for UMRIDER\_STARTDATE & UMRIDER\_ENDDATE environmental vars [\#64](https://github.com/NCMRWF/UMRider/pull/64) ([arulalant](https://github.com/arulalant))
 - update on IMD MFI grib2 with -set\_radius as 0 [\#62](https://github.com/NCMRWF/UMRider/pull/62) ([arulalant](https://github.com/arulalant))
 - out, tmp, log, paths update [\#60](https://github.com/NCMRWF/UMRider/pull/60) ([arulalant](https://github.com/arulalant))
