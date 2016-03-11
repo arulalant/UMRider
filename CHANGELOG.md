@@ -35,6 +35,7 @@
 
 **Merged pull requests:**
 
+- update in docstring [\#67](https://github.com/NCMRWF/UMRider/pull/67) ([arulalant](https://github.com/arulalant))
 - cleanup [\#66](https://github.com/NCMRWF/UMRider/pull/66) ([arulalant](https://github.com/arulalant))
 - 	bug fixes; update python path; update doc [\#65](https://github.com/NCMRWF/UMRider/pull/65) ([arulalant](https://github.com/arulalant))
 - support for UMRIDER\_STARTDATE & UMRIDER\_ENDDATE environmental vars [\#64](https://github.com/NCMRWF/UMRider/pull/64) ([arulalant](https://github.com/arulalant))
