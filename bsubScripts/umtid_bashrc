@@ -2,6 +2,14 @@
 # Arulalan.T
 # update : 09-Mar-2016
 #
+
+# Source global definitions
+if [ -f /etc/bashrc ]; then
+        . /etc/bashrc
+fi
+
+PS1="[`hostname -s`]["'$PWD]> '
+
 # load the required modules to run UMRider
 module load GNU-UVCDAT-IRIS/2.4.0_1.10.0d0
 module load GNU-qt/4.8.4
