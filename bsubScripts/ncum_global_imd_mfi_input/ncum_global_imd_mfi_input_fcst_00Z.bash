@@ -32,5 +32,5 @@ echo "export GRIB2TABLE="$GRIB2TABLE
 # sourcing umtid_bashrc to load module python-uvcdat-iris!
 source "$DIR/../umtid_bashrc"
 # execute the script
-/gpfs2/home/umtid/Pythons/Python-2.7.9/bin/python $g2script
+python $g2script
 
