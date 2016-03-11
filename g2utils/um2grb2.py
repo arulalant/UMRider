@@ -1,20 +1,19 @@
 #!/usr/bin/env python
 
 __author__ = 'arulalant'
-__version__ = 'v1.0'
+__version__ = 'v1.0.1'
 __long_name__ = 'NCUM Parallel Rider'
 
 """
-What does this code piece do?
-This code converts 6-hourly UM fields file data into grib2 format after
-regridding the data to 0.25x0.25 degree spatial resolution by imbibing
-analysis fields from the yesterday's 18Z time (based on Dr. SM).
+Inputs: NCUM fieldsfile / pp format files
 
-Output:
+Outputs: WMO-NCEP Grib2 format files
+
 This script produce output files as multiple 6 hourly forecasts data from
 different input files such as pd, pd, pe, etc., So all 6 hourly forecasts data
-of different input files will be append to same 6 hourly grib2 outfiles (These
-conventions are according to NCUM only!)
+of different input files will be append to same 6 hourly grib2 outfiles. 
+But not limited to 6 hours only, it supports 3 hourly and 24 hourly too. 
+(These conventions are according to NCUM only!)
 
 Parallel:
 As for now, we are using multiprocessing to make parallel run on different files
@@ -22,60 +21,39 @@ like pb, pd, pe and its creating child porcess with respect to no of forecast
 hours. To make more parallel threads on variable, fcstHours level we may need to
 use OpenMPI-Py.
 
-Disclaimers (if any!)
-This is just test code as of now and is meant for a specific purpose only!
+Testing team in NCMRWF & their roles:
+#1. Mr. Kuldeep Sharma - Main tester for visual integrety vis-a-vis GrADS & subset.ctl tool
+#2. Dr. Sumit Kumar - Main tester for visual integrety vis-a-vis GrADS & subset.ctl tool  
+#3. Dr. C.J. Johny - VSDB Input product tester 
+#4. Mr. M.Momin Imran Ali - Hycom Input product tester 
+#4. Mr. Abhishek Lodh - Soil Moisture tester 
+#2. Dr. Raghavendra Ashrit - Testing for RIMES with WRF-Noah and overall integrity testing
+#3. Dr. Jayakumar A. - Comparison with the CAWCR convertor and specifictions needs
+#4. Dr. Saji Mohandad, TIFF Lead - Control test (GrADS & subset.tcl) & Future Functional Description
+#5. Mr. Gopal Raman Iyengar - Overseer
 
-Standards:
-This code conforms to pep8 standards and KISS philosophy.
-
-Contributors & their roles:
-#1. Mr. Raghavendra S. Mupparthy (MNRS) - Integrator, TIAV Lead, I/C, overseer & code humor!
-#2. Mr. Arulalan T (AAT) - Chief coder, optimiser, parelleliser and THE shebang!
-#3. Dr. Devjyoti Dutta (DJ) - ECMWF-GRIB2 Metadata manipulator
-#4. Dr. Saji Mohandas (SM) - TIFF lead/expertise and shell-template.
-
-Testing & their roles:
-#1. Mr. Kuldeep Sharma (KS) - Main tester for visual integrety vis-a-vis GrADS
-#2. Mr. Raghavendra S. Mupparthy (MNRS) - Implementor
-#3. Dr. Raghavendra Ashrit (RA) - Testing for RIMES and overall integrity testing
-#4. Dr. Jayakumar A. (JA) - Comparison with the CAWCR convertor and specifictions needs
-#5. Dr. Saji Mohandad (SM) - Control test (GrADS & subset.tcl) & Future Functional Description
-#6. Mr. Gopal Raman Iyengar (GRI) - Overseer
-
-Acknowledgments:
-#1. Dr. Rakhi R, Dr. Jayakumar A, Dr. Saji Mohandas and Mr. Bangaru (Ex-IBM) for N768.
-#2. IBM Team @ NCMRWF for installation support on Bhaskara - Ms. Shivali & Mr. Bangaru (Ex-IBM)
-
-Code History:
-1.  Jul 22nd, 2015: First version by MNRS
-2.  Jul 24th, 2015: Grib section editor - version-0.1,
-                  : Automation of filenames started
-                  : Extraction of required variables
-                  : Interpolation scheme to 0.25 degree (MNRS & DJ)
-3.  Sep 11th, 2015: Recasted for 6-hourly ouputs (MNRS)
-4.  Nov 05th, 2015: Changed fname to a string in getVarInOutFilesDetails() (MNRS)
-5.  Nov 07th, 2015: Added to iGui project on github from fcm project (MNRS & AAT)
-6.  Nov 09th, 2015: parallelization!!! (AAT)
-7.  Nov 10th, 2015: Spawned multiple versions for input (AAT & MNRS)
-8.  Nov 12th, 2015: Appending same 6 hourly forecast data of different input
-                    files into same 6 hourly grib2 files. (AAT)
-9.  Nov 16th, 2015: Added new module/functionality "cubeAverager" to account
-                    for two kinds of fields: accumulated or instantaneous (AAT)
-10. Dec 02nd, 2015: Added module to create analysis fields from crtAnal.py (MNRS)
-                    Corrected for typos (MNRS)
-11. Dec 07th, 2015: Freshly added functions/facilities to create analysis fields 
-                    by using short forecast files by chossing either instantaneous
-                    and average/sum by using past 6 hour's short forecast (AAT)                     
-                    Version - 5.0. Ready for alpha release v1.0a (AAT)
+Acknowledgments: 
+#1. Mr. Raghavendra S. Mupparthy - Integrator, TIAV Lead for the
+    initial serial version for grib2 conversion of NCUM pp/ff file.
+#2. Dr. Rakhi R, Dr. Jayakumar A, Dr. Saji Mohandas and Mr. Bangaru (Ex-IBM) 
+    for N768 and STASH corrections.
+#3. Mr. Raghavendra S. Mupparthy, Dr. Rakhi R and Dr. S.Indira Rani for Rose-cycle um setup and intergration.
+#4. IBM Team @ NCMRWF for installation support on Bhaskara - Ms. Shivali (IBM) & Mr. Bangaru (Ex-IBM)
 
 References:
 1. Iris. v1.8.1 03-Jun-2015. Met Office. UK. https://github.com/SciTools/iris/archive/v1.8.1.tar.gz
-2. myLog() based on http://mail.python.org/pipermail/python-list/2007-May/438106.html
-3. Saji M. (2014), "Utility to convert UM fieldsfile output to NCEP GRIB1 format:
+
+2. Saji M. (2014), "Utility to convert UM fieldsfile output to NCEP GRIB1 format:
                     A User Guide", NMRF/TR/01/2014, April 2014, pp. 51, available at
                     http://www.ncmrwf.gov.in/umfld2grib.pdf
 
-Copyright: ESSO-NCMRWF,MoES, 2015-2016.
+Disclaimers (if any!)
+This is just test code as of now and is meant for a specific purpose only!
+
+Copyright: ESSO-NCMRWF, MoES, 2015-2016, 2016-2017.
+
+Author : Arulalan.T
+latest Update : 11-Mar-2016
 """
 
 # -- Start importing necessary modules
