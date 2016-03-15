@@ -132,6 +132,7 @@ _preExtension_ = '_unOrdered'
 _createGrib2CtlIdxFiles_ = True
 _createGrib1CtlIdxFiles_ = False
 _convertGrib2FilestoGrib1Files_ = False
+__setGrib2TableParameters__ = None
 # global ordered variables (the order we want to write into grib2)
 _orderedVars_ = {'PressureLevel': [
 ## Pressure Level Variable names & STASH codes
@@ -1549,7 +1550,8 @@ def regridAnlFcstFiles(arg):
 # end of def regridAnlFcstFiles(fname):
 
 def tweaked_messages(cubeList):
-    global _ncmrGrib2LocalTableVars_, _aod_pseudo_level_var_
+    global _ncmrGrib2LocalTableVars_, _aod_pseudo_level_var_, \
+           __setGrib2TableParameters__
     
     for cube in cubeList:
         for cube, grib_message in iris.fileformats.grib.as_pairs(cube):
@@ -1628,7 +1630,13 @@ def tweaked_messages(cubeList):
                     # ncmr_grib2_local_table standard.
                     gribapi.grib_set_long(grib_message, "versionNumberOfGribLocalTables", 1)
                 # end of if cube.standard_name in _ncmrGrib2LocalTableVars_:
-            # end of if cube.standard_name:                  
+            # end of if cube.standard_name or ...:
+            if __setGrib2TableParameters__:
+                # This user defined parameters must be at last of this function!
+                for key, val in __setGrib2TableParameters__:
+                    gribapi.grib_set_long(grib_message, key, val)
+                    print "set user defined grib2table parameter ('%s', %s)" % (key, val)
+            # end of if __setGrib2TableParameters__:
             print "Tweaking end ", cube.standard_name
             
             yield grib_message
@@ -2237,7 +2245,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
        __LPRINT__, __utc__, __start_step_long_fcst_hour__, \
        __max_long_fcst_hours__, __outFileType__, __grib1FilesNameSuffix__, \
        __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, \
-       _removeVars_, _requiredPressureLevels_
+       _removeVars_, _requiredPressureLevels_, __setGrib2TableParameters__
      
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -2258,6 +2266,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     grib1FilesNameSuffix = kwarg.get('grib1FilesNameSuffix', '1')
     removeGrib2FilesAfterGrib1FilesCreated = kwarg.get('removeGrib2FilesAfterGrib1FilesCreated', False)
     callBackScript = kwarg.get('callBackScript', None)
+    setGrib2TableParameters = kwarg.get('setGrib2TableParameters', None)
     
     # assign out file type in global variable
     __outFileType__ = 'fcst'
@@ -2280,6 +2289,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     _createGrib2CtlIdxFiles_ = createGrib2CtlIdxFiles
     _createGrib1CtlIdxFiles_ = createGrib1CtlIdxFiles
     _convertGrib2FilestoGrib1Files_ = convertGrib2FilestoGrib1Files
+    __setGrib2TableParameters__ = setGrib2TableParameters
     # forecast filenames partial name
     fcst_fnames = ['umglaa_pb','umglaa_pd', 'umglaa_pe', 'umglaa_pf', 'umglaa_pi']    
         
@@ -2400,7 +2410,8 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
        _convertGrib2FilestoGrib1Files_, __anlFileNameStructure__,  \
        __LPRINT__, __utc__, __outFileType__, __grib1FilesNameSuffix__, \
        __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, \
-       _removeVars_, __anl_step_hour__, _requiredPressureLevels_
+       _removeVars_, __anl_step_hour__, _requiredPressureLevels_, \
+       __setGrib2TableParameters__
            
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -2420,6 +2431,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     grib1FilesNameSuffix = kwarg.get('grib1FilesNameSuffix', '1')
     removeGrib2FilesAfterGrib1FilesCreated = kwarg.get('removeGrib2FilesAfterGrib1FilesCreated', False)
     callBackScript = kwarg.get('callBackScript', None)
+    setGrib2TableParameters = kwarg.get('setGrib2TableParameters', None)
     
     # assign out file type in global variable
     __outFileType__ = 'ana'
@@ -2441,6 +2453,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     _createGrib2CtlIdxFiles_ = createGrib2CtlIdxFiles
     _createGrib1CtlIdxFiles_ = createGrib1CtlIdxFiles
     _convertGrib2FilestoGrib1Files_ = convertGrib2FilestoGrib1Files
+    __setGrib2TableParameters__ = setGrib2TableParameters
     # analysis filenames partial name
     anl_fnames = ['umglca_pb', 'umglca_pd', 'umglca_pe', 'umglca_pf', 'umglca_pi']  
     if utc == '00': anl_fnames.insert(0, 'qwqg00.pp0')

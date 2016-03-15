@@ -6,10 +6,10 @@
 ## In UMRider we can not create like that. So here we are just renaming the 
 ## grib2 files as per their nomenclature!
 ## 
-## And finally putting into their ftp server.
+## IBM people (GP Singh) will take care to put into ftp and further renaming it.
 
 ## Arulalan.T
-## 02-Mar-2016.
+## 15-Mar-2016.
 
 import os, sys, getopt, subprocess
 
@@ -43,20 +43,11 @@ def renameFiles(outpath):
         # updating RANDOM
         mfi_g2out_name[1] = rval
         mfi_g2out_name = '_'.join(mfi_g2out_name)
-        # IMD MFI requires shapeOfEarth should be 0, not 1 (iris standard)!
-        cmd = '/gpfs1/home/Libs/GNU/WGRIB2/v2.0.1/wgrib2 -set_radius 0 %s -grib %s' % (gf, mfi_g2out_name)
-        subprocess.call(cmd, shell=True)
-        os.remove(gf)
-        print "created IMD MFI standard grib2 file from %s to %s" % (gf, mfi_g2out_name)
-        # do scp the grb2 files to ftp_server and nkn_server        
-        cmd = 'rsh ncmr0102 "scp -p %s  %s:NCUM_MFI/DATA/"' % (mfi_g2out_name, nkn_server)
-        subprocess.call(cmd, shell=True)
+        # lets rename the grib2 files as per IMD MFI requirements !
+        os.rename(gf, mfi_g2out_name)        
+        print "created IMD MFI standard grib2 file from %s to %s" % (gf, mfi_g2out_name)        
     # end of for gf in gfiles:
     os.chdir(cdir)
-    
-    cmd = 'rsh ncmr0102 "scp -r %s  %s:NCUM_MFI/DATA/"' % (outpath, ftp_server)
-    subprocess.call(cmd, shell=True)
-    
 # end of def renameFiles(outpath):
 
 if __name__ == '__main__':
