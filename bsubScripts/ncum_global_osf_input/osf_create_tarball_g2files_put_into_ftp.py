@@ -14,7 +14,7 @@
 ## Arulalan.T
 ## 04-Mar-2016.
 
-import os, subprocess, datetime, getopt, sys
+import os, subprocess, datetime, getopt, sys, glob
 
 pbzip2 = '/gpfs1/home/Libs/GNU/ZIPUTIL/pbzip2'
 
@@ -23,20 +23,25 @@ def createTarBalls(path, today, utc, stephr=6):
     if utc != '00': return
     cdir = os.getcwd()
     os.chdir(path)
-    anal_ftemp = 'ncum_anal*%s*%s.grb2'
+    anal_ftemp = 'ncum_anal*%s*%s*.grb2'
     tDay = datetime.datetime.strptime(today, "%Y%m%d")
     lag = datetime.timedelta(days=1)
     yDay = (tDay - lag).strftime('%Y%m%d')
     # get yesterday's analysis files from 06hr onwards
-    yanal_files = [anal_ftemp % (yDay, str(hr).zfill(2)) for hr in range(6, 24, stephr)]
+    yanal = [anal_ftemp % (yDay, str(hr).zfill(2)) for hr in range(6, 24, stephr)]
     # get today's analysis 00 and 03 hr
     tanal_files = [anal_ftemp % (today, str(hr).zfill(2)) for hr in range(0, 6, stephr)]
-    for yf in yanal_files:
+    # store available yesterday anal_files
+    yanal_files = []
+    for yf in yanal:
         # move yesterday's analysis files to today's directory
-        cmd = 'mv ../%s/%s .' % (yDay, yf)
+        wildcard_anlfile = '../%s/%s .' % (yDay, yf)
+        if not glob.glob(wildcard_anlfile): continue
+        cmd = 'mv %s .' % wildcard_anlfile
         print cmd
         subprocess.call(cmd, shell=True)
-    # end of for yf in yanal_files:
+        yanal_files.append(yf)
+    # end of for yf in yanal:
     if not os.path.exists('../TarFiles'): os.makedirs('../TarFiles')
     
     # normal "$ tar cvjf fcst_20160223.tar.bz2 *fcst*grb2" cmd takes 6 minutes 43 seconds.
@@ -62,10 +67,10 @@ def createTarBalls(path, today, utc, stephr=6):
     subprocess.call(cmd, shell=True)
     
     # remove yesterday's empty directory, not today directory!!!
-    yDayPath = os.path.join(path, '../%s' % yDay)
-    print cmd
+    yDayPath = os.path.abspath(os.path.join(path, '../%s' % yDay))
+    if os.path.exist(yDayPath):    
+        if not os.listdir(yDayPath): os.rmdir(yDayPath)    
     
-    if not os.listdir(yDayPath): os.rmdir(yDayPath)    
     os.chdir(cdir)  
     
     tarpath = os.path.abspath('../TarFiles')
