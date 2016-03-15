@@ -1,6 +1,6 @@
 # Change Log
 
-## [v1.0.1](https://github.com/NCMRWF/UMRider/tree/v1.0.1) (2016-03-11)
+## [v1.0.1](https://github.com/NCMRWF/UMRider/tree/v1.0.1) (2016-03-15)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.0...v1.0.1)
 
 **Implemented enhancements:**
@@ -15,6 +15,7 @@
 - Need to support for IND REGION [\#14](https://github.com/NCMRWF/UMRider/issues/14)
 - Need to support for OSF  [\#13](https://github.com/NCMRWF/UMRider/issues/13)
 - Need to support for VSDB Input [\#12](https://github.com/NCMRWF/UMRider/issues/12)
+- Need to support for custom grib2 table parameter options [\#69](https://github.com/NCMRWF/UMRider/issues/69)
 - Make startdate, enddate as environmental variable  [\#63](https://github.com/NCMRWF/UMRider/issues/63)
 - Need to support for IMD MFI Input [\#54](https://github.com/NCMRWF/UMRider/issues/54)
 - support for call back script [\#53](https://github.com/NCMRWF/UMRider/issues/53)
@@ -63,6 +64,7 @@
 - Supports for VSDB Input and INDIAN REGION [\#19](https://github.com/NCMRWF/UMRider/pull/19) ([arulalant](https://github.com/arulalant))
 - user defined file names; convert to grib1 option; grib2ctl option; g2ctl option [\#9](https://github.com/NCMRWF/UMRider/pull/9) ([arulalant](https://github.com/arulalant))
 - Supports for 12 UTC 5 days long forecast [\#1](https://github.com/NCMRWF/UMRider/pull/1) ([arulalant](https://github.com/arulalant))
+- added setGrib2TableParameters option in setup.cfg file [\#70](https://github.com/NCMRWF/UMRider/pull/70) ([arulalant](https://github.com/arulalant))
 
 
 
