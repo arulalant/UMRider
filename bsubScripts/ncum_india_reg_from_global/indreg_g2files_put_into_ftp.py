@@ -22,7 +22,7 @@ def putintoftp(today, outpath, oftype, utc):
         
     gfiles = [f for f in os.listdir(outpath) if f.endswith('.grib2') if f.startswith(prefix)]
     
-    if oftype == 'analysis': gfiles = [for f in gfiles if utc.zfill(3)+'hr' in f]
+    if oftype == 'analysis': gfiles = [f for f in gfiles if utc.zfill(3)+'hr' in f]
     
     # do scp the grib2 files to ftp_server 
     cmd = 'ssh ncmlogin3 "ssh %s mkdir -p /data/ftp/pub/outgoing/IND_REGION/NCUM_IND/0.25/%s"' % (ftp_server, today)
