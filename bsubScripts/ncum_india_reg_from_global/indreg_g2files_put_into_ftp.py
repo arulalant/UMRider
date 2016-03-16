@@ -11,7 +11,13 @@
 import os, sys, getopt, subprocess
 import multiprocessing as mp
 
-
+def push2ftp(gfile):
+    global date, ftp_server
+    cmd = 'ssh ncmlogin3 "scp -r %s %s:/data/ftp/pub/outgoing/IND_REGION/NCUM_IND/0.25/%s/"' % (gfile, ftp_server, date)
+    print cmd
+    subprocess.call(cmd, shell=True)
+# end of def push2ftp(gfile):
+    
 def putintoftp(today, outpath, oftype, utc):
     cdir = os.getcwd()
     os.chdir(outpath)
@@ -32,20 +38,12 @@ def putintoftp(today, outpath, oftype, utc):
     except Exception as e:
         print "Folder already exists", e
     
-    
-    def push2ftp(gfile):
-        global today, ftp_server
-        cmd = 'ssh ncmlogin3 "scp -r %s %s:/data/ftp/pub/outgoing/IND_REGION/NCUM_IND/0.25/%s/"' % (gfile, ftp_server, today)
-        print cmd
-        subprocess.call(cmd, shell=True)
-    # end of def push2ftp(gfile):
-    
     ## get the no of created fcst files  
     nprocesses = len(gfiles)        
     # parallel begin 
     pool = mp.Pool(nprocesses)
     print "Creating %d (non-daemon) workers and jobs in push2ftp process." % nprocesses
-    results = pool.map(doShuffleVarsInOrder, gfiles)    
+    results = pool.map(push2ftp, gfiles)    
     # closing and joining master pools
     pool.close()     
     pool.join()
