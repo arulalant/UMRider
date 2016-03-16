@@ -43,7 +43,7 @@ def createTarBalls(path, today, utc, stephr=3):
         yanal_files.append(yf)
     # end of for yf in yanal:
     if not os.path.exists('../TarFiles'): os.makedirs('../TarFiles')
-    
+    print "currnet path : ", os.getcwd()
     # normal "$ tar cvjf fcst_20160223.tar.bz2 *fcst*grb2" cmd takes 6 minutes 43 seconds.
     #
     # where as in parallel bz2, "$ tar -c *fcst*grb2 | pbzip2 -v -c -f -p32 -m500 > fcst_20160223_parallel.tar.bz2" cmd takes only just 23 seconds alone, with 32 processors and 500MB RAM memory.
@@ -54,7 +54,7 @@ def createTarBalls(path, today, utc, stephr=3):
     print cmd
     subprocess.call(cmd, shell=True)
     # create forecast files tar file in parallel
-    cmd = "tar -c ncum_fcst*.grb2 | %s  -v  -c -f -p32 -m500 > %s/ncum_fcst_%s.tar.bz2" % (pbzip2, '../TarFiles', today)
+    cmd = "tar -c ./ncum_fcs*%s*.grb2 | %s  -v  -c -f -p32 -m500 > %s/ncum_fcst_%s.tar.bz2" % (today, pbzip2, '../TarFiles', today)
     print cmd
     subprocess.call(cmd, shell=True)
     
@@ -62,17 +62,15 @@ def createTarBalls(path, today, utc, stephr=3):
     cmd = "rm -rf %s" % anal_files
     print cmd
     subprocess.call(cmd, shell=True)
-    cmd = "rm -rf ncum_fcst_%s*.grb2" % today
+    cmd = "rm -rf ncum_fcs*%s*.grb2" % today
     print cmd
     subprocess.call(cmd, shell=True)
     
     # remove yesterday's empty directory, not today directory!!!
     yDayPath = os.path.join(path, '../%s' % yDay)
-    if os.path.exist(yDayPath):    
-        if not os.listdir(yDayPath): os.rmdir(yDayPath)    
+    if os.path.exists(yDayPath):    
+        if not os.listdir(yDayPath): os.rmdir(yDayPath)   
         
-    os.chdir(cdir)  
-    
     tarpath = os.path.abspath('../TarFiles')
     # do scp the tar files to ftp_server and nkn_server
     cmd = 'ssh ncmlogin3 "scp -p %s/ncum_anal_%s.tar.bz2  %s:/data/ftp/pub/outgoing/NCUM_INCOIS/Hycom/"' % (tarpath, today, ftp_server)
@@ -88,6 +86,8 @@ def createTarBalls(path, today, utc, stephr=3):
     cmd = 'ssh ncmlogin3 "scp -p %s/ncum_fcst_%s.tar.bz2  %s:NCUM/hycom/"' % (tarpath, today, nkn_server)
     print cmd
     subprocess.call(cmd, shell=True)
+    
+    os.chdir(cdir)  
 # end of def createTarBalls(path, today, ...):
 
 if __name__ == '__main__':
