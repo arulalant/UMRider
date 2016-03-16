@@ -65,6 +65,7 @@
 - Supports for VSDB Input and INDIAN REGION [\#19](https://github.com/NCMRWF/UMRider/pull/19) ([arulalant](https://github.com/arulalant))
 - user defined file names; convert to grib1 option; grib2ctl option; g2ctl option [\#9](https://github.com/NCMRWF/UMRider/pull/9) ([arulalant](https://github.com/arulalant))
 - Supports for 12 UTC 5 days long forecast [\#1](https://github.com/NCMRWF/UMRider/pull/1) ([arulalant](https://github.com/arulalant))
+- fixed bugs in callback scripts of osf, hycom [\#72](https://github.com/NCMRWF/UMRider/pull/72) ([arulalant](https://github.com/arulalant))
 - Fixed bugs in bsub scripts [\#71](https://github.com/NCMRWF/UMRider/pull/71) ([arulalant](https://github.com/arulalant))
 - added setGrib2TableParameters option in setup.cfg file [\#70](https://github.com/NCMRWF/UMRider/pull/70) ([arulalant](https://github.com/arulalant))
 
