@@ -1,10 +1,11 @@
 # Change Log
 
-## [v1.0.1](https://github.com/NCMRWF/UMRider/tree/v1.0.1) (2016-03-15)
+## [v1.0.1](https://github.com/NCMRWF/UMRider/tree/v1.0.1) (2016-03-16)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.0...v1.0.1)
 
 **Implemented enhancements:**
 
+- Set Centre Code from user defined config file [\#46](https://github.com/NCMRWF/UMRider/issues/46)
 - Need to create date timestamp directories for loggin [\#35](https://github.com/NCMRWF/UMRider/issues/35)
 - Fix unknown standard variable names in iris load [\#26](https://github.com/NCMRWF/UMRider/issues/26)
 - we should include horizontal resolution in grib2 file name [\#24](https://github.com/NCMRWF/UMRider/issues/24)
@@ -64,6 +65,7 @@
 - Supports for VSDB Input and INDIAN REGION [\#19](https://github.com/NCMRWF/UMRider/pull/19) ([arulalant](https://github.com/arulalant))
 - user defined file names; convert to grib1 option; grib2ctl option; g2ctl option [\#9](https://github.com/NCMRWF/UMRider/pull/9) ([arulalant](https://github.com/arulalant))
 - Supports for 12 UTC 5 days long forecast [\#1](https://github.com/NCMRWF/UMRider/pull/1) ([arulalant](https://github.com/arulalant))
+- Fixed bugs in bsub scripts [\#71](https://github.com/NCMRWF/UMRider/pull/71) ([arulalant](https://github.com/arulalant))
 - added setGrib2TableParameters option in setup.cfg file [\#70](https://github.com/NCMRWF/UMRider/pull/70) ([arulalant](https://github.com/arulalant))
 
 
