@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 #BSUB -a poe                  # set parallel operating environment
-#BSUB -J um2grb2              # job name
+#BSUB -J u2g2osf              # job name
 #BSUB -W 06:00                # wall-clock time (hrs:mins)
 #BSUB -n 4                    # number of tasks in job
 #BSUB -q ultra                # queue
