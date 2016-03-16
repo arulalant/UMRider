@@ -126,9 +126,17 @@ if callBackScript is not None:
         raise ValueError("In configure file, callBackScript = %s' path does not exists" % callBackScript)
 # end of if callBackScript is not None:
 
+if os.environ.has_key('UMRIDER_STARTDATE'):
+    startdate = os.environ.get('UMRIDER_STARTDATE')
+    print "startdate is overridden by environment variable UMRIDER_STARTDATE" % startdate
+    
+if os.environ.has_key('UMRIDER_ENDDATE'):
+    enddate = os.environ.get('UMRIDER_ENDDATE')
+    print "enddate is overridden by environment variable UMRIDER_ENDDATE" % enddate    
+    
 # get the environment variable startdate and enddate, if not then get it from setup config file.
-startdate = os.environ.get('UMRIDER_STARTDATE', startdate).strip()
-enddate = os.environ.get('UMRIDER_ENDDATE', enddate).strip()
+startdate = startdate.strip()
+enddate = enddate.strip()
 # get the current date if not specified
 if startdate == 'YYYYMMDD': startdate = time.strftime('%Y%m%d')
 if enddate == 'YYYYMMDD': enddate = time.strftime('%Y%m%d')
