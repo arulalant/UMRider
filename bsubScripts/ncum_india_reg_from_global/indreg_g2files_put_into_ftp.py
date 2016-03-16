@@ -43,7 +43,7 @@ def putintoftp(today, outpath, oftype, utc):
     ## get the no of created fcst files  
     nprocesses = len(gfiles)        
     # parallel begin 
-    pool = mp.pool(nprocesses)
+    pool = mp.Pool(nprocesses)
     print "Creating %d (non-daemon) workers and jobs in push2ftp process." % nprocesses
     results = pool.map(doShuffleVarsInOrder, gfiles)    
     # closing and joining master pools
