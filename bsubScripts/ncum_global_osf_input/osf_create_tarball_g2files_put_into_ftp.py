@@ -34,7 +34,8 @@ def createTarBalls(path, today, utc, stephr=6):
     yanal_files = []
     for yf in yanal:
         # move yesterday's analysis files to today's directory
-        wildcard_anlfile = '../%s/%s .' % (yDay, yf)
+        print "wildcard_anlfile = ", wildcard_anlfile
+        wildcard_anlfile = '../%s/%s' % (yDay, yf)
         if not glob.glob(wildcard_anlfile): continue
         cmd = 'mv %s .' % wildcard_anlfile
         print cmd
@@ -120,7 +121,5 @@ if __name__ == '__main__':
     # create tar balls only if forecast & utc is 00, otherwise skip it!    
     if oftype == 'forecast' and utc == '00': 
         # pass the arg to function  
-        createTarBalls(outpath, date, utc, stephr=6)
-    else:
-        return    
+        createTarBalls(outpath, date, utc, stephr=6)    
     # end of if oftype == 'forecast' and utc == '00': 
