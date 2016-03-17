@@ -11,13 +11,6 @@
 import os, sys, getopt, subprocess
 import multiprocessing as mp
 
-def push2ftp(gfile):
-    global date, ftp_server
-    cmd = 'ssh ncmlogin3 "scp -r %s %s:/data/ftp/pub/outgoing/IND_REGION/NCUM_IND/0.25/%s/"' % (gfile, ftp_server, date)
-    print cmd
-    subprocess.call(cmd, shell=True)
-# end of def push2ftp(gfile):
-    
 def putintoftp(today, outpath, oftype, utc):
     cdir = os.getcwd()
     os.chdir(outpath)
@@ -26,9 +19,10 @@ def putintoftp(today, outpath, oftype, utc):
     elif oftype == 'forecast':
         prefix = 'NCUM_IND_fcs'
         
-    gfiles = [f for f in os.listdir(outpath) if f.endswith('.grib2') if f.startswith(prefix)]
-    
+    # take only grib2 files, not ctl and not idx files.
+    gfiles = [f for f in os.listdir(outpath) if f.endswith('.grib2') if f.startswith(prefix)]    
     if oftype == 'analysis': gfiles = [f for f in gfiles if utc.zfill(3)+'hr' in f]
+    gfiles = [os.path.join(outpath, f) for f in gfiles]
     
     # do scp the grib2 files to ftp_server 
     cmd = 'ssh ncmlogin3 "ssh %s mkdir -p /data/ftp/pub/outgoing/IND_REGION/NCUM_IND/0.25/%s"' % (ftp_server, today)
@@ -37,17 +31,13 @@ def putintoftp(today, outpath, oftype, utc):
         subprocess.call(cmd, shell=True)
     except Exception as e:
         print "Folder already exists", e
-    
-    ## get the no of created fcst files  
-    nprocesses = len(gfiles)        
-    # parallel begin 
-    pool = mp.Pool(nprocesses)
-    print "Creating %d (non-daemon) workers and jobs in push2ftp process." % nprocesses
-    results = pool.map(push2ftp, gfiles)    
-    # closing and joining master pools
-    pool.close()     
-    pool.join()
-    # parallel end  
+        
+    cmd = 'ssh ncmlogin3 "scp -p %s %s:/data/ftp/pub/outgoing/IND_REGION/NCUM_IND/0.25/%s/"' % (gfiles, ftp_server, today)
+    print cmd
+    try:
+        subprocess.call(cmd, shell=True)   
+    except Exception as e:
+        print "Folder already exists", e
     
     os.chdir(cdir)
 # end of def renameFiles(outpath):
