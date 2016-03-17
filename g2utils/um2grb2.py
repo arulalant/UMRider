@@ -57,7 +57,7 @@ latest Update : 11-Mar-2016
 """
 
 # -- Start importing necessary modules
-import os, sys, time, subprocess
+import os, sys, time, subprocess, errno
 import numpy 
 import iris
 import gribapi
@@ -288,7 +288,26 @@ _depedendantVars_ = {
                         ('surface_downwelling_longwave_flux', 'm01s02i207')]
 }
                                             
-# create a class #1 for capturing stdin, stdout and stderr
+
+def createDirWhileParallelRacing(folder_location):
+    # got same problem as below.
+    # http://stackoverflow.com/questions/1586648/race-condition-creating-folder-in-python
+    # So following this kind of try stuff.
+    try:
+        os.makedirs(folder_location)
+        print "created folder", folder_location
+    except OSError, e:
+        if e.errno == errno.EEXIST and os.path.isdir(folder_location):
+            # File exists, and it's a directory,
+            # another process beat us to creating this dir, that's OK.
+            print "folder already exists"
+            pass
+        else:
+            # Our target dir exists as a file, or different error,
+            # reraise the error!
+            raise
+# end of def createDirWhileParallelRacing(folder_location):
+
 class myLog():
     """
     A simple class with destructor and construtor for logging the standatd I/O
@@ -308,7 +327,7 @@ class myLog():
         self.log.close()
 # end of class #1
 
-# start definition #1
+
 def getCubeData(umFname):
     """
     This definition module reads the input file name and its location as a
@@ -2298,7 +2317,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     _current_date_ = date
     print "\n _current_date_ is %s" % _current_date_
     logpath = os.path.join(_tmpDir_, _current_date_)
-    if not os.path.exists(logpath): os.makedirs(logpath)
+    createDirWhileParallelRacing(logpath)
     logfile = 'um2grb2_fcst_stdout_'+ _current_date_ +'_' + utc +'Z.log'
     sys.stdout = myLog(os.path.join(logpath, logfile))
     
@@ -2346,10 +2365,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     # end of if not instatus:
     
     _opPath_ = os.path.join(outPath, _current_date_)
-    if not os.path.exists(_opPath_):  
-        os.makedirs(_opPath_)
-        print "Created directory", _opPath_
-    # end of if not os.path.exists(_opPath_):  
+    createDirWhileParallelRacing(_opPath_)
     
     if not isinstance(targetGridResolution, (int, float)):
         raise ValueError("targetGridResolution must be either int or float")
@@ -2463,7 +2479,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     _current_date_ = date
     print "\n _current_date_ is %s" % _current_date_
     logpath = os.path.join(_tmpDir_, _current_date_)
-    if not os.path.exists(logpath): os.makedirs(logpath)
+    createDirWhileParallelRacing(logpath)
     logfile = 'um2grb2_anal_stdout_'+ _current_date_ +'_' + utc +'Z.log'
     sys.stdout = myLog(os.path.join(logpath, logfile))
     
@@ -2510,10 +2526,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     # end of if not instatus:
     
     _opPath_ = os.path.join(outPath, _current_date_)
-    if not os.path.exists(_opPath_):  
-        os.makedirs(_opPath_)
-        print "Created directory", _opPath_
-    # end of if not os.path.exists(_opPath_):  
+    createDirWhileParallelRacing(_opPath_)
     
     if not isinstance(targetGridResolution, (int, float)):
         raise ValueError("targetGridResolution must be either int or float")
