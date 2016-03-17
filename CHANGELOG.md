@@ -65,6 +65,7 @@
 - Supports for VSDB Input and INDIAN REGION [\#19](https://github.com/NCMRWF/UMRider/pull/19) ([arulalant](https://github.com/arulalant))
 - user defined file names; convert to grib1 option; grib2ctl option; g2ctl option [\#9](https://github.com/NCMRWF/UMRider/pull/9) ([arulalant](https://github.com/arulalant))
 - Supports for 12 UTC 5 days long forecast [\#1](https://github.com/NCMRWF/UMRider/pull/1) ([arulalant](https://github.com/arulalant))
+- scp in serial mode for ind reg [\#75](https://github.com/NCMRWF/UMRider/pull/75) ([arulalant](https://github.com/arulalant))
 - added createDirWhileParallelRacing function [\#74](https://github.com/NCMRWF/UMRider/pull/74) ([arulalant](https://github.com/arulalant))
 - fixed bugs in ftp ssh scripts [\#73](https://github.com/NCMRWF/UMRider/pull/73) ([arulalant](https://github.com/arulalant))
 - fixed bugs in callback scripts of osf, hycom [\#72](https://github.com/NCMRWF/UMRider/pull/72) ([arulalant](https://github.com/arulalant))
