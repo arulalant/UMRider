@@ -33,9 +33,9 @@ def createTarBalls(path, today, utc, stephr=6):
     # store available yesterday anal_files
     yanal_files = []
     for yf in yanal:
-        # move yesterday's analysis files to today's directory
-        print "wildcard_anlfile = ", wildcard_anlfile
+        # move yesterday's analysis files to today's directory        
         wildcard_anlfile = '../%s/%s' % (yDay, yf)
+        print "wildcard_anlfile = ", wildcard_anlfile
         if not glob.glob(wildcard_anlfile): continue
         cmd = 'mv %s .' % wildcard_anlfile
         print cmd
