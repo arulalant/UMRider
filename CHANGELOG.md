@@ -1,6 +1,6 @@
 # Change Log
 
-## [v1.0.1](https://github.com/NCMRWF/UMRider/tree/v1.0.1) (2016-03-17)
+## [v1.0.1](https://github.com/NCMRWF/UMRider/tree/v1.0.1) (2016-03-21)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.0...v1.0.1)
 
 **Implemented enhancements:**
@@ -28,6 +28,7 @@
 
 - Fix g2ctl.pl option & forecast reference, bounds time for analysis files [\#39](https://github.com/NCMRWF/UMRider/issues/39)
 - sea ice concentration has full of zero [\#33](https://github.com/NCMRWF/UMRider/issues/33)
+- Soil Moisture Volume min & max value is zero in IndRegion [\#76](https://github.com/NCMRWF/UMRider/issues/76)
 
 **Closed issues:**
 
@@ -37,6 +38,7 @@
 
 **Merged pull requests:**
 
+- added \_precipVars\_ ; fixed bug \#76 [\#77](https://github.com/NCMRWF/UMRider/pull/77) ([arulalant](https://github.com/arulalant))
 - update in docstring [\#67](https://github.com/NCMRWF/UMRider/pull/67) ([arulalant](https://github.com/arulalant))
 - cleanup [\#66](https://github.com/NCMRWF/UMRider/pull/66) ([arulalant](https://github.com/arulalant))
 - 	bug fixes; update python path; update doc [\#65](https://github.com/NCMRWF/UMRider/pull/65) ([arulalant](https://github.com/arulalant))
