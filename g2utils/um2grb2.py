@@ -207,6 +207,19 @@ _orderedVars_ = {'PressureLevel': [
 ('surface_altitude', 'm01s00i033')],
 }
 
+#Define _precipVars_
+# The following vars should contains only precipitation, rainfall, snow 
+# variables, those whose regrid extrapolate should be only in 'linear' mode
+# and not in 'mask' mode, and should not have -ve values.
+_precipVars_ = [('precipitation_amount', 'm01s05i226'),
+              ('stratiform_snowfall_amount', 'm01s04i202'),
+              ('convective_snowfall_amount', 'm01s05i202'),
+              ('stratiform_rainfall_amount', 'm01s04i201'),
+              ('convective_rainfall_amount', 'm01s05i201'),
+              ('rainfall_flux', 'm01s05i214'),
+              ('snowfall_flux', 'm01s05i215'),
+              ('precipitation_flux', 'm01s05i216')]
+
 # Define _accumulationVars_
 # The following variables should be 6-hourly accumulated, but model
 # produced as 1-hourly accumulation. So we need to sum of 6-hours data to 
@@ -327,8 +340,7 @@ class myLog():
         self.log.close()
 # end of class #1
 
-
-def getCubeData(umFname):
+def getCubeData(umFname, **kwarg):
     """
     This definition module reads the input file name and its location as a
     string and it returns the data as an Iris Cube.
@@ -337,14 +349,19 @@ def getCubeData(umFname):
     :param umFname: UM fieldsfile filename passed as a string
     :return: Data for corresponding data file in Iris cube format
     
+    KWarg : 
+        constraints: multiple of iris.Constraint (by default None)
+        
     Note : loaded cube may be update by callback function 
             "update_cf_standard_name" of ncum_load_rules module.
     """
+
+    allconstraints = kwarg.get('constraints', None)        
     # check cf_standard_name of cubes and update it if necessary while loading 
-    cubes = iris.load(umFname, callback=update_cf_standard_name)
-    
+    cubes = iris.load(umFname, constraints=allconstraints, 
+                         callback=update_cf_standard_name)    
     return cubes
-# end of definition #1
+# end of def getCubeData(umFname, **kwarg):
 
 def getYdayStr(today):
     """
@@ -942,12 +959,13 @@ def getCubeAttr(tmpCube):
     Original by MNRS
     """
     stdNm = tmpCube.standard_name
+    stash = str(tmpCube.attributes['STASH'])
     fcstTm = tmpCube.coord('forecast_period')
     refTm = tmpCube.coord('forecast_reference_time')
     lat = tmpCube.coord('latitude')
     lon = tmpCube.coord('longitude')
 
-    return stdNm, fcstTm, refTm, lat, lon
+    return stdNm, stash, fcstTm, refTm, lat, lon
 # end of definition #3
 
 # create a class #2 to initiate mp daemon processes
@@ -1036,6 +1054,7 @@ def _convert2VolumetricMoisture(cube, levels=[100.0, 250.0, 650.0, 1000.0]):
     
     ## Link : http://www.researchgate.net/publication/257940913
     
+    print "before volumetirc", cube.data.min(), cube.data.max()
     if isinstance(levels, (list, tuple)):   
         # This block of code for 4 different layers 
         for idx, dval in enumerate(levels):
@@ -1044,7 +1063,7 @@ def _convert2VolumetricMoisture(cube, levels=[100.0, 250.0, 650.0, 1000.0]):
         # this block of code for single layer 
         cube.data /= levels
     # end of for idx, denominator in enumerate([...]):
-    
+    print "after volumetirc", cube.data.min(), cube.data.max()
     # WRF-WPS requires minimum vlaue as 0.005. If it is < 0.005 then 
     # Noah thorws segmentation error due to low value of soil moisture. 
     # Reference : look at the lines from 1219 t0 1260 in the below link
@@ -1102,7 +1121,8 @@ def regridAnlFcstFiles(arg):
            _inDataPath_, _opPath_, _preExtension_, _accumulationVars_, _ncfilesVars_, \
            _convertVars_, _requiredLat_, _requiredLon_, _doRegrid_, __utc__, \
            __anlFileNameStructure__, __fcstFileNameStructure__, __LPRINT__, \
-           __start_step_long_fcst_hour__, __anl_step_hour__, _requiredPressureLevels_ 
+           __start_step_long_fcst_hour__, __anl_step_hour__, \
+           _precipVars_, _requiredPressureLevels_ 
    
     fpname, hr = arg 
     
@@ -1367,20 +1387,27 @@ def regridAnlFcstFiles(arg):
                                            actionIntervals=str(start_step_fcst_hour)+' hour', 
                                   tpoint=timebound, fpoint=fcstbound)
             # end of if doMultiHourlyMean and tmpCube.coords('forecast_period')[0].shape[0] > 1:     
-
+            print "before regrid", varName, tmpCube.data.min(), tmpCube.data.max()
             # interpolate it as per targetGridResolution deg resolution by 
-            # setting up sample points based on coord
-            print "\n Regridding data to %sx%s degree spatial resolution \n" % (_targetGridRes_, _targetGridRes_)
-            if __LPRINT__: print "From shape", tmpCube.shape 
+            # setting up sample points based on coord         
             if _doRegrid_:
+                print "\n Regridding data to %sx%s degree spatial resolution \n" % (_targetGridRes_, _targetGridRes_)
+                if __LPRINT__: print "From shape", tmpCube.shape
+                
+                if (varName, varSTASH) in _precipVars_:
+                    # DO NOT APPLY iris.analysis.Linear(extrapolation_mode='mask'), 
+                    # which writes nan every where for the snowfall_flux,  
+                    # rainfall_flux, precipitation_flux. So donot apply that.         
+                    exmode = 'linear'
+                else:
+                    # In general all the other variables should not be 
+                    # extrapolated over masked grid points.
+                    exmode = 'mask'
                 try:
                     # This lienar interpolate will do extra polate over ocean even 
                     # though original data doesnt have values over ocean and wise versa.
-                    # So lets be aware of this.
-                    # DO NOT APPLY iris.analysis.Linear(extrapolation_mode='mask'), 
-                    # which writes nan every where for the snowfall_flux,  
-                    # rainfall_flux, precipitation_flux. So donot apply that.               
-                    regdCube = tmpCube.interpolate(_targetGrid_, iris.analysis.Linear())
+                    # So lets be aware of this.                    
+                    regdCube = tmpCube.interpolate(_targetGrid_, iris.analysis.Linear(extrapolation_mode=exmode))
                 except Exception as e:
                     print "ALERT !!! Error while regridding!! %s" % str(e)
                     print " So skipping this without saving data"
@@ -1391,19 +1418,20 @@ def regridAnlFcstFiles(arg):
                 regdCube = tmpCube
             # end of if _doRegrid_:
             
+            if (varName, varSTASH) in _precipVars_:
+                # Since we are not using 'mask' option for extrapolate while 
+                # doing linear regrid, which bring -ve values after regrid in 
+                # extrapolated grids. So lets make it as 0 as minimum value.
+                regdCube.data[regdCube.data < 0.0] = 0.0
+            # end of if (varName, varSTASH) in _precipVars_:
+            
             if (varName, varSTASH) in [('land_binary_mask', 'm01s00i030')]:
                 regdCube.data[regdCube.data > 0] = 1
                 # trying to keep values either 0 or 1. Not fraction!
                 regdCube.data = numpy.ma.array(regdCube.data, dtype=numpy.int)
             # end of if (varName, varSTASH) in [('land_binary_mask', 'm01s00i030')]:
             
-            if (varName, varSTASH) not in [('snowfall_flux', 'm01s05i215'),
-                          ('precipitation_flux', 'm01s05i216'),
-                          ('rainfall_flux', 'm01s05i214'),
-                          ('stratiform_snowfall_amount', 'm01s04i202'),
-                          ('convective_snowfall_amount', 'm01s05i202'),
-                          ('stratiform_rainfall_amount', 'm01s04i201'),
-                          ('convective_rainfall_amount', 'm01s05i201'),]:
+            if exmode == 'mask':
                 # For the above set of variables we shouldnot convert into 
                 # masked array. Otherwise its full data goes as nan.                
                 # convert data into masked array
@@ -1425,16 +1453,16 @@ def regridAnlFcstFiles(arg):
                 # by default g2ctl.pl generate "undefr 9.999e+20", so we must 
                 # keep the fill_value / missingValue as 9.999e+20 only.
                 numpy.ma.set_fill_value(regdCube.data, 9.999e+20)
-            # end of if varName not in ['rainfall_flux', 'precipitation_flux', 'snowfall_flux']:            
+            # end of if exmode == 'mask':       
             print "regrid done"
-             
+            print "after regrid", varName, regdCube.data.min(), regdCube.data.max() 
             if __LPRINT__: print "To shape", regdCube.shape  
                 
             regdCube.attributes = tmpCube.attributes
             if __LPRINT__: print "set the attributes back to regdCube"              
             if __LPRINT__: print "regdCube => ", regdCube
             # get the regridded lat/lons
-            stdNm, fcstTm, refTm, lat1, lon1 = getCubeAttr(regdCube)
+            stdNm, stash, fcstTm, refTm, lat1, lon1 = getCubeAttr(regdCube)
             if __LPRINT__: print "Got attributes from regdCube"
             # save the cube in append mode as a grib2 file       
 
@@ -1675,7 +1703,7 @@ def doShuffleVarsInOrder(fpath):
     global  _orderedVars_, _preExtension_, _ncfilesVars_, _inDataPath_, \
            _maskOverOceanVars_, _aod_pseudo_level_var_, _createGrib2CtlIdxFiles_, \
            _createGrib1CtlIdxFiles_, _convertGrib2FilestoGrib1Files_, \
-           _convertVars_, __outFileType__, __grib1FilesNameSuffix__, \
+           _requiredLat_, _convertVars_, __outFileType__, __grib1FilesNameSuffix__, \
            __removeGrib2FilesAfterGrib1FilesCreated__, _removeVars_, \
            __start_step_long_fcst_hour__, g2ctl, grib2ctl, gribmap, cnvgrib
     
@@ -1771,8 +1799,27 @@ def doShuffleVarsInOrder(fpath):
     # store the land_binary_mask data into temporary variable
     land_binary_mask_var = [var for var in orderedVars 
                             if var.standard_name == 'land_binary_mask']
-                                
-    if _maskOverOceanVars_ and land_binary_mask_var:
+        
+    # Define lat min, max of 60S to 60N and 30S to 30N
+    lat_60N_start_val, lat_60N_end_val = -60, 60
+    lat_30N_start_val, lat_30N_end_val = -30, 30
+    if _requiredLat_ is not None:
+        # User has defined their own sub region.
+        # So lets set min, max lat as user defined in case it falls within 
+        # subdomain of 60S to 60N and 30S to 30N.
+        if _requiredLat_[0] > -60: lat_60N_start_val = _requiredLat_[0]
+        if _requiredLat_[-1] < 60: lat_60N_end_val = _requiredLat_[-1]
+        if _requiredLat_[0] > -30: lat_30N_start_val = _requiredLat_[0]
+        if _requiredLat_[-1] < 30: lat_30N_end_val = _requiredLat_[-1]
+        # If user defined regions is out of 60S to 60N region, then we no need 
+        # to adjust  the soil moisture min with 0.0051 and soil temperature 
+        # min with its next mean.
+        if _requiredLat_[0] < -60 or _requiredLat_[0] > 60: lat_60N_start_val = None
+        # in case we endup with lat_60N_start_val as None, then we no need to 
+        # correct min values of soil moisture and temperature.
+    # end of if _requiredLat_ is not None:
+                          
+    if _maskOverOceanVars_ and land_binary_mask_var and lat_60N_start_val is not None:
         
         land_binary_mask = land_binary_mask_var[0].data < 1
         # here we are masking less than 1. we can do just simply == 0 also, 
@@ -1780,19 +1827,24 @@ def doShuffleVarsInOrder(fpath):
         # ride out of this fraction values, just mask out < 1.
         # get the shapes
         lsh = land_binary_mask.shape
+
         # Define constraint to extract latitude from 60S to 60N
-        lat_60S_60N = iris.Constraint(latitude=lambda cell: -60 < cell < 60)
-        lat_30S_30N = iris.Constraint(latitude=lambda cell: -30 < cell < 30)
+        lat_60S_60N = iris.Constraint(latitude=lambda cell: lat_60N_start_val < cell < lat_60N_end_val)
+        lat_30S_30N = iris.Constraint(latitude=lambda cell: lat_30N_start_val < cell < lat_30N_end_val)
+            
         for vidx, var in enumerate(orderedVars):
             vname = var.standard_name if var.standard_name else var.long_name
             if vname in _maskOverOceanVars_:    
                 # Lets reset zero values lies within 60S to 60N band
                 # with 0.0051, before ocean region has been masked.
                 # Now extract data only lies between 60S to 60N
+                
                 var_60S_60N = var.extract(lat_60S_60N)
+                print "before resetting ", vname, var_60S_60N.data.min(), var_60S_60N.data.max()
                 if vname == 'volumetric_moisture_of_soil_layer':
                     # reset the minimum values as 0.0051
                     var_60S_60N.data[var_60S_60N.data < 0.005] = 0.0051
+                    print "resetting min of volumetric_moisture_of_soil_layer as ", var_60S_60N.data.min()
                 elif vname == 'soil_temperature':
                     # We should assign min of extra tropical band !
                     # because polar minimum might have been assigned 
@@ -1810,6 +1862,7 @@ def doShuffleVarsInOrder(fpath):
                     # This will solve the abnormal temperature values over 
                     # small islands in tropical ocean regions.
                     var_60S_60N.data[var_60S_60N.data <= var_60S_60N.data.min()] = nmean
+                    print  "resetting min of soil_temperature as nmean", nmean
                 # end of if vname == 'volumetric_moisture_of_soil_layer':
                 
                 # extract latitude coords of 60S to 60N data 
@@ -1842,9 +1895,9 @@ def doShuffleVarsInOrder(fpath):
                     # (0-sea, 1-land) and set it to the required variables. 
                     var.data = numpy.ma.masked_where(land_binary_mask, var.data)
                 # end of if lsh != vsh:
-                print "updated ocean masked vars"
+                print "updated ocean masked vars",var.data.min(), var.data.max()
         # end of for vidx, var in enumerate(orderedVars):
-    # end of if _maskOverOceanVars_:
+    # end of if _maskOverOceanVars_ and ...:
     
     # removing land_binary_mask_var from out files if it is forecast grib2 file
     # why do we need to repeat the same static variables in all the 
@@ -2366,13 +2419,12 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     
     _opPath_ = os.path.join(outPath, _current_date_)
     createDirWhileParallelRacing(_opPath_)
-    
-    if not isinstance(targetGridResolution, (int, float)):
-        raise ValueError("targetGridResolution must be either int or float")
         
     if targetGridResolution is None:
         _doRegrid_ = False  
     else:
+        if not isinstance(targetGridResolution, (int, float)):
+            raise ValueError("targetGridResolution must be either int or float")
         # define default global lat start, lon end points
         slat, elat = (-90., 90.)
         # define default global lon start, lon end points 
@@ -2528,11 +2580,11 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     _opPath_ = os.path.join(outPath, _current_date_)
     createDirWhileParallelRacing(_opPath_)
     
-    if not isinstance(targetGridResolution, (int, float)):
-        raise ValueError("targetGridResolution must be either int or float")
     if targetGridResolution is None:
         _doRegrid_ = False  
     else:
+        if not isinstance(targetGridResolution, (int, float)):
+            raise ValueError("targetGridResolution must be either int or float")
         # define default global lat start, lon end points
         slat, elat = (-90., 90.)
         # define default global lon start, lon end points 
