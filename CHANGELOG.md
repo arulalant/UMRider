@@ -1,6 +1,6 @@
 # Change Log
 
-## [v1.0.1](https://github.com/NCMRWF/UMRider/tree/v1.0.1) (2016-03-21)
+## [v1.0.1](https://github.com/NCMRWF/UMRider/tree/v1.0.1) (2016-03-22)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.0...v1.0.1)
 
 **Implemented enhancements:**
@@ -21,23 +21,26 @@
 - Need to support for IMD MFI Input [\#54](https://github.com/NCMRWF/UMRider/issues/54)
 - support for call back script [\#53](https://github.com/NCMRWF/UMRider/issues/53)
 - support for tar ball  [\#41](https://github.com/NCMRWF/UMRider/issues/41)
+- Fix g2ctl.pl option & forecast reference, bounds time for analysis files [\#39](https://github.com/NCMRWF/UMRider/issues/39)
 - Need to extract 3 hourly data and write into 3 hourly files [\#16](https://github.com/NCMRWF/UMRider/issues/16)
 - create tar.bz2 in parallel using pbzip2 [\#61](https://github.com/NCMRWF/UMRider/pull/61) ([arulalant](https://github.com/arulalant))
 
 **Fixed bugs:**
 
-- Fix g2ctl.pl option & forecast reference, bounds time for analysis files [\#39](https://github.com/NCMRWF/UMRider/issues/39)
 - sea ice concentration has full of zero [\#33](https://github.com/NCMRWF/UMRider/issues/33)
 - Soil Moisture Volume min & max value is zero in IndRegion [\#76](https://github.com/NCMRWF/UMRider/issues/76)
+- Fix g2ctl.pl option & forecast reference, bounds time for analysis files [\#39](https://github.com/NCMRWF/UMRider/issues/39)
 
 **Closed issues:**
 
 - custom date formate in outfile name [\#11](https://github.com/NCMRWF/UMRider/issues/11)
 - Grib2 to Grib1 conversion option [\#8](https://github.com/NCMRWF/UMRider/issues/8)
 - support for custom out file names [\#7](https://github.com/NCMRWF/UMRider/issues/7)
+- Keep OSF & Hycom archive analysis for 3 days  [\#78](https://github.com/NCMRWF/UMRider/issues/78)
 
 **Merged pull requests:**
 
+- added anl\_aavars\_reference\_time option [\#79](https://github.com/NCMRWF/UMRider/pull/79) ([arulalant](https://github.com/arulalant))
 - added \_precipVars\_ ; fixed bug \#76 [\#77](https://github.com/NCMRWF/UMRider/pull/77) ([arulalant](https://github.com/arulalant))
 - update in docstring [\#67](https://github.com/NCMRWF/UMRider/pull/67) ([arulalant](https://github.com/arulalant))
 - cleanup [\#66](https://github.com/NCMRWF/UMRider/pull/66) ([arulalant](https://github.com/arulalant))
