@@ -99,6 +99,8 @@ __anl_step_hour__ = 6
 __start_step_long_fcst_hour__ = 6
 # maximum long forecast hours produced by model
 __max_long_fcst_hours__ = 240
+# analysis reference time applicable only to average/accumulation vars.
+__anl_aavars_reference_time__ = 'shortforecast'
 # grib1 file suffix
 __grib1FilesNameSuffix__ = '.grib1'
 # flag for removing grib2 files after grib1 has been converted 
@@ -1122,7 +1124,7 @@ def regridAnlFcstFiles(arg):
            _convertVars_, _requiredLat_, _requiredLon_, _doRegrid_, __utc__, \
            __anlFileNameStructure__, __fcstFileNameStructure__, __LPRINT__, \
            __start_step_long_fcst_hour__, __anl_step_hour__, \
-           _precipVars_, _requiredPressureLevels_ 
+           _precipVars_, _requiredPressureLevels_, __anl_aavars_reference_time__ 
    
     fpname, hr = arg 
     
@@ -1194,13 +1196,19 @@ def regridAnlFcstFiles(arg):
         ### But if we want to set access time point as per out file hour's
         ### ref time, then we can enable the following options. otherwise 
         ### disable it, because 'cbound' will works for ctl file.
-        timebound = 'lbound'        # TESTED, OK, on 23-02-2016
-        fcstbound = 'lbound'        # TESTED, OK, on 23-02-2016
-        ## g2ctl -verf option bring end forecast time bounds to set time in 
-        ## ctl file. So we no need to pass options like -0 or -b.
-        ## here lbound in both timebound and fcstbound will give correct 
-        ## time reference and forecast time in both grib2 files and grads 
-        ## control files.           # TESTED, OK, on 23-02-2016
+        if __anl_aavars_reference_time__ == 'shortforecast':
+            timebound = 'lbound'        # TESTED, OK, on 23-02-2016
+            fcstbound = 'lbound'        # TESTED, OK, on 23-02-2016
+            ## g2ctl -verf option bring end forecast time bounds to set time in 
+            ## ctl file. So we no need to pass options like -0 or -b.
+            ## here lbound in both timebound and fcstbound will give correct 
+            ## time reference and forecast time in both grib2 files and grads 
+            ## control files.           # TESTED, OK, on 23-02-2016
+        elif __anl_aavars_reference_time__ == 'analysis':
+            timebound = 'rbound'        # TESTED, OK, on 22-03-2016
+            fcstbound = 'lbound'        # TESTED, OK, on 22-03-2016
+            ## In this option, we must pass -0 option to g2ctl and gribmap.
+            ## Otherwise, it will make 2 time points in ctl file.
     # end of if dtype == 'fcst':
     
     # Note : if we are not correcting ana, fcst fcstbound as above, in g2ctl
@@ -1705,7 +1713,8 @@ def doShuffleVarsInOrder(fpath):
            _createGrib1CtlIdxFiles_, _convertGrib2FilestoGrib1Files_, \
            _requiredLat_, _convertVars_, __outFileType__, __grib1FilesNameSuffix__, \
            __removeGrib2FilesAfterGrib1FilesCreated__, _removeVars_, \
-           __start_step_long_fcst_hour__, g2ctl, grib2ctl, gribmap, cnvgrib
+           __start_step_long_fcst_hour__, g2ctl, grib2ctl, gribmap, cnvgrib, \
+           __anl_aavars_reference_time__
     
     try:        
         f = iris.load(fpath)
@@ -2044,10 +2053,15 @@ def doShuffleVarsInOrder(fpath):
         ## By default g2ctl takes -verf option, same option we are passing 
         ## here to make sure that in future it will not affect.
         ctlfile = open(g2filepath+'.ctl', 'w')
-        # create ctl & idx files for forecast file
-        # by default -verf as passed which takes end time of fcst bounds to set as base time.
-        subprocess.call([g2ctl, '-ts6hr', '-verf', g2filepath], stdout=ctlfile)
-        subprocess.call([gribmap, '-i', g2filepath+'.ctl'])                
+        # create ctl & idx files for forecast file        
+        if __outFileType__ in ['ana', 'anl'] and __anl_aavars_reference_time__ == 'analysis':
+            # -0 will set the base reference time as analysis utc time. 
+            subprocess.call([g2ctl, '-ts6hr', '-0', g2filepath], stdout=ctlfile)
+            subprocess.call([gribmap, '-0', '-i', g2filepath+'.ctl'])   
+        else:
+            # by default -verf as passed which takes end time of fcst bounds to set as base time.
+            subprocess.call([g2ctl, '-ts6hr', '-verf', g2filepath], stdout=ctlfile)
+            subprocess.call([gribmap, '-i', g2filepath+'.ctl'])                
         print "Successfully created control and index file using g2ctl !", g2filepath+'.ctl'
     # end of if __removeGrib2FilesAfterGrib1FilesCreated__:    
 # end of def doShuffleVarsInOrder(fpath):
@@ -2479,7 +2493,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
        __LPRINT__, __utc__, __outFileType__, __grib1FilesNameSuffix__, \
        __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, \
        _removeVars_, __anl_step_hour__, _requiredPressureLevels_, \
-       __setGrib2TableParameters__
+       __setGrib2TableParameters__, __anl_aavars_reference_time__
            
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -2492,6 +2506,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     longitude = kwarg.get('longitude', None)
     pressureLevels = kwarg.get('pressureLevels', None)
     anl_step_hour = kwarg.get('anl_step_hour', 6)
+    anl_aavars_reference_time = kwarg.get('anl_aavars_reference_time', 'shortforecast')
     anlFileNameStructure = kwarg.get('anlFileNameStructure', None)
     createGrib2CtlIdxFiles = kwarg.get('createGrib2CtlIdxFiles', True)
     createGrib1CtlIdxFiles = kwarg.get('createGrib1CtlIdxFiles', False)
@@ -2512,6 +2527,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     # update global variables
     __utc__ = utc
     __anl_step_hour__ = anl_step_hour
+    __anl_aavars_reference_time__ = anl_aavars_reference_time
     __removeGrib2FilesAfterGrib1FilesCreated__ = removeGrib2FilesAfterGrib1FilesCreated
     __grib1FilesNameSuffix__ = grib1FilesNameSuffix
     _targetGridRes_ = str(targetGridResolution)
