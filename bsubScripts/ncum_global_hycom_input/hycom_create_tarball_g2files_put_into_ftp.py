@@ -24,8 +24,10 @@ def createTarBalls(path, today, utc, stephr=3):
     os.chdir(path)
     anal_ftemp = 'ncum_ana*%s*%s*.grb2'
     tDay = datetime.datetime.strptime(today, "%Y%m%d")
-    lag = datetime.timedelta(days=1)
-    yDay = (tDay - lag).strftime('%Y%m%d')
+    lag1 = datetime.timedelta(days=1)
+    yDay = (tDay - lag1).strftime('%Y%m%d')
+    lag4 = datetime.timedelta(days=4)
+    y4Day = (tDay - lag4).strftime('%Y%m%d')
     # get yesterday's analysis files from 06hr onwards
     yanal = [anal_ftemp % (str(hr).zfill(2), yDay) for hr in range(6, 24, stephr)]
     # get today's analysis 00 and 03 hr
@@ -33,11 +35,11 @@ def createTarBalls(path, today, utc, stephr=3):
     # store available yesterday anal_files
     yanal_files = []
     for yf in yanal:
-        # move yesterday's analysis files to today's directory
+        # copy yesterday's analysis files to today's directory
         wildcard_anlfile = '../%s/%s' % (yDay, yf)
         print "wildcard_anlfile = ", wildcard_anlfile
         if not glob.glob(wildcard_anlfile): continue
-        cmd = 'mv %s .' % wildcard_anlfile
+        cmd = 'cp %s .' % wildcard_anlfile
         print cmd
         subprocess.call(cmd, shell=True)
         yanal_files.append(yf)
@@ -58,18 +60,25 @@ def createTarBalls(path, today, utc, stephr=3):
     print cmd
     subprocess.call(cmd, shell=True)
     
-    # delete analysis & forecasts files, after tar ball has been created!
-    cmd = "rm -rf %s" % anal_files
-    print cmd
-    subprocess.call(cmd, shell=True)
+    if yanal_files:
+        # delete yesterday analysis files copy from today directory
+        yesterday_anal_files = '  '.join(['./'+af for af in yanal_files])  
+        cmd = "rm -rf %s" % yesterday_anal_files
+        print cmd
+        subprocess.call(cmd, shell=True)
+    # end of if yanal_files:
+    # delete today's forecasts files, after tar ball has been created!    
     cmd = "rm -rf ncum_fcs*%s*.grb2" % today
     print cmd
     subprocess.call(cmd, shell=True)
     
-    # remove yesterday's empty directory, not today directory!!!
-    yDayPath = os.path.join(path, '../%s' % yDay)
-    if os.path.exists(yDayPath):    
-        if not os.listdir(yDayPath): os.rmdir(yDayPath)   
+    # remove before 3 days directory, neither today nor yesterday directory!!!
+    y4DayPath = os.path.join(path, '../%s' % y4Day)
+    if os.path.exists(y4DayPath):    
+        cmd = "rm -rf %s" % y4DayPath
+        print cmd
+        subprocess.call(cmd, shell=True)
+    # end of if os.path.exists(y4DayPath):            
         
     tarpath = os.path.abspath('../TarFiles')
     # do scp the tar files to ftp_server and nkn_server
