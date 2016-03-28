@@ -1,7 +1,8 @@
 import numpy, iris  
 
 def cubeAverager(tmpCube, action='mean', dt='1 hour', 
-                actionIntervals='6 hour', tpoint='cbound', fpoint='cbound'):
+                actionIntervals='6 hour', tpoint='cbound', fpoint='cbound',
+                tbounds=True, fbounds=True):
     """
     :param tmpCube:     The temporary cube data (in Iris format) with non-singleton time dimension
     :param action:      mean| sum (accumulated fields are summed and instantaneous are averaged).
@@ -9,6 +10,8 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour',
     :param actionIntervals: A non standard string to add inside cell_methods comments section.
     :param tpoint: cbound | lbound | rbound time point 
     :param fpoint: cbound | lbound | rbound forecast period
+    :param tbounds: True | False (False removes time bounds)
+    :param fbounds: True | False (False removes fcst bounds)
     :return: meanCube:  An Iris formatted cube date containing the resultant data either as
                         averaged or summed.
     Arulalan.T
@@ -65,7 +68,11 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour',
     
     # update the time coordinate with new time point and time bounds
     timeAxFirst.points = timepoint
-    timeAxFirst.bounds = rbounds
+    # set time bounds if enabled
+    if tbounds: 
+        timeAxFirst.bounds = rbounds
+    else:
+        timeAxFirst.bounds = None
     # add the updated time coordinate to the meanCube
     meanCube.add_aux_coord(timeAxFirst)
     
@@ -93,7 +100,11 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour',
     
     # update the time coordinate with new fcst time point and fcst time bounds
     fcstAxFirst.points = fcstpoint
-    fcstAxFirst.bounds = fbounds
+    # set fcst bounds if enabled
+    if fbounds: 
+        fcstAxFirst.bounds = fbounds
+    else:
+        fcstAxFirst.bounds = None
     # add the updated fcst time coordinate to the meanCube
     meanCube.add_aux_coord(fcstAxFirst)
     # add attributes back to meanCube
@@ -108,10 +119,10 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour',
     elif action == 'sum':
         cm = iris.coords.CellMethod('sum', ('time',), intervals=(dt,), 
                                      comments=(actionIntervals+' accumulation',))
-                                     
-    # add cell_methods to the meanCube                                     
-    meanCube.cell_methods = (cm,) 
-
+    
+    # add cell_methods to the meanCube                                                                       
+    if fbounds: meanCube.cell_methods = (cm,)   
+    
     # make memory free
     del tmpCube
     

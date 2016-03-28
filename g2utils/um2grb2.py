@@ -101,6 +101,8 @@ __start_step_long_fcst_hour__ = 6
 __max_long_fcst_hours__ = 240
 # analysis reference time applicable only to average/accumulation vars.
 __anl_aavars_reference_time__ = 'shortforecast'
+# analysis time bounds option applicable only to average/accumulation vars.
+__anl_aavars_time_bounds__ = True
 # grib1 file suffix
 __grib1FilesNameSuffix__ = '.grib1'
 # flag for removing grib2 files after grib1 has been converted 
@@ -1124,7 +1126,8 @@ def regridAnlFcstFiles(arg):
            _convertVars_, _requiredLat_, _requiredLon_, _doRegrid_, __utc__, \
            __anlFileNameStructure__, __fcstFileNameStructure__, __LPRINT__, \
            __start_step_long_fcst_hour__, __anl_step_hour__, \
-           _precipVars_, _requiredPressureLevels_, __anl_aavars_reference_time__ 
+           _precipVars_, _requiredPressureLevels_, __anl_aavars_reference_time__, \
+           __anl_aavars_time_bounds__ 
    
     fpname, hr = arg 
     
@@ -1181,37 +1184,47 @@ def regridAnlFcstFiles(arg):
     # get the file name extension
     fileExtension = outFileNameStructure[-1]
     #####
-    ### setting timebound, fcstbound as 'centre' bounds, will not affect
+    ### setting timepoint, fcstpoint as 'centre' bounds, will not affect
     ### in g2ctl.pl because it uses flag -verf by default which will set 
     ### access time point as end time point of fcst bounds.
-    timebound = 'cbound'            # TESTED, OK, on 05-01-2016
-    fcstbound = 'cbound'            # TESTED, OK, on 05-01-2016
+    timepoint = 'cbound'            # TESTED, OK, on 05-01-2016
+    fcstpoint = 'cbound'            # TESTED, OK, on 05-01-2016
+    timebound = True                # TESTED, OK, on 28-03-2016
+    fcstbound = True                # TESTED, OK, on 28-03-2016
     if dtype == 'fcst':        
         ### But if we want to set access time point as per out file hour's
         ### ref time, then we can enable the following options. otherwise 
         ### disable it, because 'cbound' will works for ctl file.
-        timebound = 'rbound'        # TESTED, OK, on 05-01-2016
-        fcstbound = 'rbound'        # TESTED, OK, on 05-01-2016
+        timepoint = 'rbound'        # TESTED, OK, on 05-01-2016
+        fcstpoint = 'rbound'        # TESTED, OK, on 05-01-2016
     elif dtype == 'ana':        
         ### But if we want to set access time point as per out file hour's
         ### ref time, then we can enable the following options. otherwise 
         ### disable it, because 'cbound' will works for ctl file.
         if __anl_aavars_reference_time__ == 'shortforecast':
-            timebound = 'lbound'        # TESTED, OK, on 23-02-2016
-            fcstbound = 'lbound'        # TESTED, OK, on 23-02-2016
+            timepoint = 'lbound'        # TESTED, OK, on 23-02-2016
+            fcstpoint = 'lbound'        # TESTED, OK, on 23-02-2016
             ## g2ctl -verf option bring end forecast time bounds to set time in 
             ## ctl file. So we no need to pass options like -0 or -b.
-            ## here lbound in both timebound and fcstbound will give correct 
+            ## here lbound in both timepoint and fcstpoint will give correct 
             ## time reference and forecast time in both grib2 files and grads 
             ## control files.           # TESTED, OK, on 23-02-2016
         elif __anl_aavars_reference_time__ == 'analysis':
-            timebound = 'rbound'        # TESTED, OK, on 22-03-2016
-            fcstbound = 'lbound'        # TESTED, OK, on 22-03-2016
+            timepoint = 'rbound'        # TESTED, OK, on 22-03-2016
+            fcstpoint = 'lbound'        # TESTED, OK, on 22-03-2016
             ## In this option, we must pass -0 option to g2ctl and gribmap.
             ## Otherwise, it will make 2 time points in ctl file.
+            if not __anl_aavars_time_bounds__: 
+                # This option applicable only if __anl_aavars_reference_time__ 
+                # option set as 'analysis'. This false will remove the time 
+                # bounds and make the var as instantaneous one instead of 
+                # average/accumulation.
+                timebound = False
+                fcstbound = False
+            # end of if not __anl_aavars_time_bounds__: 
     # end of if dtype == 'fcst':
     
-    # Note : if we are not correcting ana, fcst fcstbound as above, in g2ctl
+    # Note : if we are not correcting ana, fcst fcstpoint as above, in g2ctl
     # ctl file will has 2 time points. To avoid that we have to tell to g2ctl
     # to use start time bound for analysis and last time bound for fcst, 
     # which brings to  1 time point.
@@ -1392,8 +1405,9 @@ def regridAnlFcstFiles(arg):
                 # '1 hour' to dt intervals argument. 
                 if __LPRINT__: print "action = ", action
                 tmpCube = cubeAverager(tmpCube, action, dt='1 hour', 
-                                           actionIntervals=str(start_step_fcst_hour)+' hour', 
-                                  tpoint=timebound, fpoint=fcstbound)
+                            actionIntervals=str(start_step_fcst_hour)+' hour', 
+                                           tpoint=timepoint, fpoint=fcstpoint, 
+                                         tbounds=timebound, fbounds=fcstbound)
             # end of if doMultiHourlyMean and tmpCube.coords('forecast_period')[0].shape[0] > 1:     
             print "before regrid", varName, tmpCube.data.min(), tmpCube.data.max()
             # interpolate it as per targetGridResolution deg resolution by 
@@ -2493,7 +2507,8 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
        __LPRINT__, __utc__, __outFileType__, __grib1FilesNameSuffix__, \
        __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, \
        _removeVars_, __anl_step_hour__, _requiredPressureLevels_, \
-       __setGrib2TableParameters__, __anl_aavars_reference_time__
+       __setGrib2TableParameters__, __anl_aavars_reference_time__, \
+       __anl_aavars_time_bounds__ 
            
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -2507,6 +2522,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     pressureLevels = kwarg.get('pressureLevels', None)
     anl_step_hour = kwarg.get('anl_step_hour', 6)
     anl_aavars_reference_time = kwarg.get('anl_aavars_reference_time', 'shortforecast')
+    anl_aavars_time_bounds = kwarg.get('anl_aavars_time_bounds', True)
     anlFileNameStructure = kwarg.get('anlFileNameStructure', None)
     createGrib2CtlIdxFiles = kwarg.get('createGrib2CtlIdxFiles', True)
     createGrib1CtlIdxFiles = kwarg.get('createGrib1CtlIdxFiles', False)
@@ -2528,6 +2544,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     __utc__ = utc
     __anl_step_hour__ = anl_step_hour
     __anl_aavars_reference_time__ = anl_aavars_reference_time
+    __anl_aavars_time_bounds__ = anl_aavars_time_bounds
     __removeGrib2FilesAfterGrib1FilesCreated__ = removeGrib2FilesAfterGrib1FilesCreated
     __grib1FilesNameSuffix__ = grib1FilesNameSuffix
     _targetGridRes_ = str(targetGridResolution)
