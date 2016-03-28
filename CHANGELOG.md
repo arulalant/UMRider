@@ -1,6 +1,6 @@
 # Change Log
 
-## [v1.0.1](https://github.com/NCMRWF/UMRider/tree/v1.0.1) (2016-03-22)
+## [v1.0.1](https://github.com/NCMRWF/UMRider/tree/v1.0.1) (2016-03-28)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.0...v1.0.1)
 
 **Implemented enhancements:**
@@ -40,6 +40,7 @@
 
 **Merged pull requests:**
 
+- added anl\_aavars\_time\_bounds option [\#80](https://github.com/NCMRWF/UMRider/pull/80) ([arulalant](https://github.com/arulalant))
 - added anl\_aavars\_reference\_time option [\#79](https://github.com/NCMRWF/UMRider/pull/79) ([arulalant](https://github.com/arulalant))
 - added \_precipVars\_ ; fixed bug \#76 [\#77](https://github.com/NCMRWF/UMRider/pull/77) ([arulalant](https://github.com/arulalant))
 - update in docstring [\#67](https://github.com/NCMRWF/UMRider/pull/67) ([arulalant](https://github.com/arulalant))
