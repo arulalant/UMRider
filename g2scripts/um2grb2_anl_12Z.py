@@ -19,7 +19,8 @@ from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                     convertGrib2FilestoGrib1Files, grib1FilesNameSuffix, \
                     removeGrib2FilesAfterGrib1FilesCreated, \
                     anl_step_hour, pressureLevels, callBackScript, \
-                    setGrib2TableParameters, anl_aavars_reference_time
+                    setGrib2TableParameters, anl_aavars_reference_time, \
+                    anl_aavars_time_bounds
 
 if loadg2utils == 'system':
     # Load g2utils from system python which has installed through setup.py
@@ -68,7 +69,8 @@ while sDay <= eDay:
                     grib1FilesNameSuffix=grib1FilesNameSuffix,          
   removeGrib2FilesAfterGrib1FilesCreated=removeGrib2FilesAfterGrib1FilesCreated,
                                   anl_step_hour=anl_step_hour,
-          anl_aavars_reference_time=anl_aavars_reference_time,              
+          anl_aavars_reference_time=anl_aavars_reference_time,
+                anl_aavars_time_bounds=anl_aavars_time_bounds,              
                        overwrite=overwriteFiles, lprint=debug,
               setGrib2TableParameters=setGrib2TableParameters,
                                 callBackScript=callBackScript)
