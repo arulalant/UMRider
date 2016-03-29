@@ -1,5 +1,17 @@
 # Change Log
 
+## [v1.0.2a](https://github.com/NCMRWF/UMRider/tree/v1.0.2a) (2016-03-29)
+[Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.1...v1.0.2a)
+
+**Closed issues:**
+
+- U & V winds STASH Changed to Arakawa B Grids [\#81](https://github.com/NCMRWF/UMRider/issues/81)
+
+**Merged pull requests:**
+
+- initial code draft for ncum eps ensembles [\#83](https://github.com/NCMRWF/UMRider/pull/83) ([arulalant](https://github.com/arulalant))
+- updated U & V winds STASH changes wrt operational change \#81 [\#82](https://github.com/NCMRWF/UMRider/pull/82) ([arulalant](https://github.com/arulalant))
+
 ## [v1.0.1](https://github.com/NCMRWF/UMRider/tree/v1.0.1) (2016-03-28)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.0...v1.0.1)
 
