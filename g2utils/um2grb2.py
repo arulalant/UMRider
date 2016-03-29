@@ -141,8 +141,8 @@ __setGrib2TableParameters__ = None
 _orderedVars_ = {'PressureLevel': [
 ## Pressure Level Variable names & STASH codes
 ('geopotential_height', 'm01s16i202'),        
-('x_wind', 'm01s15i243'), 
-('y_wind', 'm01s15i244'),   
+('x_wind', 'm01s15i201'), 
+('y_wind', 'm01s15i202'),   
 ('upward_air_velocity', 'm01s15i242'),
 ('air_temperature', 'm01s16i203'),
 ('relative_humidity', 'm01s16i256'),
@@ -165,8 +165,8 @@ _orderedVars_ = {'PressureLevel': [
 ('high_type_cloud_area_fraction', 'm01s09i205'),
 ('medium_type_cloud_area_fraction', 'm01s09i204'),
 ('low_type_cloud_area_fraction', 'm01s09i203'), 
-('x_wind', 'm01s03i209'), 
-('y_wind', 'm01s03i210'),    
+('x_wind', 'm01s03i225'), 
+('y_wind', 'm01s03i226'),    
 ('visibility_in_air', 'm01s03i247'),
 ('precipitation_amount', 'm01s05i226'),
 ('stratiform_snowfall_amount', 'm01s04i202'),
@@ -554,8 +554,6 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         varNamesSTASH = [('geopotential_height', 'm01s16i202'),
             ('air_temperature', 'm01s16i203'),
             ('relative_humidity', 'm01s16i256'),
-            ('x_wind', 'm01s15i243'), 
-            ('y_wind', 'm01s15i244'),
             ('upward_air_velocity', 'm01s15i242'),
             ('air_pressure_at_sea_level', 'm01s16i222'),
             ('surface_air_pressure', 'm01s00i409'),
@@ -600,7 +598,9 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
     elif fname.startswith('umglca_pd'):            # umglca_pd
         # consider variable
         if inDataPathHour == '00':
-            varNamesSTASH = [('specific_humidity', 'm01s30i205'),] 
+            varNamesSTASH = [('specific_humidity', 'm01s30i205'),
+                             ('x_wind', 'm01s15i201'),
+                             ('y_wind', 'm01s15i202'),] 
             # rest of them from taken already from qwqg00 
             # file. qwqg00 file variables are more correct than this 
             # short forecast vars.
@@ -609,8 +609,8 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                        ('air_temperature', 'm01s16i203'), 
                        ('specific_humidity', 'm01s30i205'),
                        ('relative_humidity', 'm01s16i256'),                        
-                       ('x_wind', 'm01s15i243'),
-                       ('y_wind', 'm01s15i244'),
+                       ('x_wind', 'm01s15i201'),
+                       ('y_wind', 'm01s15i202'),
                        ('upward_air_velocity', 'm01s15i242')]
         # end of if inDataPathHour == '00':             
         
@@ -636,8 +636,8 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                         ('air_pressure_at_sea_level', 'm01s16i222'),                              
                         ('specific_humidity', 'm01s03i237'),
                         ('surface_air_pressure', 'm01s00i409'),
-                        ('x_wind', 'm01s03i209'), 
-                        ('y_wind', 'm01s03i210'),
+                        ('x_wind', 'm01s03i225'), 
+                        ('y_wind', 'm01s03i226'),
                         ('atmosphere_convective_available_potential_energy_wrt_surface', 'm01s05i233'), # CAPE
                         ('atmosphere_convective_inhibition_wrt_surface', 'm01s05i234'), #CIN
                         ]
@@ -810,8 +810,8 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('air_temperature', 'm01s16i203'),  
                     ('specific_humidity', 'm01s30i205'),                    
                     ('relative_humidity', 'm01s16i256'),                    
-                    ('x_wind', 'm01s15i243'),
-                    ('y_wind', 'm01s15i244'),
+                    ('x_wind', 'm01s15i201'),
+                    ('y_wind', 'm01s15i202'),
                     ('upward_air_velocity', 'm01s15i242')]
         # the cube contains Instantaneous data at every 3-hours.
         if __start_step_long_fcst_hour__ == 3:
@@ -835,8 +835,8 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('air_pressure_at_sea_level', 'm01s16i222'),
                     ('specific_humidity', 'm01s03i237'),
                     ('surface_air_pressure', 'm01s00i409'),
-                    ('x_wind', 'm01s03i209'), 
-                    ('y_wind', 'm01s03i210'),
+                    ('x_wind', 'm01s03i225'), 
+                    ('y_wind', 'm01s03i226'),
                     ('atmosphere_convective_available_potential_energy_wrt_surface', 'm01s05i233'), # CAPE
                     ('atmosphere_convective_inhibition_wrt_surface', 'm01s05i234'), #CIN
                     # The precipitation_amount, *snowfall_amount, and
