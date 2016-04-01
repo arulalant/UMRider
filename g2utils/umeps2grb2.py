@@ -33,9 +33,9 @@ import datetime
 from iris.time import PartialDateTime
 from cubeutils import cubeAverager, cubeSubtractor
 from ncum_load_rules import update_cf_standard_name
-from um2grb2 import createDirWhileParallelRacing, getCubeData, myLog, \
-            __getAnlFcstFileNameIdecies__, __genAnlFcstOutFileName__, \
-            getCubeAttr, _NoDaemonProcess, _MyPool
+from um2grb2 import (createDirWhileParallelRacing, getCubeData, myLog, 
+             __getAnlFcstFileNameIdecies__, __genAnlFcstOutFileName__, 
+            getCubeAttr, _NoDaemonProcess, _MyPool)
 
 # End of importing business
 
@@ -100,6 +100,9 @@ _createGrib2CtlIdxFiles_ = True
 _createGrib1CtlIdxFiles_ = False
 _convertGrib2FilestoGrib1Files_ = False
 __setGrib2TableParameters__ = None
+_ensemble_count_ = 44
+# store out grib2 files name for the purpose of creat ctl files in parallel
+__outg2files__ = []
 # global ordered variables (the order we want to write into grib2)
 _orderedVars_ = {'PressureLevel': [
 ## Pressure Level Variable names & STASH codes
@@ -267,17 +270,31 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         
     elif 'xbfti' in fname and fname.endswith('.pp0'):            
         # consider variable
-        varNamesSTASH = [('geopotential_height', 'm01s16i202'),
+        varNamesSTASH = [('air_pressure_at_sea_level', 'm01s16i222'),
                     ('air_temperature', 'm01s16i203'),  
-                    ('specific_humidity', 'm01s30i205'),                    
-                    ('relative_humidity', 'm01s16i256'),                    
+                    ('geopotential_height', 'm01s16i202'),                    
+                    ('relative_humidity', 'm01s16i256'), 
+                    ('surface_air_pressure', 'm01s00i409'),                   
                     ('x_wind', 'm01s15i243'),
                     ('y_wind', 'm01s15i244'),
                     ('upward_air_velocity', 'm01s15i242')]
-        # the cube contains Instantaneous data at every 3-hours.        
+        # the cube contains Instantaneous data at every 24-hours.        
         if __start_step_long_fcst_hour__ == 24:
             # applicable only for 24 hour instantaneous/intervals
-            fcstHours = numpy.array([24]) + hr      
+            fcstHours = numpy.arange(0, 241, 24)       
+        # we are extracting at particular instantaneous value, so no need to 
+        # do hourly mean.      
+        doMultiHourlyMean = False    
+        
+    elif 'xbfti' in fname and fname.endswith('.pp2'):            
+        # consider variable
+        varNamesSTASH = [('air_temperature_maximum', 'm01s03i236'),  
+                    ('air_temperature_minimum', 'm01s03i236'),  
+                    ('precipitation_amount', 'm01s05i226')]              
+        # the cube contains accumulated/min/max data at every 24-hours.        
+        if __start_step_long_fcst_hour__ == 24:
+            # applicable only for 24 hour intervals
+            fcstHours = numpy.arange(12, 240, 24)       
         # we are extracting at particular instantaneous value, so no need to 
         # do hourly mean.      
         doMultiHourlyMean = False    
@@ -294,7 +311,8 @@ def packEnsembles(arg):
     
     global _targetGrid_, _targetGridRes_,  _startT_, _inDataPath_, _opPath_, \
             _preExtension_, _ncfilesVars_, _requiredLat_, _requiredLon_, \
-            _doRegrid_, __utc__, _requiredPressureLevels_, __LPRINT__
+            _doRegrid_, __utc__, _requiredPressureLevels_, __LPRINT__, \
+            __outg2files__
            
     infiles, varNamesSTASHFcstHour = arg
     varName, varSTASH, fhr = varNamesSTASHFcstHour
@@ -488,6 +506,9 @@ def packEnsembles(arg):
         outFn = varSTASH + '_'+ ofname + '.nc'
     # end of if (varName, varSTASH) in _ncfilesVars_:
     
+    # append out grib2 files for the purpose of creating ctl files.
+    if not outFn in __outg2files__: __outg2files__.append(outFn)
+    
     outFn = os.path.join(_opPath_, outFn)
     print "Going to be save into ", outFn
     print ensembleData
@@ -520,22 +541,22 @@ def packEnsembles(arg):
 def packEnsemblesInParallel(arg):
 
     global  _startT_, _inDataPath_, __start_step_long_fcst_hour__, __LPRINT__, \
-            _createGrib2CtlIdxFiles_, _opPath_
+            _opPath_, _ensemble_count_
    
-    fpname, hr = arg 
+    fpname, fpext, hr = arg 
     
     start_step_fcst_hour = __start_step_long_fcst_hour__
-    
+            
     if start_step_fcst_hour == 6:
         # 044_pb120
         ensembleFiles = [os.path.join(_inDataPath_, str(ens).zfill(3)+'_'+fpname+hr.zfill(3)) 
-                                                for ens in range(0, 45, 1)]
+                                                for ens in range(0, _ensemble_count_+1, 1)]
         fileName = '000_' + fpname + '000'
     elif start_step_fcst_hour == 24:
         # xbfti_044.pp2
-        ensembleFiles = [os.path.join(_inDataPath_, fpname+'_'+str(ens).zfill(3)+'.pp0') 
-                                                for ens in range(0, 45, 1)]
-        fileName = fpname + '_000' + '.pp0'
+        ensembleFiles = [os.path.join(_inDataPath_, fpname+'_'+str(ens).zfill(3)+fpext) 
+                                                for ens in range(0, _ensemble_count_+1, 1)]
+        fileName = fpname + '_000' + fpext
     
     fname = os.path.join(_inDataPath_, fileName)
     
@@ -583,30 +604,7 @@ def packEnsemblesInParallel(arg):
         inner_pool.close() 
         inner_pool.join()
         # parallel end
-    # end of for varName, varSTASH in varNamesSTASH:     
-    
-    if _createGrib2CtlIdxFiles_:
-        
-        cdir = os.getcwd()
-        os.chdir(_opPath_)
-        g2files = os.listdir(_opPath_)
-        
-        ## get the no of childs process to create ctl, idx files files  
-        nchild = len(g2files)     
-        # create the no of child parallel processes
-        inner_pool = mp.Pool(processes=nchild)
-        print "Creating %i (daemon) workers and jobs in child." % nchild
-
-        print "parallel ensemble begins for", varName, varSTASH
-        # pass the grib2 files name as list
-        results = inner_pool.map(createGrib2CtlIdxFiles, g2files)
-        # closing and joining child pools      
-        inner_pool.close() 
-        inner_pool.join()
-        # parallel end
-
-        os.chdir(cdir)        
-    # end of if _createGrib2CtlIdxFiles_:
+    # end of for varName, varSTASH in varNamesSTASH:        
                                    
     print "Time taken to convert the file: %8.5f seconds \n" %(time.time()-_startT_)
     print "Finished converting file: %s into grib2 format for fcst file: %s \n" %(fpname, hr)
@@ -720,20 +718,20 @@ def tweaked_messages(cubeList):
 # end of def tweaked_messages(cube):
 
 # Start the convertFilesInParallel function
-def convertFilesInParallel(fname, ftype):
+def convertFilesInParallel(fname, fext, ftype):
     """
     convertFilesInParallel function calling all the sub-functions
     :param fnames: a simple filename as argument in a string format
     """
     
-    global _startT_, _tmpDir_, _opPath_, __max_long_fcst_hours__
+    global _startT_, _tmpDir_, _opPath_, __max_long_fcst_hours__, _createGrib2CtlIdxFiles_
 
     # here max fcst hours goes upto 240 only, not 241. why ??
     # because 216 long fcst hours contains upto 240th hour fcst.
     # and 240th long fcst contains upto 264th hour fcst.
     # so here no need to add +1 to __max_long_fcst_hours__.
     fcst_times = [str(hr).zfill(3) for hr in range(0, __max_long_fcst_hours__, 24)]
-    fcst_filenames = [(fname, hr) for hr in fcst_times]
+    fcst_filenames = [(fname, fext, hr) for hr in fcst_times]
     print fcst_filenames
     ## get the no of files and 
     nprocesses = len(fcst_filenames)
@@ -751,16 +749,15 @@ def convertFilesInParallel(fname, ftype):
     # closing and joining master pools
     pool.close()     
     pool.join()
-    # parallel end - 1 
-    
+    # parallel end - 1     
     print "Total time taken to convert %d files was: %8.5f seconds \n" %(len(fcst_filenames),(time.time()-_startT_))
     
     return
 # end of def convertFilesInParallel(fnames):
 
-def _checkInFilesStatus(path, ftype, pfnames):
+def _checkInFilesStatus(path, ftype, pfname, fext):
     
-    global __max_long_fcst_hours__
+    global __max_long_fcst_hours__, _ensemble_count_
     
     if ftype in ['ana', 'anl']:
         fhrs = ['000'] 
@@ -772,14 +769,21 @@ def _checkInFilesStatus(path, ftype, pfnames):
         fhrs = [str(hr).zfill(3) for hr in range(0, __max_long_fcst_hours__, 24)]
     
     fileNotExistList = []
-    for pfname in pfnames:
-        for fhr in fhrs:
-            # construct the correct fileName from partial fileName and hours
-            # add hour only if doenst have any extension on partial filename.
-            fname = pfname if '.' in pfname else pfname + fhr
+
+    for ehr in range(0, _ensemble_count_+1, 1):
+        if fext and pfname == 'xbfti':
+            # eg : xbfti_044.pp0
+            fname = pfname + '_' + str(ehr).zfill(3) + fext
             fpath = os.path.join(path, fname)
             if not os.path.isfile(fpath): fileNotExistList.append(fpath)
-    # end of for pfname in pfnames:
+        elif pfname == 'pb':
+            for fhr in fhrs:
+                # construct the correct fileName from partial fileName and hours
+                # add hour only if doenst have any extension on partial filename.
+                fname = str(ehr).zfill(3) + '_' + pfname + fhr
+                fpath = os.path.join(path, fname)
+                if not os.path.isfile(fpath): fileNotExistList.append(fpath)
+    # end of for ehr in range(0, _ensemble_count_+1, 1):
     status = False if fileNotExistList else True
     if status is False:    
         print "The following infiles are not exists!\n"
@@ -857,7 +861,7 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
     else:
         return status
 # end of def _checkOutFilesStatus(path, ftype, date, hr, overwrite):
-            
+
 def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
            
     global _targetGrid_, _targetGridRes_, _current_date_, _startT_, _tmpDir_, \
@@ -867,7 +871,8 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
        __LPRINT__, __utc__, __start_step_long_fcst_hour__, \
        __max_long_fcst_hours__, __outFileType__, __grib1FilesNameSuffix__, \
        __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, \
-       _removeVars_, _requiredPressureLevels_, __setGrib2TableParameters__
+       _removeVars_, _requiredPressureLevels_, __setGrib2TableParameters__, \
+        __outg2files__
      
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -913,7 +918,12 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     _convertGrib2FilestoGrib1Files_ = convertGrib2FilestoGrib1Files
     __setGrib2TableParameters__ = setGrib2TableParameters
     # forecast filenames partial name
-    fcst_fnames = 'pb'
+    if __start_step_long_fcst_hour__ == 6:
+        fcst_fname = 'pb'
+        fext = ['',]
+    elif __start_step_long_fcst_hour__ == 24:
+        fcst_fname = 'xbfti'
+        fext = ['.pp0', '.pp2']        
         
     # get the current date in YYYYMMDD format
     _tmpDir_ = tmpPath
@@ -942,30 +952,34 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
                         _convertVars_.append(dvar)  # include depedendant var
                         _removeVars_.append(dvar)   # remove depedendant var at last
         # end of for var, dvar in _depedendantVars_.iteritems():
-                
-        # load only required file names to avoid unnneccessary computations
-        # by cross checking with user defined variables list.
-#        for fpname in fcst_fnames[:]:   
-#            # loop through copy of fcst_fnames[:], because fcst_fnames list 
-#            # will may change within this loop.
-        hr = utc.zfill(3)
-        ### if fileName has some extension, then do not add hr to it.
-#        fileName = fpname + hr if not '.' in fpname else fpname
-#        varNamesSTASH, _, _, _ = getVarInOutFilesDetails(_inDataPath_, fcst_fname, hr)
-#        # check either user requires this file or not!
-#        if not set(varNamesSTASH).intersection(convertVars):
-#            # remove the fpname from fcst_fnames, because user didn't 
-#            # require variabels from this fpname file.
-#            fcst_fnames.remove(fpname)
-#            print "removed %s from list of files" % fpname             
+        if fcst_fname == 'xbfti':            
+            # load only required file names to avoid unnneccessary computations
+            # by cross checking with user defined variables list.
+            for ext in fext[:]:   
+                # loop through copy of fext[:], because fext list 
+                # will may change within this loop.
+                hr = utc.zfill(3)
+                ## if fileName has some extension, then do not add hr to it.
+                fileName = fcst_fname + '_' + hr + ext
+                varNamesSTASH, _, _, _ = getVarInOutFilesDetails(_inDataPath_, fileName, hr)
+                # check either user requires this file or not!
+                if not set(varNamesSTASH).intersection(convertVars):
+                    # remove the ext from fext, because user didn't 
+                    # require variabels from this ext file.
+                    fext.remove(ext)
+                    print "removed %s from list of files" % ext 
+            print "Final fext list :", fext
+        # end of if fcst_fname == 'xbfti':            
     # end of if convertVars:    
-    print "Final fpname list :", fcst_fnames
-    # check either infiles are exist or not!
-#    status = _checkInFilesStatus(_inDataPath_, 'prg', fcst_fnames)
-#    print "in status+++++++++++++++++++++++++++", status
-#    if not status:
-#        raise ValueError("In datapath does not contain the above valid infiles")
-#    # end of if not instatus:
+    
+    for ext in fext:
+        # check either infiles are exist or not!
+        status = _checkInFilesStatus(_inDataPath_, 'prg', fcst_fname, ext)
+        print "in status+++++++++++++++++++++++++++", status
+        if not status:
+            raise ValueError("In datapath does not contain the above valid infiles")
+        # end of if not instatus:
+    # end of for ext in fext:
     
     _opPath_ = os.path.join(outPath, _current_date_)
     createDirWhileParallelRacing(_opPath_) 
@@ -993,17 +1007,37 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     
     # check either files are exists or not. delete the existing files in case
     # of overwrite option is True, else return without re-converting files.
-#    status = _checkOutFilesStatus(_opPath_, 'prg', _current_date_, utc, overwrite)
-#    if status is 'FilesExist': 
-#        print "All files are already exists. So skipping convert Fcst files porcess"
-#        return # return back without executing conversion process.
-#    elif status in [None, 'FilesDoNotExist', 'FilesRemoved']:
-#        print "Going to start convert Fcst files freshly"
-#    # end of if status is 'FilesExists': 
+    status = _checkOutFilesStatus(_opPath_, 'prg', _current_date_, utc, overwrite)
+    if status is 'FilesExist': 
+        print "All files are already exists. So skipping convert Fcst files porcess"
+        return # return back without executing conversion process.
+    elif status in [None, 'FilesDoNotExist', 'FilesRemoved']:
+        print "Going to start convert Fcst files freshly"
+    # end of if status is 'FilesExists': 
     
-    # do convert for forecast files 
-    convertFilesInParallel(fcst_fnames, ftype='fcst')   
+    # do convert for forecast files     
+    for ext in fext: convertFilesInParallel(fcst_fname, ext, ftype='fcst')   
+    
+    if _createGrib2CtlIdxFiles_ and  __outg2files__:
         
+        cdir = os.getcwd()
+        os.chdir(_opPath_)
+                
+        ## get the no of parallel process to create ctl, idx files files  
+        nprocesses = len( __outg2files__)     
+        # create the no of parallel processes
+        pool = _MyPool(nprocesses)
+        print "Creating %i (daemon) workers to call createGrib2CtlIdxFiles" % nprocesses
+        # pass the grib2 files name as list
+        results = pool.map(createGrib2CtlIdxFiles,  __outg2files__)
+        # closing and joining child pools      
+        pool.close() 
+        pool.join()
+        # parallel end
+        os.chdir(cdir)        
+        print "created ctl, idx files for %d g2files" % nprocesses
+    # end of if _createGrib2CtlIdxFiles_:
+    
     if callBackScript:
         callBackScript = os.path.abspath(callBackScript)
         if not os.path.exists(callBackScript): 
