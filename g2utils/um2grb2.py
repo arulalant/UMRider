@@ -441,7 +441,7 @@ def __getAnlFcstFileNameIdecies__(fileNameStructure):
     hourIdx = [idx[0] for idx in findInList(fileNameStructure, 
                             ['*H*', '*HH*', '*HHH*']) if idx]
     dayIdx = [idx[0] for idx in findInList(fileNameStructure, 
-                            ['*D*', '*D*', '*DDD*']) if idx]
+                            ['*D*', '*DD*', '*DDD*']) if idx]
     # get the utcIdx of utc pattern
     utcIdx = [idx[0] for idx in findInList(fileNameStructure, 
                             ['*Z*', '*ZZ*', '*ZZZ*']) if idx]
