@@ -25,14 +25,14 @@ def putintoftp(today, outpath, oftype, utc):
     gfiles = [os.path.join(outpath, f) for f in gfiles]
     gfiles = ' '.join([os.path.join(outpath, f) for f in gfiles])
     # do scp the grib2 files to ftp_server 
-    cmd = 'ssh ncmlogin3 "ssh %s mkdir -p /data/ftp/pub/outgoing/glb_data/NCUM_GLB/2.5/%s"' % (ftp_server, today)
+    cmd = 'ssh ncmlogin3 "ssh %s mkdir -p /data/ftp/pub/outgoing/NCUM_GLB/2.5/%s"' % (ftp_server, today)
     print cmd
     try:
         subprocess.call(cmd, shell=True)
     except Exception as e:
         print "Folder already exists", e
         
-    cmd = 'ssh ncmlogin3 "scp -p %s %s:/data/ftp/pub/outgoing/glb_data/NCUM_GLB/2.5/%s/"' % (gfiles, ftp_server, today)
+    cmd = 'ssh ncmlogin3 "scp -p %s %s:/data/ftp/pub/outgoing/NCUM_GLB/2.5/%s/"' % (gfiles, ftp_server, today)
     print cmd
     try:
         subprocess.call(cmd, shell=True)   
