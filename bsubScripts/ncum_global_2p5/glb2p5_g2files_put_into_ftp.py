@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+
+## This is call back script which will be executed after created the grib2 files.
+## 
+## In parallel mode we are copying individual grib2 files into ftp server.
+## 
+
+## Arulalan.T
+## 05-Apr-2016.
+
+import os, sys, getopt, subprocess
+import multiprocessing as mp
+
+def putintoftp(today, outpath, oftype, utc):
+    cdir = os.getcwd()
+    os.chdir(outpath)
+    if oftype == 'analysis':
+        prefix = 'NCUM_GLB_ana'
+    elif oftype == 'forecast':
+        prefix = 'NCUM_GLB_fcs'
+        
+    # take only grib2 files, not ctl and not idx files.
+    gfiles = [f for f in os.listdir(outpath) if f.endswith('.grib2') if f.startswith(prefix)]    
+    if oftype == 'analysis': gfiles = [f for f in gfiles if utc.zfill(3)+'hr' in f]
+    gfiles = [os.path.join(outpath, f) for f in gfiles]
+    
+    # do scp the grib2 files to ftp_server 
+    cmd = 'ssh ncmlogin3 "ssh %s mkdir -p /data/ftp/pub/outgoing/glb_data/NCUM_GLB/2.5/%s"' % (ftp_server, today)
+    print cmd
+    try:
+        subprocess.call(cmd, shell=True)
+    except Exception as e:
+        print "Folder already exists", e
+        
+    cmd = 'ssh ncmlogin3 "scp -p %s %s:/data/ftp/pub/outgoing/glb_data/NCUM_GLB/2.5/%s/"' % (gfiles, ftp_server, today)
+    print cmd
+    try:
+        subprocess.call(cmd, shell=True)   
+    except Exception as e:
+        print "Folder already exists", e
+    
+    os.chdir(cdir)
+# end of def renameFiles(outpath):
+
+if __name__ == '__main__':
+    
+    ftp_server="prod@ftp"
+    date = None
+    outpath = None
+    oftype = None
+    utc = None
+    helpmsg = 'glb2.5_g2files_put_into_ftp.py --date=20160302 --outpath=path --oftype=analysis --utc=00'
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "d:o:t:z:", ["date=","outpath=", "oftype=", "utc="])
+    except getopt.GetoptError:
+        print helpmsg
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print helpmsg
+            sys.exit()
+        elif opt in ("-d", "--date"):
+            date = arg
+        elif opt in ("-o", "--outpath"):
+            outpath = arg 
+        elif opt in ("-t", "--oftype"):
+            oftype = arg
+        elif opt in ("-z", "--utc"):
+            utc = arg
+    # end of for opt, arg in opts:
+    
+    # pass the arg to function  
+    putintoftp(date, outpath, oftype, utc)
