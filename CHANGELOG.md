@@ -1,5 +1,16 @@
 # Change Log
 
+## [v1.0.2b](https://github.com/NCMRWF/UMRider/tree/v1.0.2b) (2016-04-05)
+[Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.2a...v1.0.2b)
+
+**Implemented enhancements:**
+
+- Need to support ensemble pack in grib2 [\#25](https://github.com/NCMRWF/UMRider/issues/25)
+
+**Merged pull requests:**
+
+- support for global 2.5X2.5 resolution [\#85](https://github.com/NCMRWF/UMRider/pull/85) ([arulalant](https://github.com/arulalant))
+
 ## [v1.0.2a](https://github.com/NCMRWF/UMRider/tree/v1.0.2a) (2016-03-29)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.1...v1.0.2a)
 
