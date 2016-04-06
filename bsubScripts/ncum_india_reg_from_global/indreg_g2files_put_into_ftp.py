@@ -31,19 +31,35 @@ def putintoftp(today, outpath, oftype, utc):
         subprocess.call(cmd, shell=True)
     except Exception as e:
         print "Folder already exists", e
-        
+
     cmd = 'ssh ncmlogin3 "scp -p %s %s:/data/ftp/pub/outgoing/IND_REGION/NCUM_IND/0.25/%s/"' % (gfiles, ftp_server, today)
     print cmd
     try:
         subprocess.call(cmd, shell=True)   
     except Exception as e:
+        print "Files already exists", e
+
+    # do scp the grib2 files to nkn_server 
+    cmd = 'ssh ncmlogin3 "ssh %s mkdir -p %s:NCUM_IND/0.25/%s"' % (nkn_server, today)
+    print cmd
+    try:
+        subprocess.call(cmd, shell=True)
+    except Exception as e:
         print "Folder already exists", e
+        
+    cmd = 'ssh ncmlogin3 "scp -p %s %s:NCUM_IND/0.25/%s/"' % (gfiles, nkn_server, today)
+    print cmd
+    try:
+        subprocess.call(cmd, shell=True)   
+    except Exception as e:
+        print "Files already exists", e
     
     os.chdir(cdir)
 # end of def renameFiles(outpath):
 
 if __name__ == '__main__':
     
+    nkn_server="imd@nkn"
     ftp_server="prod@ftp"
     date = None
     outpath = None
