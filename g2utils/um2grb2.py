@@ -2225,7 +2225,7 @@ def convertFilesInParallel(fnames, ftype):
     ## get the no of files and 
     nprocesses = len(fnames)
     # lets create no of parallel process w.r.t no of files.
-    
+
     # parallel begin - 1 
     pool = _MyPool(nprocesses)
     print "Creating %d (non-daemon) workers and jobs in convertFilesInParallel process." % nprocesses
@@ -2394,9 +2394,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     __max_long_fcst_hours__ = max_long_fcst_hours
     __removeGrib2FilesAfterGrib1FilesCreated__ = removeGrib2FilesAfterGrib1FilesCreated
     __grib1FilesNameSuffix__ = grib1FilesNameSuffix
-    _targetGridRes_ = str(targetGridResolution)
-    _requiredLat_ = latitude
-    _requiredLon_ = longitude
+    _targetGridRes_ = str(targetGridResolution)    
     _requiredPressureLevels_ = pressureLevels    
     _createGrib2CtlIdxFiles_ = createGrib2CtlIdxFiles
     _createGrib1CtlIdxFiles_ = createGrib1CtlIdxFiles
@@ -2475,6 +2473,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
             if slat > elat:
                 # just make sure while extracting south to north
                 slat, elat = elat, slat 
+                _requiredLat_ = (slat, elat)
                 # and reverse while saving into grib2 file.
                 _reverseLatitude_ = True
             # end of if slat > elat:
@@ -2484,13 +2483,14 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
         # longitude from 0 upto 360, wgrib2 reads it as 0 to 0. To avoid it, 
         # just reduct one step in longitude only incase of 360.
         if int(elon) == 360: elon -= targetGridResolution 
+        if longitude: _requiredLon_ = (slon, elon)
         # target grid as 0.25 deg (default) resolution by setting up sample points 
         # based on coord    
         _targetGrid_ = [('latitude', numpy.arange(slat, 
                           elat+targetGridResolution, targetGridResolution)),
                         ('longitude', numpy.arange(slon, 
                           elon+targetGridResolution, targetGridResolution))]
-        _doRegrid_ = True  
+        _doRegrid_ = True        
     # end of if targetGridResolution is None:
     
     # check either files are exists or not. delete the existing files in case
@@ -2571,9 +2571,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     __anl_aavars_time_bounds__ = anl_aavars_time_bounds
     __removeGrib2FilesAfterGrib1FilesCreated__ = removeGrib2FilesAfterGrib1FilesCreated
     __grib1FilesNameSuffix__ = grib1FilesNameSuffix
-    _targetGridRes_ = str(targetGridResolution)
-    _requiredLat_ = latitude
-    _requiredLon_ = longitude
+    _targetGridRes_ = str(targetGridResolution)    
     _requiredPressureLevels_ = pressureLevels    
     _createGrib2CtlIdxFiles_ = createGrib2CtlIdxFiles
     _createGrib1CtlIdxFiles_ = createGrib1CtlIdxFiles
@@ -2651,7 +2649,8 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
             (slat, elat) = latitude
             if slat > elat:
                 # just make sure while extracting south to north
-                slat, elat = elat, slat 
+                slat, elat = elat, slat
+                _requiredLat_ = (slat, elat)
                 # and reverse while saving into grib2 file.
                 _reverseLatitude_ = True
             # end of if slat > elat:
@@ -2661,6 +2660,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
         # longitude from 0 upto 360, wgrib2 reads it as 0 to 0. To avoid it, 
         # just reduct one step in longitude only incase of 360.
         if int(elon) == 360: elon -= targetGridResolution
+        if longitude: _requiredLon_ = (slon, elon)
         # target grid as 0.25 deg (default) resolution by setting up sample points 
         # based on coord    
         _targetGrid_ = [('latitude', numpy.arange(slat, 
@@ -2669,7 +2669,8 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
                           elon+targetGridResolution, targetGridResolution))]
         _doRegrid_ = True  
     # end of if targetGridResolution is None:
-    
+    print "print _targetGrid_ = ", _targetGrid_
+    print "_reverseLatitude_ =", _reverseLatitude_ 
     # check either files are exists or not. delete the existing files in case
     # of overwrite option is True, else return without re-converting files.
     status = _checkOutFilesStatus(_opPath_, 'ana', _current_date_, utc, overwrite)
