@@ -40,7 +40,7 @@ def putintoftp(today, outpath, oftype, utc):
         print "Files already exists", e
 
     # do scp the grib2 files to nkn_server 
-    cmd = 'ssh ncmlogin3 "ssh %s mkdir -p %s:NCUM_IND/0.25/%s"' % (nkn_server, today)
+    cmd = 'ssh ncmlogin3 "ssh %s mkdir -p NCUM_IND/0.25/%s"' % (nkn_server, today)
     print cmd
     try:
         subprocess.call(cmd, shell=True)
