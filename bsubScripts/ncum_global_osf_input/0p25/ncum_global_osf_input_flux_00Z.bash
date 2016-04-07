@@ -12,12 +12,12 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[1]}" )" && pwd )"
 
 # get the absolute path of the local table 
-localTable_relative_dir="$DIR/../../tables/local/ncmr/v1/"
+localTable_relative_dir="$DIR/../../../tables/local/ncmr/v1/"
 localTable_absolute_dir="$( cd "$localTable_relative_dir" && pwd )"
 localTable=$localTable_absolute_dir/ncmr_grib2_local_table
 
 # get the absolute path of the script for forecast 00utc
-g2scripts_relative_dir="$DIR/../../g2scripts/"
+g2scripts_relative_dir="$DIR/../../../g2scripts/"
 g2scripts_absolute_dir="$( cd "$g2scripts_relative_dir" && pwd )"
 g2script=$g2scripts_absolute_dir/um2grb2_fcst_00Z.py
 
@@ -31,7 +31,7 @@ echo "export UMRIDER_VARS="$UMRIDER_VARS
 echo "export GRIB2TABLE="$GRIB2TABLE
 
 # sourcing umtid_bashrc to load module python-uvcdat-iris!
-source "$DIR/../umtid_bashrc"
+source "$DIR/../../umtid_bashrc"
 # execute the script
 python $g2script
 
