@@ -95,7 +95,7 @@ _targetGridRes_ = None
 _requiredLat_ = None
 _requiredLon_ = None
 _requiredPressureLevels_ = None
-_preExtension_ = ''
+_preExtension_ = '_unOrdered'
 _createGrib2CtlIdxFiles_ = True
 _createGrib1CtlIdxFiles_ = False
 _convertGrib2FilestoGrib1Files_ = False
@@ -312,7 +312,7 @@ def packEnsembles(arg):
     global _targetGrid_, _targetGridRes_,  _startT_, _inDataPath_, _opPath_, \
             _preExtension_, _ncfilesVars_, _requiredLat_, _requiredLon_, \
             _doRegrid_, __utc__, _requiredPressureLevels_, __LPRINT__, \
-            __outg2files__
+            __outg2files__, _lock_
            
     infiles, varNamesSTASHFcstHour = arg
     varName, varSTASH, fhr = varNamesSTASHFcstHour
@@ -493,7 +493,7 @@ def packEnsembles(arg):
     # of writing intermediate nc files
     ofname = outFn.split(fileExtension)[0]                    
     ncfile = False
-    
+    print "outFn = ", outFn
     if (varName, varSTASH) in _ncfilesVars_:
         # other than soil_model_level_number, few variables may be 
         # need to write into nc file and then convert to grib2. why 
@@ -508,7 +508,7 @@ def packEnsembles(arg):
     
     # append out grib2 files for the purpose of creating ctl files.
     if not outFn in __outg2files__: __outg2files__.append(outFn)
-    
+    print "__outg2files__ = ", __outg2files__
     outFn = os.path.join(_opPath_, outFn)
     print "Going to be save into ", outFn
     print ensembleData
@@ -516,11 +516,7 @@ def packEnsembles(arg):
     try:                
         # _lock_ other threads / processors from being access same file 
         # to write other variables. 
-        # NOTE : We no need to lock threads, since no two threads will access 
-        # same file at any instance. Since we are loop throughing via variables,
-        # and parllel only in muliple forecast hours.
-        # If we set lock, then for sometime it gets locked and unable to release.
-        # Anyhow, lock is not going to be used in this umeps case.
+        _lock_.acquire()
         if ncfile:
             iris.fileformats.netcdf.save(ensembleData, outFn)  # save nc file 
         else:
@@ -529,6 +525,7 @@ def packEnsembles(arg):
             iris.fileformats.grib.save_messages(tweaked_messages([ensembleData,]), 
                                                            outFn, append=True) # save grib2 file 
         # release the _lock_, let other threads/processors access this file.
+        _lock_.release()
     except Exception as e:
         print "ALERT !!! Error while saving!! %s" % str(e)
         print " So skipping this without saving data"        
@@ -587,23 +584,27 @@ def packEnsemblesInParallel(arg):
     # end of if not varNamesSTASH:
     
     print "Started Processing the file:  \n"     
-    
-    for varName, varSTASH in varNamesSTASH: 
-        infiles_varNamesSTASHFcstHr = [(ensembleFiles, [varName, varSTASH, fhr]) for fhr in fcstHours]        
-        ## get the no of childs process to create fcst ensemble files  
-        nchild = len(infiles_varNamesSTASHFcstHr)     
-        # create the no of child parallel processes
-        inner_pool = mp.Pool(processes=nchild)
-        print "Creating %i (daemon) workers and jobs in child." % nchild
+    ensembleFiles_allConstraints_list = []
+    for varName, varSTASH in varNamesSTASH:        
+        for fhr in fcstHours:            
+            allConstraints = [varName, varSTASH, fhr]     
+            ensembleFiles_allConstraints_list.append((ensembleFiles, allConstraints))
+    # end of for varName, varSTASH in varNamesSTASH:      
+            
+    ## get the no of childs process to create fcst ensemble files  
+    nchild = len(ensembleFiles_allConstraints_list)     
+    # create the no of child parallel processes
+    inner_pool = mp.Pool(processes=nchild)
+    print "Creating %i (daemon) workers and jobs in child." % nchild
 
-        print "parallel ensemble begins for", varName, varSTASH
-        # pass the (ensemblefileslist, allConstraints, pressureConstraint) as 
-        # argument to take one fcst ensemble file per process / core to regrid it.
-        results = inner_pool.map(packEnsembles, infiles_varNamesSTASHFcstHr)
-        # closing and joining child pools      
-        inner_pool.close() 
-        inner_pool.join()
-        # parallel end
+    print "parallel ensemble begins for", varName, varSTASH
+    # pass the (ensemblefileslist, allConstraints, pressureConstraint) as 
+    # argument to take one fcst ensemble file per process / core to regrid it.
+    results = inner_pool.map(packEnsembles, ensembleFiles_allConstraints_list)
+    # closing and joining child pools      
+    inner_pool.close() 
+    inner_pool.join()
+    # parallel end
     # end of for varName, varSTASH in varNamesSTASH:        
                                    
     print "Time taken to convert the file: %8.5f seconds \n" %(time.time()-_startT_)
@@ -635,6 +636,7 @@ def tweaked_messages(cubeList):
     for cube in cubeList:
         for cube, grib_message in iris.fileformats.grib.as_pairs(cube):
             print "Tweaking begin ", cube.standard_name
+            print cube 
             # post process the GRIB2 message, prior to saving
             gribapi.grib_set_long(grib_message, "centre", 29) # RMC of India
             gribapi.grib_set_long(grib_message, "subCentre", 0) # No subcentre
@@ -645,6 +647,9 @@ def tweaked_messages(cubeList):
             # 4 points ensemble forecast
             gribapi.grib_set_long(grib_message, "typeOfGeneratingProcess", 4)
             
+            if cube.standard_name == 'precipitation_amount':
+                print "precipitation_amount"
+                print cube.coord("forecast_period"), cube.coord("forecast_period").bounds
             if cube.coord("forecast_period").bounds is None:       
                 #http://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_table4-0.shtml 
                 # template 01 would be better
@@ -724,13 +729,19 @@ def convertFilesInParallel(fname, fext, ftype):
     :param fnames: a simple filename as argument in a string format
     """
     
-    global _startT_, _tmpDir_, _opPath_, __max_long_fcst_hours__, _createGrib2CtlIdxFiles_
+    global _startT_, _tmpDir_, _opPath_, __max_long_fcst_hours__,\
+           __start_step_long_fcst_hour__, _createGrib2CtlIdxFiles_
 
-    # here max fcst hours goes upto 240 only, not 241. why ??
-    # because 216 long fcst hours contains upto 240th hour fcst.
-    # and 240th long fcst contains upto 264th hour fcst.
-    # so here no need to add +1 to __max_long_fcst_hours__.
-    fcst_times = [str(hr).zfill(3) for hr in range(0, __max_long_fcst_hours__, 24)]
+    if __start_step_long_fcst_hour__ == 6:
+        # here max fcst hours goes upto 240 only, not 241. why ??
+        # because 216 long fcst hours contains upto 240th hour fcst.
+        # and 240th long fcst contains upto 264th hour fcst.
+        # so here no need to add +1 to __max_long_fcst_hours__.
+        fcst_times = [str(hr).zfill(3) for hr in range(0, __max_long_fcst_hours__, 24)]
+    elif __start_step_long_fcst_hour__ == 24:
+        fcst_times = ['000', ]
+    # end of if __start_step_long_fcst_hour__ == 6:
+    
     fcst_filenames = [(fname, fext, hr) for hr in fcst_times]
     print fcst_filenames
     ## get the no of files and 
@@ -755,6 +766,418 @@ def convertFilesInParallel(fname, fext, ftype):
     return
 # end of def convertFilesInParallel(fnames):
 
+def doShuffleVarsInOrder(fpath):
+    """
+    order the variables and create new grib2 files;
+    delete the older shuffled variables grib2 files.
+    create ctl, idx files using g2ctl.pl, gribmap scripts for the ordered grib2 files.
+    
+    Arulalan/T
+    11-12-2015
+    """
+    global  _orderedVars_, _preExtension_, _ncfilesVars_, _inDataPath_, \
+           _maskOverOceanVars_, _aod_pseudo_level_var_, _createGrib2CtlIdxFiles_, \
+           _createGrib1CtlIdxFiles_, _convertGrib2FilestoGrib1Files_, \
+           _convertVars_, __outFileType__, __grib1FilesNameSuffix__, \
+           __removeGrib2FilesAfterGrib1FilesCreated__, _removeVars_, \
+           __start_step_long_fcst_hour__, g2ctl, grib2ctl, gribmap, cnvgrib
+    
+    print "re-order take place: going to access ", fpath
+    try:        
+        f = iris.load(fpath)
+    except gribapi.GribInternalError as e:
+        if str(e) == "Wrong message length":
+            print "ALERT!!!! ERROR!!! Couldn't read grib2 file to re-order", e
+        else:
+            print "ALERT!!! ERROR!!! couldn't read grib2 file to re-order", e
+        return 
+    except Exception as e:
+        print "ALERT!!! ERROR!!! couldn't read grib2 file to re-order", e
+        return 
+    # end of try:
+    # get only the pressure coordinate variables
+    unOrderedPressureLevelVarsList = [i for i in f if len(i.coords('pressure')) == 1]
+    # get only the non pressure coordinate variables
+    unOrderedNonPressureLevelVarsList = list(set(f) - set(unOrderedPressureLevelVarsList))
+    
+    # generate dictionary (standard_name, STASH) as key and cube variable as value
+    unOrderedPressureLevelVars = {}
+    for i in unOrderedPressureLevelVarsList:
+        name = i.standard_name if i.standard_name else i.long_name
+        unOrderedPressureLevelVars[name] = i
+        
+    unOrderedNonPressureLevelVars = {}
+    for i in unOrderedNonPressureLevelVarsList:
+        name = i.standard_name if i.standard_name else i.long_name
+        unOrderedNonPressureLevelVars[name] = i   
+    
+    # need to store the ordered variables in this empty list
+    orderedVars = []    
+    if _convertVars_:
+        # user has passed their own ordered and limited vars 
+        orderedVarsList = _convertVars_
+    else:
+        # use inbuilt ordered list from this module itself
+        orderedVarsList = _orderedVars_['PressureLevel'] + _orderedVars_['nonPressureLevel']
+        
+    for (varName, varSTASH) in orderedVarsList:
+        # skip if user specified var not in pressure level vars list 
+        if not (varName, varSTASH) in _orderedVars_['PressureLevel']: continue
+        # got pressure vars, add to ordered final vars list  
+        if varName in unOrderedPressureLevelVars: orderedVars.append(unOrderedPressureLevelVars[varName])
+    # end of for name, STASH in _orderedVars_['PressureLevel']:
+            
+    ncloaddic = {}
+    ncloadedfiles = []
+    for (varName, varSTASH) in orderedVarsList:
+        # skip if user specified var not in non-pressure level vars list 
+        if not (varName, varSTASH) in _orderedVars_['nonPressureLevel']: continue
+        # got non-pressure vars, add to ordered final vars list  
+        if varName in unOrderedNonPressureLevelVars: 
+            orderedVars.append(unOrderedNonPressureLevelVars[varName])
+        elif (varName, varSTASH) in _ncfilesVars_:            
+            ## generate nc file name 
+            ncfpath = varSTASH + '_' + '.'.join(fpath.split('.')[:-1]) + '.nc'
+            if not os.path.isfile(ncfpath): continue
+            if varSTASH not in ncloaddic:
+                try:
+                    ncloaddic['varSTASH'] = iris.load(ncfpath)
+                    ncloadedfiles.append(ncfpath)
+                except Exception as e:
+                    print "ALERT!!! ERROR!!! couldn't read nc file to re-order", e
+                    return 
+                # end of try:             
+            # end of if varSTASH not in ncloaddic:
+            # define variable name constraint
+            varConstraint = iris.Constraint(name=varName)
+            # define varibale stash code constraint
+            STASHConstraint = iris.AttributeConstraint(STASH=varSTASH)
+            var = ncloaddic['varSTASH'].extract(varConstraint & STASHConstraint)
+            
+            if var: 
+                # apped the ordered / corrected vars into the list, which will  
+                # be going to saved into grib2 files by tweaking it further!                
+                if varName in _aod_pseudo_level_var_:
+                    for plev, pval in _aod_pseudo_level_var_[varName]:
+                        pvar = var[0].extract(iris.Constraint(pseudo_level=plev))
+                        # set standard_name as None
+                        pvar.standard_name = None
+                        # set long_name as standard_name + '_at_micronwavelength'
+                        # so that _grib_cf_map will be able to identify local 
+                        # table grib2 param code. 
+                        pvar.long_name = varName + '_at_%sum' % pval
+                        orderedVars.append(pvar)
+                else:
+                    orderedVars.append(var[0])
+            # end of if var:
+    # end of for (varName, STASH) in orderedVarsList:
+    
+    # store the land_binary_mask data into temporary variable
+    land_binary_mask_var = [var for var in orderedVars 
+                            if var.standard_name == 'land_binary_mask']
+                                
+    if _maskOverOceanVars_ and land_binary_mask_var:
+        
+        land_binary_mask = land_binary_mask_var[0].data < 1
+        # here we are masking less than 1. we can do just simply == 0 also, 
+        # but somehow it retains fraction values between 0 to 1. To get 
+        # ride out of this fraction values, just mask out < 1.
+        # get the shapes
+        lsh = land_binary_mask.shape
+        # Define constraint to extract latitude from 60S to 60N
+        lat_60S_60N = iris.Constraint(latitude=lambda cell: -60 < cell < 60)
+        lat_30S_30N = iris.Constraint(latitude=lambda cell: -30 < cell < 30)
+        for vidx, var in enumerate(orderedVars):
+            vname = var.standard_name if var.standard_name else var.long_name
+            if vname in _maskOverOceanVars_:    
+                # Lets reset zero values lies within 60S to 60N band
+                # with 0.0051, before ocean region has been masked.
+                # Now extract data only lies between 60S to 60N
+                var_60S_60N = var.extract(lat_60S_60N)
+                if vname == 'volumetric_moisture_of_soil_layer':
+                    # reset the minimum values as 0.0051
+                    var_60S_60N.data[var_60S_60N.data < 0.005] = 0.0051
+                elif vname == 'soil_temperature':
+                    # We should assign min of extra tropical band !
+                    # because polar minimum might have been assigned 
+                    # while extracting data (function regridAnlFcstFiles).
+                    # So lets re-set here!
+                    # zero will not make sense when temperature unit is Kelvin
+                    # get tropical data 
+                    var_30S_30N = var.extract(lat_30S_30N) 
+                    # find next mean value of tropical data 
+                    nmean = numpy.ma.masked_less_equal(var_30S_30N.data, var_30S_30N.data.min()).mean()
+                    # make memory free 
+                    del var_30S_30N
+                    # set mean value (of tropical data 30S to 30N) as 
+                    # min value full extra tropical data (60S to 60N).
+                    # This will solve the abnormal temperature values over 
+                    # small islands in tropical ocean regions.
+                    var_60S_60N.data[var_60S_60N.data <= var_60S_60N.data.min()] = nmean
+                # end of if vname == 'volumetric_moisture_of_soil_layer':
+                
+                # extract latitude coords of 60S to 60N data 
+                lat_60S_60N_points = var_60S_60N.coords('latitude')[0].points
+                # get its start and end lat values of 60S and 60N
+                lat_60S_start, lat_60N_end = lat_60S_60N_points[0], lat_60S_60N_points[-1]
+                # get the original global data latitude points 
+                originalLat = var.coords('latitude')[0].points.tolist()
+                # find the 60S index in original global latitude
+                lat_60S_index = originalLat.index(lat_60S_start)
+                # find the 60N index in original global latitude
+                lat_60N_index = originalLat.index(lat_60N_end) + 1
+                # Lets insert the updated data (0.0051) within the 
+                # original global data itself.
+                # Now Lets do masking over Ocean regions!
+                vsh = var.shape
+                if lsh != vsh:
+                    # first dimension points 4 layer depth_below_land_surface
+                    # so second dimension points latitude.
+                    var.data[:, lat_60S_index: lat_60N_index, :] = var_60S_60N.data                        
+                    # get the ocean mask by masking 0s of land_binary_mask 
+                    # (0-sea, 1-land) and set it to the required variables. 
+                    land_binary_mask_grown = land_binary_mask.reshape(1, lsh[0], lsh[-1])
+                    land_binary_mask_grown = land_binary_mask_grown.repeat(vsh[0], axis=0)                    
+                    var.data = numpy.ma.masked_where(land_binary_mask_grown, var.data)
+                else:    
+                    # single layer only. so first dimension points latitude
+                    var.data[lat_60S_index: lat_60N_index, :] = var_60S_60N.data
+                    # get the ocean mask by masking 0s of land_binary_mask 
+                    # (0-sea, 1-land) and set it to the required variables. 
+                    var.data = numpy.ma.masked_where(land_binary_mask, var.data)
+                # end of if lsh != vsh:
+                print "updated ocean masked vars"
+        # end of for vidx, var in enumerate(orderedVars):
+    # end of if _maskOverOceanVars_:
+    
+    # removing land_binary_mask_var from out files if it is forecast grib2 file
+    # why do we need to repeat the same static variables in all the 
+    # forecast files... So removing it, but keeps in analysis file.
+    if __outFileType__ in ['prg', 'fcst'] and land_binary_mask_var and \
+                                  __start_step_long_fcst_hour__ in [6]: 
+        # remove only for 6 hourly ncum post prodction. Not for others!
+        # say for 3 hourly hycom model input landsea binary mask needed in all
+        # forecast files.
+        orderedVars.remove(land_binary_mask_var[0])
+    # But still we have to use land_binary_mask variable to set 
+    # ocean mask for the soil variables. Thats why we included it in vars list.
+    
+    oidx = None
+    if ('surface_upwelling_shortwave_flux_in_air', 'None') in _convertVars_:
+        # find the index in _convertVars_
+        idx = _convertVars_.index(('surface_upwelling_shortwave_flux_in_air', 'None'))
+        # adjust the current index by subtract 1, because in previous insertion 
+        # causes order index increased by 1.
+        idx = idx-1 if (idx and oidx is None) else idx
+        oidx = idx
+        # store the surface_net_downward_shortwave_flux data into temporary variable
+        surface_net_downward_shortwave_flux = [var for var in orderedVars 
+               if var.standard_name == 'surface_net_downward_shortwave_flux']    
+        if not surface_net_downward_shortwave_flux:
+            raise ValueError("Can not calculate surface_upwelling_shortwave_flux, because unable to load surface_net_downward_shortwave")    
+        # store the surface_downwelling_shortwave_flux_in_air data into temporary variable
+        surface_downwelling_shortwave_flux = [var for var in orderedVars 
+               if var.standard_name == 'surface_downwelling_shortwave_flux_in_air']
+        if not surface_downwelling_shortwave_flux:
+            raise ValueError("Can not calculate surface_upwelling_shortwave_flux, because unable to load surface_downwelling_shortwave_flux")
+        # calculate 'surface_upwelling_shortwave_flux' by subtract 'surface_net_downward_shortwave_flux'
+        # from 'surface_downwelling_shortwave_flux'       
+        surface_upwelling_shortwave_flux = cubeSubtractor(surface_downwelling_shortwave_flux[0], 
+                                           surface_net_downward_shortwave_flux[0], 
+                       standard_name='surface_upwelling_shortwave_flux_in_air',
+                                                              removeSTASH=True)
+        # store the 'surface_upwelling_shortwave_flux' into orderedVars
+        orderedVars.insert(idx, surface_upwelling_shortwave_flux)
+    # end of if ('surface_upwelling_shortwave_flux_in_air', 'None') in _convertVars_:
+    
+    if ('surface_upwelling_longwave_flux_in_air', 'None') in _convertVars_:
+        # find the index in _convertVars_
+        idx = _convertVars_.index(('surface_upwelling_longwave_flux_in_air', 'None'))
+        # adjust the current index by subtract 1, because in previous insertion 
+        # causes order index increased by 1.
+        idx = idx-1 if (idx and oidx is None) else idx
+        oidx = idx
+        # store the surface_net_downward_longwave_flux data into temporary variable
+        surface_net_downward_longwave_flux = [var for var in orderedVars 
+               if var.standard_name == 'surface_net_downward_longwave_flux'] 
+        if not surface_net_downward_longwave_flux:
+            raise ValueError("Can not calculate surface_upwelling_longwave_flux, because unable to load surface_downwelling_longwave_flux")           
+        # store the surface_downwelling_longwave_flux data into temporary variable
+        surface_downwelling_longwave_flux = [var for var in orderedVars 
+               if var.standard_name == 'surface_downwelling_longwave_flux']
+        if not surface_downwelling_longwave_flux:
+            raise ValueError("Can not calculate surface_upwelling_longwave_flux, because unable to load surface_downwelling_shortwave_flux")
+        # calculate 'surface_upwelling_longwave_flux' by subtract 'surface_net_downward_longwave_flux'
+        # from 'surface_downwelling_longwave_flux'       
+        surface_upwelling_longwave_flux = cubeSubtractor(surface_downwelling_longwave_flux[0], 
+                                           surface_net_downward_longwave_flux[0], 
+                       standard_name='surface_upwelling_longwave_flux_in_air',
+                                                              removeSTASH=True)
+        # store the 'surface_upwelling_longwave_flux' into orderedVars
+        orderedVars.insert(idx, surface_upwelling_longwave_flux)
+    # end of if ('surface_upwelling_longwave_flux_in_air', 'None') in _convertVars_:
+    
+    # remove temporary variables from ordered vars list 
+    for dvar, dSTASH in _removeVars_:
+        for ovar in orderedVars:
+            # removed temporary vars from ordered vars list        
+            if ovar.standard_name == dvar: orderedVars.remove(ovar)
+    # end of for dvar in _removeVars_:
+
+    # generate correct file name by removing _preExtension_
+    g2filepath = fpath.split(_preExtension_)
+    g2filepath = g2filepath[0] + g2filepath[-1]
+    
+    # now lets save the ordered variables into same file
+    try:   
+        # before save it, tweak the cubes by setting centre no and 
+        # address other temporary issues before saving into grib2.
+        iris.fileformats.grib.save_messages(tweaked_messages(orderedVars), 
+                                                g2filepath, append=True)
+    except Exception as e:
+        print "ALERT !!! Error while saving orderd variables into grib2!! %s" % str(e)
+        print " So skipping this without saving data"
+        return 
+    # end of try:
+    
+    # make memory free 
+    del orderedVars
+    
+    # remove the older file 
+    os.remove(fpath)
+    for ncf in ncloadedfiles: os.remove(ncf)
+        
+    print "Created the variables in ordered fassion and saved into", g2filepath
+                
+    if _convertGrib2FilestoGrib1Files_:
+        g1filepath = '.'.join(g2filepath.split('.')[:-1])
+        g1filepath = g1filepath if g1filepath else g2filepath[:-1]
+        if __grib1FilesNameSuffix__: g1filepath += str(__grib1FilesNameSuffix__)
+        
+        if os.path.isfile(g1filepath): os.remove(g1filepath)
+        
+        cmd = [cnvgrib, '-g21', g2filepath, g1filepath]
+        subprocess.call(cmd, shell=False)
+        cmd = ['chmod', '644', g1filepath]
+        subprocess.call(cmd, shell=False)
+        print "Converted grib2 to grib1 file : -", g1filepath
+        
+        if  _createGrib1CtlIdxFiles_:
+            ## grib2ctl.pl usage option refer the below link 
+            ## https://tuxcoder.wordpress.com/2011/04/11/how-to-install-grib2ctl-pl-and-wgrib-in-linux/    
+            ctlfile = open(g1filepath+'.ctl', 'w')
+            if __outFileType__ in ['ana', 'anl']:
+                # create ctl & idx files for analysis file 
+                subprocess.call([grib2ctl, '-ts6hr', g1filepath], stdout=ctlfile)
+                subprocess.call([gribmap, '-ts6hr', '-0', '-i', g1filepath+'.ctl'])
+            elif __outFileType__ in ['prg', 'fcst']:
+                # create ctl & idx files for forecast file
+                subprocess.call([grib2ctl, '-ts6hr', '-verf', g1filepath], stdout=ctlfile)
+                subprocess.call([gribmap, '-i', g1filepath+'.ctl'])
+            else:
+                raise ValueError("unknown file type while executing grib2ctl.pl!!")
+            
+            print "Successfully created control and index file using grib2ctl !", g1filepath+'.ctl'
+    # end of if _createGrib1CtlIdxFiles_:
+    # end of if _convertGrib2FilestoGrib1Files_:
+    
+    if __removeGrib2FilesAfterGrib1FilesCreated__ and _convertGrib2FilestoGrib1Files_:
+        # grib1 files are converted. so we can remove grib2 files.
+        os.remove(g2filepath)
+        print "deleted grib2 file", g2filepath        
+    elif _createGrib2CtlIdxFiles_:
+        ## g2ctl.pl usage option refer the below link 
+        ## https://tuxcoder.wordpress.com/2011/08/31/how-to-install-g2ctl-pl-and-wgrib2-in-linux/
+        ## though options says -verf for forecast end time, -0 for analysis time 
+        ## -b for forecast start time, its all about setting reference in ctl file.
+        ## Nothing more than that. We already set correct reference and forecast time bounds 
+        ## in analysis files (whichever variables are actually taken from previous short forecast 0-6 hours).
+        ## so here we no need to pass any options like -0 or -b. 
+        ## By default g2ctl takes -verf option, same option we are passing 
+        ## here to make sure that in future it will not affect.
+        ctlfile = open(g2filepath+'.ctl', 'w')
+        # create ctl & idx files for forecast file
+        # by default -verf as passed which takes end time of fcst bounds to set as base time.
+        subprocess.call([g2ctl, '-ts6hr', '-verf', g2filepath], stdout=ctlfile)
+        subprocess.call([gribmap, '-i', g2filepath+'.ctl'])                
+        print "Successfully created control and index file using g2ctl !", g2filepath+'.ctl'
+    # end of if __removeGrib2FilesAfterGrib1FilesCreated__:    
+# end of def doShuffleVarsInOrder(fpath):
+
+def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
+            
+    global _current_date_, _opPath_, _preExtension_, __max_long_fcst_hours__, \
+           __anlFileNameStructure__, __fcstFileNameStructure__, \
+           __max_long_fcst_hours__, __start_step_long_fcst_hour__, __utc__
+            
+    print "Lets re-order variables for all the files!!!"
+    #####
+    ## 6-hourly Files have been created with extension.
+    ## Now lets do re-order variables within those individual files, in parallel mode.  
+            
+    # get current working directory
+    current_dir = os.getcwd()
+    # lets change current working directory as out path
+    os.chdir(_opPath_)
+    if ftype in ['fcst', 'forecast']:
+        ## generate all the forecast filenames w.r.t forecast hours 
+        # get the out fileName Structure based on pre / user defined indecies                       
+        outFnIndecies = __getAnlFcstFileNameIdecies__(__fcstFileNameStructure__)
+        fcstFiles = []
+        for fcsthr in range(__start_step_long_fcst_hour__, 
+                   __max_long_fcst_hours__+1, __start_step_long_fcst_hour__):            
+            # generate the out file name based on actual informations                                 
+            outFn = __genAnlFcstOutFileName__(__fcstFileNameStructure__, 
+                                  outFnIndecies, _current_date_, fcsthr, 
+                                           simulated_hr, _preExtension_)  
+            fcstFiles.append(outFn)
+        # end of for fcsthr in range(...):
+
+        ## get the no of created fcst files  
+        nprocesses = len(fcstFiles)        
+        # parallel begin - 3
+        pool = _MyPool(nprocesses)
+        print "Creating %d (non-daemon) workers and jobs in doShuffleVarsInOrder process." % nprocesses
+        results = pool.map(doShuffleVarsInOrder, fcstFiles)   
+        
+        # closing and joining master pools
+        pool.close()     
+        pool.join()
+        # parallel end - 3    
+    elif ftype in ['anl', 'analysis']:
+        ## generate the analysis filename w.r.t simulated_hr
+        # get the out fileName Structure based on pre / user defined indecies                       
+        outFnIndecies = __getAnlFcstFileNameIdecies__(__anlFileNameStructure__) 
+        anlFiles = []
+        simulated_hr = int(__utc__)
+        # since ncum producing analysis files 00, 06, 12, 18 utc cycles and 
+        # its forecast time starting from 0 and reference time based on utc.
+        # so we should calculate correct hour as below.
+        for fcsthr in range(0+simulated_hr, 6+simulated_hr, __anl_step_hour__):            
+            # generate the out file name based on actual informations                                 
+            outFn = __genAnlFcstOutFileName__(__anlFileNameStructure__, 
+                                  outFnIndecies, _current_date_, fcsthr, 
+                                           simulated_hr, _preExtension_)  
+            anlFiles.append(outFn)
+        # end of for fcsthr in range(...):
+        ## get the no of created anl files  
+        nprocesses = len(anlFiles)        
+        # parallel begin - 3
+        pool = _MyPool(nprocesses)
+        print "Creating %d (non-daemon) workers and jobs in doShuffleVarsInOrder process." % nprocesses
+        results = pool.map(doShuffleVarsInOrder, anlFiles)   
+        
+        # closing and joining master pools
+        pool.close()     
+        pool.join()
+        # parallel end - 3        
+    # end of if ftype in ['fcst', 'forecast']: 
+    print "Total time taken to convert and re-order all files was: %8.5f seconds \n" % (time.time()-_startT_)
+    # reset current working directory
+    os.chdir(current_dir)
+    return 
+# end of def doShuffleVarsInOrderInParallel(arg):
+    
 def _checkInFilesStatus(path, ftype, pfname, fext):
     
     global __max_long_fcst_hours__, _ensemble_count_
@@ -1016,27 +1439,10 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     # end of if status is 'FilesExists': 
     
     # do convert for forecast files     
-    for ext in fext: convertFilesInParallel(fcst_fname, ext, ftype='fcst')   
+    for ext in fext: convertFilesInParallel(fcst_fname, ext, ftype='fcst')  
     
-    if _createGrib2CtlIdxFiles_ and  __outg2files__:
-        
-        cdir = os.getcwd()
-        os.chdir(_opPath_)
-                
-        ## get the no of parallel process to create ctl, idx files files  
-        nprocesses = len( __outg2files__)     
-        # create the no of parallel processes
-        pool = _MyPool(nprocesses)
-        print "Creating %i (daemon) workers to call createGrib2CtlIdxFiles" % nprocesses
-        # pass the grib2 files name as list
-        results = pool.map(createGrib2CtlIdxFiles,  __outg2files__)
-        # closing and joining child pools      
-        pool.close() 
-        pool.join()
-        # parallel end
-        os.chdir(cdir)        
-        print "created ctl, idx files for %d g2files" % nprocesses
-    # end of if _createGrib2CtlIdxFiles_:
+    # do re-order variables within files in parallel
+    doShuffleVarsInOrderInParallel('fcst', utc)
     
     if callBackScript:
         callBackScript = os.path.abspath(callBackScript)
