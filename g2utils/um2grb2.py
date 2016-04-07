@@ -2472,7 +2472,12 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
         # define user defined custom lat & lon start and end points
         if latitude: 
             (slat, elat) = latitude
-            _reverseLatitude_ = True if slat > elat else False
+            if slat > elat:
+                # just make sure while extracting south to north
+                slat, elat = elat, slat 
+                # and reverse while saving into grib2 file.
+                _reverseLatitude_ = True
+            # end of if slat > elat:
         # end of if latitude: 
         if longitude: (slon, elon) = longitude
         # reduce one step if user passed / default lon is 360. If we write 
@@ -2644,7 +2649,12 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
         # define user defined custom lat & lon start and end points
         if latitude: 
             (slat, elat) = latitude
-            _reverseLatitude_ = True if slat > elat else False
+            if slat > elat:
+                # just make sure while extracting south to north
+                slat, elat = elat, slat 
+                # and reverse while saving into grib2 file.
+                _reverseLatitude_ = True
+            # end of if slat > elat:
         # end of if latitude: 
         if longitude: (slon, elon) = longitude
         # reduce one step if user passed / default lon is 360. If we write 
