@@ -129,6 +129,7 @@ _opPath_ = None
 _doRegrid_ = False
 _targetGrid_ = None
 _targetGridRes_ = None
+_reverseLatitude_ = False
 _requiredLat_ = None
 _requiredLon_ = None
 _requiredPressureLevels_ = None
@@ -1439,6 +1440,17 @@ def regridAnlFcstFiles(arg):
                 # do not apply regrid. this is temporary fix. 
                 regdCube = tmpCube
             # end of if _doRegrid_:
+
+            if _reverseLatitude_:
+                # Need to reverse latitude from SN to NS
+                rcsh = len(regdCube.data.shape)
+                if rcsh == 3:
+                    regdCube.data = regdCube.data[:,::-1,:]
+                elif rcsh == 2:
+                    regdCube.data = regdCube.data[::-1,:]
+                lat = regdCube.coords('latitude')[0]
+                lat.points = lat.points[::-1]
+            # end of if _reverseLatitude_:
             
             if (varName, varSTASH) in _precipVars_:
                 # Since we are not using 'mask' option for extrapolate while 
@@ -2342,7 +2354,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
        _inDataPath_, _opPath_, _doRegrid_, _convertVars_, _requiredLat_, \
        _requiredLon_, _createGrib2CtlIdxFiles_, _createGrib1CtlIdxFiles_, \
        _convertGrib2FilestoGrib1Files_, __fcstFileNameStructure__, \
-       __LPRINT__, __utc__, __start_step_long_fcst_hour__, \
+       __LPRINT__, __utc__, __start_step_long_fcst_hour__, _reverseLatitude_, \
        __max_long_fcst_hours__, __outFileType__, __grib1FilesNameSuffix__, \
        __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, \
        _removeVars_, _requiredPressureLevels_, __setGrib2TableParameters__
@@ -2458,8 +2470,15 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
         # define default global lon start, lon end points 
         slon, elon = (0., 360.)
         # define user defined custom lat & lon start and end points
-        if latitude: (slat, elat) = latitude
+        if latitude: 
+            (slat, elat) = latitude
+            _reverseLatitude_ = True if slat > elat else False
+        # end of if latitude: 
         if longitude: (slon, elon) = longitude
+        # reduce one step if user passed / default lon is 360. If we write 
+        # longitude from 0 upto 360, wgrib2 reads it as 0 to 0. To avoid it, 
+        # just reduct one step in longitude only incase of 360.
+        if int(elon) == 360: elon -= targetGridResolution 
         # target grid as 0.25 deg (default) resolution by setting up sample points 
         # based on coord    
         _targetGrid_ = [('latitude', numpy.arange(slat, 
@@ -2508,7 +2527,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
        __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, \
        _removeVars_, __anl_step_hour__, _requiredPressureLevels_, \
        __setGrib2TableParameters__, __anl_aavars_reference_time__, \
-       __anl_aavars_time_bounds__ 
+       __anl_aavars_time_bounds__, _reverseLatitude_  
            
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -2623,8 +2642,15 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
         # define default global lon start, lon end points 
         slon, elon = (0., 360.)
         # define user defined custom lat & lon start and end points
-        if latitude: (slat, elat) = latitude
+        if latitude: 
+            (slat, elat) = latitude
+            _reverseLatitude_ = True if slat > elat else False
+        # end of if latitude: 
         if longitude: (slon, elon) = longitude
+        # reduce one step if user passed / default lon is 360. If we write 
+        # longitude from 0 upto 360, wgrib2 reads it as 0 to 0. To avoid it, 
+        # just reduct one step in longitude only incase of 360.
+        if int(elon) == 360: elon -= targetGridResolution
         # target grid as 0.25 deg (default) resolution by setting up sample points 
         # based on coord    
         _targetGrid_ = [('latitude', numpy.arange(slat, 
