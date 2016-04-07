@@ -178,13 +178,9 @@ _orderedVars_ = {'PressureLevel': [
 }
 
 # Define _accumulationVars_
-# The following variables should be 6-hourly accumulated, but model
-# produced as 1-hourly accumulation. So we need to sum of 6-hours data to 
-# get 6-hourly accumulation.
-# rainfall_flux, snowfall_flux, precipitation_flux are not accumulated 
-# vars, since those are averaged rain rate (kg m-2 s-1). 
-# But the following vars unit is (kg m-2), accumulated vars.  
-_accumulationVars_ = []                      
+# The following variables cell_methods should show accumulated/sum, but 
+# UM pp code doesnt support for accumulation. So lets fix it here ! 
+_accumulationVars_ = [('precipitation_amount', 'm01s05i226'),]                      
 
 ## Define _ncfilesVars_
 ## the following variables need to be written into nc file, initially for 
@@ -312,12 +308,12 @@ def packEnsembles(arg):
     global _targetGrid_, _targetGridRes_,  _startT_, _inDataPath_, _opPath_, \
             _preExtension_, _ncfilesVars_, _requiredLat_, _requiredLon_, \
             _doRegrid_, __utc__, _requiredPressureLevels_, __LPRINT__, \
-            __outg2files__, _lock_
+            __outg2files__, _lock_, _accumulationVars_
            
     infiles, varNamesSTASHFcstHour = arg
     varName, varSTASH, fhr = varNamesSTASHFcstHour
     
-    if (varName, varSTASH) in [('precipitation_amount', 'm01s05i226')]:
+    if (varName, varSTASH) in _accumulationVars_:
         # update the forecast hour, since precipitation_amount is accumulated
         # var, not instantaneous one.
         fhr -= 3
@@ -417,6 +413,15 @@ def packEnsembles(arg):
     print "taken into memory of all ensembles", ensembleData.shape 
     # convert data into masked array
     ensembleData = numpy.ma.masked_array(ensembleData, dtype=numpy.float64)
+    if (varName, varSTASH) in [('y_wind', 'm01s03i210'),]:
+        ### mask less than e-5, for vwind it goes beyond e-5. So lets set 0 to it.    
+        ensembleData.data[ensembleData.data <= 1e-5] = 0.0
+        ensembleData.data[ensembleData.data <= -1e-5] = 0.0
+    elif (varName, varSTASH) in [('precipitation_amount', 'm01s05i226'),]:
+        # precipitation should not go less than 0.
+        ensembleData.data[ensembleData.data < 0] = 0.0
+    # end of if (varName, varSTASH) in [('y_wind', 'm01s03i210'),]
+    
     # http://www.cpc.ncep.noaa.gov/products/wesley/g2grb.html
     # Says that 9.999e+20 value indicates as missingValue in grib2
     # by default g2ctl.pl generate "undefr 9.999e+20", so we must 
@@ -454,8 +459,15 @@ def packEnsembles(arg):
     cm = iris.coords.CellMethod('realization', ('realization',), 
                            intervals=('1',), comments=(' ENS',))
     # add cell_methods to the ensembleData                        
-    if controlVar.cell_methods:             
-        ensembleData.cell_methods = (cm, controlVar.cell_methods[0])
+    if controlVar.cell_methods:
+        if (varName, varSTASH) in _accumulationVars_:
+            # The following variables cell_methods should show accumulated/sum, but 
+            # UM pp code doesnt support for accumulation. So lets fix it here ! 
+            cm1 = iris.coords.CellMethod('sum', ('time',), 
+                           intervals=('1 hour',), comments=('6 hour accumulation',))
+            ensembleData.cell_methods = (cm, cm1)
+        else:             
+            ensembleData.cell_methods = (cm, controlVar.cell_methods[0])
     else:
         ensembleData.cell_methods = (cm,)
     print ensembleData
@@ -512,7 +524,7 @@ def packEnsembles(arg):
     outFn = os.path.join(_opPath_, outFn)
     print "Going to be save into ", outFn
     print ensembleData
-                
+            
     try:                
         # _lock_ other threads / processors from being access same file 
         # to write other variables. 
@@ -530,7 +542,9 @@ def packEnsembles(arg):
         print "ALERT !!! Error while saving!! %s" % str(e)
         print " So skipping this without saving data"        
     # end of try:
-    print "saved"
+    print "saved!"
+    print ensembleData.standard_name, ensembleData.data.min(), ensembleData.data.max()
+    print ensembleData
     # make memory free 
     del ensembleData
 # end of def packEnsembles(arg):                     
@@ -635,8 +649,7 @@ def tweaked_messages(cubeList):
     
     for cube in cubeList:
         for cube, grib_message in iris.fileformats.grib.as_pairs(cube):
-            print "Tweaking begin ", cube.standard_name
-            print cube 
+            print "Tweaking begin ", cube.standard_name            
             # post process the GRIB2 message, prior to saving
             gribapi.grib_set_long(grib_message, "centre", 29) # RMC of India
             gribapi.grib_set_long(grib_message, "subCentre", 0) # No subcentre
@@ -646,10 +659,7 @@ def tweaked_messages(cubeList):
             # http://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_table4-3.shtml 
             # 4 points ensemble forecast
             gribapi.grib_set_long(grib_message, "typeOfGeneratingProcess", 4)
-            
-            if cube.standard_name == 'precipitation_amount':
-                print "precipitation_amount"
-                print cube.coord("forecast_period"), cube.coord("forecast_period").bounds
+                        
             if cube.coord("forecast_period").bounds is None:       
                 #http://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_table4-0.shtml 
                 # template 01 would be better
