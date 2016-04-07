@@ -22,7 +22,7 @@ def createTarBalls(path, today, utc, stephr=6):
     
     cdir = os.getcwd()
     os.chdir(path)
-    anal_ftemp = 'ncum_ana*%s*%s*.grb2'
+    anal_ftemp = 'anal*%s*%s*.grb2'
     tDay = datetime.datetime.strptime(today, "%Y%m%d")
     lag1 = datetime.timedelta(days=1)
     yDay = (tDay - lag1).strftime('%Y%m%d')
@@ -56,7 +56,12 @@ def createTarBalls(path, today, utc, stephr=6):
     print cmd
     subprocess.call(cmd, shell=True)
     # create forecast files tar file in parallel
-    cmd = "tar -c ./ncum_fcs*%s*.grb2 | %s  -v  -c -f -p32 -m500 > %s/ncum_fcst_%s.tar.bz2" % (today, pbzip2, '../TarFiles', today)
+    cmd = "tar -c ./fcst*%s*.grb2 | %s  -v  -c -f -p32 -m500 > %s/ncum_fcst_%s.tar.bz2" % (today, pbzip2, '../TarFiles', today)
+    print cmd
+    subprocess.call(cmd, shell=True)
+    
+    # create flux files tar file in parallel
+    cmd = "tar -c ./flux*%s*.grb2 | %s  -v  -c -f -p32 -m500 > %s/ncum_flux_%s.tar.bz2" % (today, pbzip2, '../TarFiles', today)
     print cmd
     subprocess.call(cmd, shell=True)
         
@@ -81,21 +86,27 @@ def createTarBalls(path, today, utc, stephr=6):
     # end of if os.path.exists(y4DayPath):       
     
     tarpath = os.path.abspath('../TarFiles')
-    # do scp the tar files to ftp_server and nkn_server
+    # do scp the anal tar files to ftp_server and nkn_server
     cmd = 'ssh ncmlogin3 "scp -p %s/ncum_anal_%s.tar.bz2  %s:/data/ftp/pub/outgoing/NCUM_INCOIS/OSF/"' % (tarpath, today, ftp_server)
     print cmd
     subprocess.call(cmd, shell=True)
     cmd = 'ssh ncmlogin3 "scp -p %s/ncum_anal_%s.tar.bz2  %s:NCUM/osf/"' % (tarpath, today, nkn_server)
     print cmd
     subprocess.call(cmd, shell=True)
-    
+    # do scp the fcst tar files to ftp_server and nkn_server
     cmd = 'ssh ncmlogin3 "scp -p %s/ncum_fcst_%s.tar.bz2  %s:/data/ftp/pub/outgoing/NCUM_INCOIS/OSF/"' % (tarpath, today, ftp_server)
     print cmd
     subprocess.call(cmd, shell=True)
     cmd = 'ssh ncmlogin3 "scp -p %s/ncum_fcst_%s.tar.bz2  %s:NCUM/osf/"' % (tarpath, today, nkn_server)
     print cmd
     subprocess.call(cmd, shell=True)
-    
+    # do scp the flux tar files to ftp_server and nkn_server
+    cmd = 'ssh ncmlogin3 "scp -p %s/ncum_flux_%s.tar.bz2  %s:/data/ftp/pub/outgoing/NCUM_INCOIS/OSF/"' % (tarpath, today, ftp_server)
+    print cmd
+    subprocess.call(cmd, shell=True)
+    cmd = 'ssh ncmlogin3 "scp -p %s/ncum_flux_%s.tar.bz2  %s:NCUM/osf/"' % (tarpath, today, nkn_server)
+    print cmd
+    subprocess.call(cmd, shell=True)
     os.chdir(cdir)  
 # end of def createTarBalls(path, today, ...):
 
