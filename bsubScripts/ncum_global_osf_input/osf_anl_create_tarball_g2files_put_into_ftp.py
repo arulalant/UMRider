@@ -136,7 +136,7 @@ if __name__ == '__main__':
     # end of for opt, arg in opts:
     
     # create tar balls only if utc is 00, otherwise skip it!    
-    if utc == '00': 
+    if oftype == 'analysis' and utc == '00': 
         # pass the arg to function  
         createTarBalls(outpath, oftype, date, utc, stephr=6)    
     # end of if oftype == 'forecast' and utc == '00': 

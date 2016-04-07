@@ -22,8 +22,8 @@ g2scripts_absolute_dir="$( cd "$g2scripts_relative_dir" && pwd )"
 g2script=$g2scripts_absolute_dir/um2grb2_fcst_00Z.py
 
 # export the configure paths to needed variables
-export UMRIDER_SETUP=$DIR/ncum_global_osf_input_um2grb2_setup.cfg
-export UMRIDER_VARS=$DIR/ncum_global_osf_input_um2grb2_vars.cfg
+export UMRIDER_SETUP=$DIR/ncum_global_osf_input_um2grb2_fcst_setup.cfg
+export UMRIDER_VARS=$DIR/ncum_global_osf_input_um2grb2_fcst_vars.cfg
 export GRIB2TABLE=$localTable
 
 echo "export UMRIDER_SETUP="$UMRIDER_SETUP
