@@ -56,7 +56,7 @@ def createTarBalls(path, oftype, today, utc, stephr=6):
         #
         # create analysis files tar file in parallel
         anal_files = '  '.join(['./'+af for af in yanal_files + tanal_files])  
-        cmd = "tar -c  %s | %s -v  -c -f -p32 -m500 > %s/ncum_anal_%s.tar.bz2" % (anal_files, pbzip2, '../TarFiles', today)
+        cmd = "tar -c  %s | %s -v  -c -f -p32 -m500 > %s/ncum_anal_glb_0.25_%s.tar.bz2" % (anal_files, pbzip2, '../TarFiles', today)
         print cmd
         subprocess.call(cmd, shell=True)
         
@@ -69,16 +69,16 @@ def createTarBalls(path, oftype, today, utc, stephr=6):
         # end of if yanal_files:        
         
         # do scp the anal tar files to ftp_server and nkn_server
-        cmd = 'ssh ncmlogin3 "scp -p %s/ncum_anal_%s.tar.bz2  %s:/data/ftp/pub/outgoing/NCUM_INCOIS/OSF/0.25/"' % (tarpath, today, ftp_server)
+        cmd = 'ssh ncmlogin3 "scp -p %s/ncum_anal_glb_0.25_%s.tar.bz2  %s:/data/ftp/pub/outgoing/NCUM_INCOIS/OSF/0.25/"' % (tarpath, today, ftp_server)
         print cmd
         subprocess.call(cmd, shell=True)
-        cmd = 'ssh ncmlogin3 "scp -p %s/ncum_anal_%s.tar.bz2  %s:NCUM/osf/0.25/"' % (tarpath, today, nkn_server)
+        cmd = 'ssh ncmlogin3 "scp -p %s/ncum_anal_glb_0.25_%s.tar.bz2  %s:NCUM/osf/0.25/"' % (tarpath, today, nkn_server)
         print cmd
         subprocess.call(cmd, shell=True)
         
     elif oftype == 'forecast':    
         # create forecast files tar file in parallel
-        cmd = "tar -c ./fcst*%s*.grb2 | %s  -v  -c -f -p32 -m500 > %s/ncum_fcst_%s.tar.bz2" % (today, pbzip2, '../TarFiles', today)
+        cmd = "tar -c ./fcst*%s*.grb2 | %s  -v  -c -f -p32 -m500 > %s/ncum_fcst_glb_0.25_%s.tar.bz2" % (today, pbzip2, '../TarFiles', today)
         print cmd
         subprocess.call(cmd, shell=True)        
                     
@@ -88,10 +88,10 @@ def createTarBalls(path, oftype, today, utc, stephr=6):
         subprocess.call(cmd, shell=True)
     
         # do scp the fcst tar files to ftp_server and nkn_server
-        cmd = 'ssh ncmlogin3 "scp -p %s/ncum_fcst_%s.tar.bz2  %s:/data/ftp/pub/outgoing/NCUM_INCOIS/OSF/0.25/"' % (tarpath, today, ftp_server)
+        cmd = 'ssh ncmlogin3 "scp -p %s/ncum_fcst_glb_0.25_%s.tar.bz2  %s:/data/ftp/pub/outgoing/NCUM_INCOIS/OSF/0.25/"' % (tarpath, today, ftp_server)
         print cmd
         subprocess.call(cmd, shell=True)
-        cmd = 'ssh ncmlogin3 "scp -p %s/ncum_fcst_%s.tar.bz2  %s:NCUM/osf/0.25/"' % (tarpath, today, nkn_server)
+        cmd = 'ssh ncmlogin3 "scp -p %s/ncum_fcst_glb_0.25_%s.tar.bz2  %s:NCUM/osf/0.25/"' % (tarpath, today, nkn_server)
         print cmd
         subprocess.call(cmd, shell=True)        
     # end of if oftype == 'analysis':    
