@@ -2510,6 +2510,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     doShuffleVarsInOrderInParallel('fcst', utc)
     
     if callBackScript:
+        time.sleep(30)  # required few seconds sleep before further process starts  
         callBackScript = os.path.abspath(callBackScript)
         if not os.path.exists(callBackScript): 
             print "callBackScript '%s' doenst exist" % callBackScript
@@ -2688,6 +2689,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     doShuffleVarsInOrderInParallel('anl', utc)
     
     if callBackScript:
+        time.sleep(30)  # required few seconds sleep before further process starts  
         callBackScript = os.path.abspath(callBackScript)
         if not os.path.exists(callBackScript): 
             print "callBackScript '%s' doenst exist" % callBackScript
