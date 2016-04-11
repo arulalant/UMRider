@@ -25,12 +25,12 @@ def createTarBalls(path, oftype, today, utc, stephr=6):
         
     if oftype == 'forecast':                
         # create flux files tar file in parallel
-        cmd = "tar -c ./flux*%s*.grb2 | %s  -v  -c -f -p32 -m500 > %s/ncum_flux_glb_0.5_%s.tar.bz2" % (today, pbzip2, '../TarFiles', today)
+        cmd = "tar -c ./flux*%s*.grb | %s  -v  -c -f -p32 -m500 > %s/ncum_flux_glb_0.5_%s.tar.bz2" % (today, pbzip2, '../TarFiles', today)
         print cmd
         subprocess.call(cmd, shell=True)
             
         # delete today's forecasts files, after tar ball has been created!    
-        cmd = "rm -rf flux*%s*.grb2" % today
+        cmd = "rm -rf flux*%s*.grb" % today
         print cmd
         subprocess.call(cmd, shell=True)    
         

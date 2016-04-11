@@ -25,12 +25,12 @@ def createTarBalls(path, oftype, today, utc, stephr=6):
         
     if oftype == 'forecast':                
         # create fcst files tar file in parallel
-        cmd = "tar -c ./fcst*%s*.grb2 | %s  -v  -c -f -p32 -m500 > %s/ncum_fcst_glb_0.5_%s.tar.bz2" % (today, pbzip2, '../TarFiles', today)
+        cmd = "tar -c ./fcst*%s*.grb | %s  -v  -c -f -p32 -m500 > %s/ncum_fcst_glb_0.5_%s.tar.bz2" % (today, pbzip2, '../TarFiles', today)
         print cmd
         subprocess.call(cmd, shell=True)
             
         # delete today's forecasts files, after tar ball has been created!    
-        cmd = "rm -rf fcst*%s*.grb2" % today
+        cmd = "rm -rf fcst*%s*.grb" % today
         print cmd
         subprocess.call(cmd, shell=True)    
         
