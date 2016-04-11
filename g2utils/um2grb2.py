@@ -2011,6 +2011,8 @@ def doShuffleVarsInOrder(fpath):
     # generate correct file name by removing _preExtension_
     g2filepath = fpath.split(_preExtension_)
     g2filepath = g2filepath[0] + g2filepath[-1]
+    
+    outstatus = False
     # now lets save the ordered variables into same file
     try:   
         # before save it, tweak the cubes by setting centre no and 
@@ -2020,8 +2022,13 @@ def doShuffleVarsInOrder(fpath):
     except Exception as e:
         print "ALERT !!! Error while saving orderd variables into grib2!! %s" % str(e)
         print " So skipping this without saving data"
+        outstatus = True
         return 
+    finally:
+        outstatus = True
     # end of try:
+    time.sleep(30)  # lets wait 30 more seconds to be written properly.    
+    while not outstatus: time.sleep(30)   # lets wait till grib2 file written status to be completed.        
     
     # make memory free 
     del orderedVars
@@ -2040,9 +2047,9 @@ def doShuffleVarsInOrder(fpath):
         if os.path.isfile(g1filepath): os.remove(g1filepath)
         
         cmd = [cnvgrib, '-g21', g2filepath, g1filepath]
-        subprocess.call(cmd, shell=False)
+        subprocess.call(cmd, shell=True)
         cmd = ['chmod', '644', g1filepath]
-        subprocess.call(cmd, shell=False)
+        subprocess.call(cmd, shell=True)
         print "Converted grib2 to grib1 file : -", g1filepath
         
         if  _createGrib1CtlIdxFiles_:
