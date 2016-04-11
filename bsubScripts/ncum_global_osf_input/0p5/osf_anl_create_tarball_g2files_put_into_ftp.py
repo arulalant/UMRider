@@ -43,7 +43,7 @@ def createTarBalls(path, oftype, today, utc, stephr=6):
             wildcard_anlfile = '../%s/%s' % (yDay, yf)
             print "wildcard_anlfile = ", wildcard_anlfile
             if not glob.glob(wildcard_anlfile): continue
-            cmd = 'mv %s .' % wildcard_anlfile
+            cmd = 'cp %s .' % wildcard_anlfile
             print cmd
             subprocess.call(cmd, shell=True)
             yanal_files.append(yf)

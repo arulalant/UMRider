@@ -8,7 +8,7 @@
 ## Arulalan.T
 ## 15-Mar-2016.
 
-import os, sys, getopt, subprocess
+import os, sys, getopt, subprocess, datetime
 import multiprocessing as mp
 
 def putintoftp(today, outpath, oftype, utc):
