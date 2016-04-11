@@ -32,6 +32,8 @@ def createTarBalls(path, oftype, today, utc, stephr=6):
         yDay = (tDay - lag1).strftime('%Y%m%d')
         lag4 = datetime.timedelta(days=4)
         y4Day = (tDay - lag4).strftime('%Y%m%d')
+        # get past 11th day timestamp
+        y11Day = (tDay - datetime.timedelta(days=11)).strftime('%Y%m%d')
         # get yesterday's analysis files from 06hr onwards
         yanal = [anal_ftemp % (str(hr).zfill(2), yDay) for hr in range(6, 24, stephr)]
         # get today's analysis 00 and 03 hr
@@ -76,6 +78,21 @@ def createTarBalls(path, oftype, today, utc, stephr=6):
         print cmd
         subprocess.call(cmd, shell=True)
         
+        # remove past 11th day tar ball from ftp_server 
+        cmd = 'ssh ncmlogin3 "ssh %s rm -rf /data/ftp/pub/outgoing/NCUM_INCOIS/OSF/0.25/*%s*tar.bz2"' % (ftp_server, y11Day)
+        print cmd
+        try:
+            subprocess.call(cmd, shell=True)
+        except Exception as e:
+            print "past 11th day tar ball has been removed from ftp_server, already", e
+        # remove past 11th day tar ball from nkn_server 
+        cmd = 'ssh ncmlogin3 "ssh %s rm -rf /home/incois/NCUM/osf/0.25/*%s*tar.bz2"' % (nkn_server, y11Day)
+        print cmd
+        try:
+            subprocess.call(cmd, shell=True)
+        except Exception as e:
+            print "past 11th day tar ball has been removed from nkn_server, already", e
+        
     elif oftype == 'forecast':    
         # create forecast files tar file in parallel
         cmd = "tar -c ./fcst*%s*.grb2 | %s  -v  -c -f -p32 -m500 > %s/ncum_fcst_glb_0.25_%s.tar.bz2" % (today, pbzip2, '../TarFiles', today)
@@ -96,7 +113,7 @@ def createTarBalls(path, oftype, today, utc, stephr=6):
         subprocess.call(cmd, shell=True)        
     # end of if oftype == 'analysis':    
     
-    # remove before 3 days directory, neither today nor yesterday directory!!!
+    # remove before 3 days directory, but neither today nor yesterday directory!!!
     y4DayPath = os.path.join(path, '../%s' % y4Day)
     if os.path.exists(y4DayPath):    
         cmd = "rm -rf %s" % y4DayPath

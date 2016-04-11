@@ -14,6 +14,11 @@ import multiprocessing as mp
 def putintoftp(today, outpath, oftype, utc):
     cdir = os.getcwd()
     os.chdir(outpath)
+    
+    tDay = datetime.datetime.strptime(today, "%Y%m%d")
+    # get past 11th day timestamp
+    y11Day = (tDay - datetime.timedelta(days=11)).strftime('%Y%m%d')
+    
     if oftype == 'analysis':
         prefix = 'NCUM_IND_ana'
     elif oftype == 'forecast':
@@ -53,6 +58,24 @@ def putintoftp(today, outpath, oftype, utc):
         subprocess.call(cmd, shell=True)   
     except Exception as e:
         print "Files already exists", e
+    
+    
+    if oftype == 'analysis':
+        # remove past 11th day tar ball from ftp_server 
+        cmd = 'ssh ncmlogin3 "ssh %s rm -rf /data/ftp/pub/outgoing/IND_REGION/NCUM_IND/0.25/%s"' % (ftp_server, y11Day)
+        print cmd
+        try:
+            subprocess.call(cmd, shell=True)
+        except Exception as e:
+            print "past 11th day folder has been removed from ftp_server, already", e
+        # remove past 11th day tar ball from nkn_server 
+        cmd = 'ssh ncmlogin3 "ssh %s rm -rf /home/imd/NCUM_IND/0.25/%s"' % (nkn_server, y11Day)
+        print cmd
+        try:
+            subprocess.call(cmd, shell=True)
+        except Exception as e:
+            print "past 11th day folder has been removed from nkn_server, already", e
+    # end of if oftype == 'analysis':
     
     os.chdir(cdir)
 # end of def renameFiles(outpath):
