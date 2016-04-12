@@ -15,6 +15,7 @@
 import os, subprocess, datetime, getopt, sys, glob
 
 pbzip2 = '/gpfs1/home/Libs/GNU/ZIPUTIL/pbzip2'
+pigz = '/gpfs1/home/Libs/GNU/ZIPUTIL/pigz'
 
 def createTarBalls(path, oftype, today, utc, stephr=6):
     
@@ -24,8 +25,8 @@ def createTarBalls(path, oftype, today, utc, stephr=6):
     if not os.path.exists(tarpath): os.makedirs(tarpath)
         
     if oftype == 'forecast':                
-        # create flux files tar file in parallel
-        cmd = "tar -c ./flux*%s*.grb2 | %s  -v  -c -f -p32 -m500 > %s/ncum_flux_glb_0.25_%s.tar.bz2" % (today, pbzip2, '../TarFiles', today)
+        # create flux files tar file in parallel # -m500 need to be include for pbzip2
+        cmd = "tar -c ./flux*%s*.grb2 | %s  -v  -c -f -p32 > %s/flux_glb_0.25_%s.tar.gz" % (today, pigz, '../TarFiles', today)
         print cmd
         subprocess.call(cmd, shell=True)
             
@@ -35,10 +36,10 @@ def createTarBalls(path, oftype, today, utc, stephr=6):
         subprocess.call(cmd, shell=True)    
         
         # do scp the flux tar files to ftp_server and nkn_server
-        cmd = 'ssh ncmlogin3 "scp -p %s/ncum_flux_glb_0.25_%s.tar.bz2  %s:/data/ftp/pub/outgoing/NCUM_INCOIS/OSF/0.25/"' % (tarpath, today, ftp_server)
+        cmd = 'ssh ncmlogin3 "scp -p %s/flux_glb_0.25_%s.tar.gz  %s:/data/ftp/pub/outgoing/NCUM_INCOIS/OSF/0.25/"' % (tarpath, today, ftp_server)
         print cmd
         subprocess.call(cmd, shell=True)
-        cmd = 'ssh ncmlogin3 "scp -p %s/ncum_flux_glb_0.25_%s.tar.bz2  %s:NCUM/osf/0.25/"' % (tarpath, today, nkn_server)
+        cmd = 'ssh ncmlogin3 "scp -p %s/flux_glb_0.25_%s.tar.gz  %s:NCUM/osf/0.25/"' % (tarpath, today, nkn_server)
         print cmd
         subprocess.call(cmd, shell=True)
     # end of if oftype == 'forecast':      
