@@ -87,7 +87,7 @@ _lock_ = mp.Lock()
 g2ctl = "/gpfs2/home/umtid/Softwares/grib2ctl/g2ctl.pl"
 grib2ctl = "/gpfs2/home/umtid/Softwares/grib2ctl/grib2ctl.pl"
 gribmap = "/gpfs1/home/Libs/GNU/GRADS/grads-2.0.2.oga.1/Contents/gribmap"
-cnvgrib = "/gpfs1/home/Libs/INTEL/cnvgrib-1.4.0/cnvgrib"
+cnvgrib = "/gpfs1/home/Libs/INTEL/CNVGRIB/CNVGRIB-1.4.1/cnvgrib-1.4.1/cnvgrib"
 
 # other global variables
 __LPRINT__ = False
@@ -129,6 +129,7 @@ _opPath_ = None
 _doRegrid_ = False
 _targetGrid_ = None
 _targetGridRes_ = None
+_reverseLatitude_ = False
 _requiredLat_ = None
 _requiredLon_ = None
 _requiredPressureLevels_ = None
@@ -1439,6 +1440,17 @@ def regridAnlFcstFiles(arg):
                 # do not apply regrid. this is temporary fix. 
                 regdCube = tmpCube
             # end of if _doRegrid_:
+
+            if _reverseLatitude_:
+                # Need to reverse latitude from SN to NS
+                rcsh = len(regdCube.data.shape)
+                if rcsh == 3:
+                    regdCube.data = regdCube.data[:,::-1,:]
+                elif rcsh == 2:
+                    regdCube.data = regdCube.data[::-1,:]
+                lat = regdCube.coords('latitude')[0]
+                lat.points = lat.points[::-1]
+            # end of if _reverseLatitude_:
             
             if (varName, varSTASH) in _precipVars_:
                 # Since we are not using 'mask' option for extrapolate while 
@@ -1999,6 +2011,8 @@ def doShuffleVarsInOrder(fpath):
     # generate correct file name by removing _preExtension_
     g2filepath = fpath.split(_preExtension_)
     g2filepath = g2filepath[0] + g2filepath[-1]
+    
+    outstatus = False
     # now lets save the ordered variables into same file
     try:   
         # before save it, tweak the cubes by setting centre no and 
@@ -2008,8 +2022,13 @@ def doShuffleVarsInOrder(fpath):
     except Exception as e:
         print "ALERT !!! Error while saving orderd variables into grib2!! %s" % str(e)
         print " So skipping this without saving data"
+        outstatus = True
         return 
+    finally:
+        outstatus = True
     # end of try:
+    time.sleep(30)  # lets wait 30 more seconds to be written properly.    
+    while not outstatus: time.sleep(30)   # lets wait till grib2 file written status to be completed.        
     
     # make memory free 
     del orderedVars
@@ -2213,7 +2232,7 @@ def convertFilesInParallel(fnames, ftype):
     ## get the no of files and 
     nprocesses = len(fnames)
     # lets create no of parallel process w.r.t no of files.
-    
+
     # parallel begin - 1 
     pool = _MyPool(nprocesses)
     print "Creating %d (non-daemon) workers and jobs in convertFilesInParallel process." % nprocesses
@@ -2342,7 +2361,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
        _inDataPath_, _opPath_, _doRegrid_, _convertVars_, _requiredLat_, \
        _requiredLon_, _createGrib2CtlIdxFiles_, _createGrib1CtlIdxFiles_, \
        _convertGrib2FilestoGrib1Files_, __fcstFileNameStructure__, \
-       __LPRINT__, __utc__, __start_step_long_fcst_hour__, \
+       __LPRINT__, __utc__, __start_step_long_fcst_hour__, _reverseLatitude_, \
        __max_long_fcst_hours__, __outFileType__, __grib1FilesNameSuffix__, \
        __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, \
        _removeVars_, _requiredPressureLevels_, __setGrib2TableParameters__
@@ -2382,9 +2401,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     __max_long_fcst_hours__ = max_long_fcst_hours
     __removeGrib2FilesAfterGrib1FilesCreated__ = removeGrib2FilesAfterGrib1FilesCreated
     __grib1FilesNameSuffix__ = grib1FilesNameSuffix
-    _targetGridRes_ = str(targetGridResolution)
-    _requiredLat_ = latitude
-    _requiredLon_ = longitude
+    _targetGridRes_ = str(targetGridResolution)    
     _requiredPressureLevels_ = pressureLevels    
     _createGrib2CtlIdxFiles_ = createGrib2CtlIdxFiles
     _createGrib1CtlIdxFiles_ = createGrib1CtlIdxFiles
@@ -2458,15 +2475,29 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
         # define default global lon start, lon end points 
         slon, elon = (0., 360.)
         # define user defined custom lat & lon start and end points
-        if latitude: (slat, elat) = latitude
+        if latitude: 
+            (slat, elat) = latitude
+            if slat > elat:
+                # just make sure while extracting south to north
+                slat, elat = elat, slat 
+                _requiredLat_ = (slat, elat)
+                # and reverse while saving into grib2 file.
+                _reverseLatitude_ = True
+            # end of if slat > elat:
+        # end of if latitude: 
         if longitude: (slon, elon) = longitude
+        # reduce one step if user passed / default lon is 360. If we write 
+        # longitude from 0 upto 360, wgrib2 reads it as 0 to 0. To avoid it, 
+        # just reduct one step in longitude only incase of 360.
+        if int(elon) == 360: elon -= targetGridResolution 
+        if longitude: _requiredLon_ = (slon, elon)
         # target grid as 0.25 deg (default) resolution by setting up sample points 
         # based on coord    
         _targetGrid_ = [('latitude', numpy.arange(slat, 
                           elat+targetGridResolution, targetGridResolution)),
                         ('longitude', numpy.arange(slon, 
                           elon+targetGridResolution, targetGridResolution))]
-        _doRegrid_ = True  
+        _doRegrid_ = True        
     # end of if targetGridResolution is None:
     
     # check either files are exists or not. delete the existing files in case
@@ -2486,6 +2517,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     doShuffleVarsInOrderInParallel('fcst', utc)
     
     if callBackScript:
+        time.sleep(30)  # required few seconds sleep before further process starts  
         callBackScript = os.path.abspath(callBackScript)
         if not os.path.exists(callBackScript): 
             print "callBackScript '%s' doenst exist" % callBackScript
@@ -2508,7 +2540,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
        __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, \
        _removeVars_, __anl_step_hour__, _requiredPressureLevels_, \
        __setGrib2TableParameters__, __anl_aavars_reference_time__, \
-       __anl_aavars_time_bounds__ 
+       __anl_aavars_time_bounds__, _reverseLatitude_  
            
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -2547,9 +2579,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     __anl_aavars_time_bounds__ = anl_aavars_time_bounds
     __removeGrib2FilesAfterGrib1FilesCreated__ = removeGrib2FilesAfterGrib1FilesCreated
     __grib1FilesNameSuffix__ = grib1FilesNameSuffix
-    _targetGridRes_ = str(targetGridResolution)
-    _requiredLat_ = latitude
-    _requiredLon_ = longitude
+    _targetGridRes_ = str(targetGridResolution)    
     _requiredPressureLevels_ = pressureLevels    
     _createGrib2CtlIdxFiles_ = createGrib2CtlIdxFiles
     _createGrib1CtlIdxFiles_ = createGrib1CtlIdxFiles
@@ -2623,8 +2653,22 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
         # define default global lon start, lon end points 
         slon, elon = (0., 360.)
         # define user defined custom lat & lon start and end points
-        if latitude: (slat, elat) = latitude
+        if latitude: 
+            (slat, elat) = latitude
+            if slat > elat:
+                # just make sure while extracting south to north
+                slat, elat = elat, slat
+                _requiredLat_ = (slat, elat)
+                # and reverse while saving into grib2 file.
+                _reverseLatitude_ = True
+            # end of if slat > elat:
+        # end of if latitude: 
         if longitude: (slon, elon) = longitude
+        # reduce one step if user passed / default lon is 360. If we write 
+        # longitude from 0 upto 360, wgrib2 reads it as 0 to 0. To avoid it, 
+        # just reduct one step in longitude only incase of 360.
+        if int(elon) == 360: elon -= targetGridResolution
+        if longitude: _requiredLon_ = (slon, elon)
         # target grid as 0.25 deg (default) resolution by setting up sample points 
         # based on coord    
         _targetGrid_ = [('latitude', numpy.arange(slat, 
@@ -2633,7 +2677,8 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
                           elon+targetGridResolution, targetGridResolution))]
         _doRegrid_ = True  
     # end of if targetGridResolution is None:
-    
+    print "print _targetGrid_ = ", _targetGrid_
+    print "_reverseLatitude_ =", _reverseLatitude_ 
     # check either files are exists or not. delete the existing files in case
     # of overwrite option is True, else return without re-converting files.
     status = _checkOutFilesStatus(_opPath_, 'ana', _current_date_, utc, overwrite)
@@ -2651,6 +2696,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     doShuffleVarsInOrderInParallel('anl', utc)
     
     if callBackScript:
+        time.sleep(30)  # required few seconds sleep before further process starts  
         callBackScript = os.path.abspath(callBackScript)
         if not os.path.exists(callBackScript): 
             print "callBackScript '%s' doenst exist" % callBackScript

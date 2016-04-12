@@ -99,7 +99,7 @@ if requiredLat:
     if not isinstance(requiredLat, (tuple, list)):
         raise ValueError("latitude must be tuple")
     if requiredLat[0] > requiredLat[-1]:
-        raise ValueError("First latitude must be less than second latitude")
+        print "Latitude will be revered (i.e. Latitude array order will be NS instead of SN)"
     print "Will be loaded user specfied latitudes", requiredLat
 else:
     print "Will be loaded full model global latitudes"

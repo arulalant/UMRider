@@ -18,8 +18,8 @@ This will produce forecast 00utc files.
 
 $ bsub < ncum_global_osf_input_fcst_00Z.bash
 
-This will produce forecast 12utc files.
+This will produce forecast-fluxes 00utc files.
 
-$ bsub < ncum_global_osf_input_fcst_12Z.bash
+$ bsub < ncum_global_osf_input_flux_00Z.bash
 
 Arulalan.T
