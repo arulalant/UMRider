@@ -10,6 +10,7 @@ ncumSTASH_Vs_cf = {
 'm01s01i202': ('surface_net_downward_shortwave_flux', None, 'W m-2'),
 'm01s01i216': ('surface_diffuse_downwelling_shortwave_flux_in_air', None, 'W m-2'),
 'm01s03i229': ('water_evaporation_flux_from_soil', None, 'kg m-2'),
+'m01s30i403': ('atmosphere_mass_content_of_dust_dry_aerosol_particles', None, 'kg m-2'),
 # though m01s05i233 already standard_name exist, but wrongly assinged as 
 # mass_fraction_of_convective_cloud_liquid_water_in_air in um_cf_map.py. So 
 # in the below we are correcting the cf_standard_name of m01s05i233.
