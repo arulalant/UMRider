@@ -147,7 +147,7 @@ def cubeSubtractor(cube, otherCube, standard_name=None,
     if removeSTASH and 'STASH' in attr: attr.pop('STASH')
     lname = long_name if long_name else cube.long_name
     sname = standard_name if standard_name else cube.standard_name
-    cm = cube.cell_methods[0]  
+    cm = cube.cell_methods[0] if cube.cell_methods else None 
     unit = cube.units 
     # do the simple substraction
     subtracted = cube.data - otherCube.data
