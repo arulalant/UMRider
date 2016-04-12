@@ -2047,9 +2047,9 @@ def doShuffleVarsInOrder(fpath):
         if os.path.isfile(g1filepath): os.remove(g1filepath)
         
         cmd = [cnvgrib, '-g21', g2filepath, g1filepath]
-        subprocess.call(cmd, shell=True)
+        subprocess.call(cmd, shell=False)
         cmd = ['chmod', '644', g1filepath]
-        subprocess.call(cmd, shell=True)
+        subprocess.call(cmd, shell=False)
         print "Converted grib2 to grib1 file : -", g1filepath
         
         if  _createGrib1CtlIdxFiles_:
