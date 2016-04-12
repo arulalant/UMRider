@@ -169,8 +169,14 @@ GRIB2_TO_CF = {
     G2Param(2, 3, 1, 196): CFName(None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_0.87um', '1'), # NCMRWF Local
     G2Param(2, 3, 1, 197): CFName(None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_1.02um', '1'), # NCMRWF Local
 
+    G2Param(2, 3, 1, 198): CFName('atmosphere_mass_content_of_dust_dry_aerosol_particles', None, 'kg m-2'), # NCMRWF Local
+    
     G2Param(2, 0, 0, 4): CFName(None, 'air_temperature_maximum', 'K'), # WMO deprecated
     G2Param(2, 0, 0, 5): CFName(None, 'air_temperature_minimum', 'K'), # WMO deprecated
+    G2Param(2, 0, 1, 69): CFName('atmosphere_cloud_liquid_water_content', None, 'kg m-2'), 
+    G2Param(2, 0, 1, 70): CFName('atmosphere_cloud_ice_content', None, 'kg m-2'), 
+    
+    G2Param(2, 0, 1, 3): CFName(None, 'atmosphere_precipitable_water_content', 'kg m-2'),
     
     # G2Param(grib version, discipline, parameter category, parameter no, typeOfFirstFixedSurface):
     G2Param(2, 0, 1, 60, 1): CFName(None, 'snow_depth_water_equivalent', 'kg m-2'), # 228141
@@ -294,7 +300,9 @@ CF_TO_GRIB2 = {
     CFName('surface_upwelling_longwave_flux_in_air', None, 'W m-2'): G2Param(2, 0, 5, 4),    
     CFName('surface_roughness_length', None, 'm'): G2Param(2, 2, 0, 1),
     CFName('surface_runoff_flux', None, 'kg m-2 s-1'): G2Param(2, 2, 0, 34),
-    CFName('surface_temperature', None, 'K'): G2Param(2, 0, 0, 17),
+#    CFName('surface_temperature', None, 'K'): G2Param(2, 0, 0, 17),
+    CFName('surface_temperature', None, 'K'): G2Param(2, 0, 0, 0), 
+    # OSF required it should be just TMP in grib2 file. So lets write as temperature itself.
     CFName('surface_upward_latent_heat_flux', None, 'W m-2'): G2Param(2, 0, 0, 10),
     CFName('surface_upward_sensible_heat_flux', None, 'W m-2'): G2Param(2, 0, 0, 11),
     CFName('thickness_of_snowfall_amount', None, 'm'): G2Param(2, 0, 1, 11),
@@ -328,6 +336,9 @@ CF_TO_GRIB2 = {
     CFName(None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_0.67um', '1'): G2Param(2, 3, 1, 195), # NCMRWF Local
     CFName(None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_0.87um', '1'): G2Param(2, 3, 1, 196), # NCMRWF Local
     CFName(None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_1.02um', '1'): G2Param(2, 3, 1, 197), # NCMRWF Local
+    
+    CFName('atmosphere_mass_content_of_dust_dry_aerosol_particles', None, 'kg m-2'): G2Param(2, 3, 1, 198), # NCMRWF Local
+    
 
 ##    CFName('surface_downwelling_shortwave_flux_in_air_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 4, 196), #260342
 ##    CFName('surface_upwelling_shortwave_flux_in_air_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 4, 196), #260342
@@ -339,6 +350,10 @@ CF_TO_GRIB2 = {
     
     CFName(None, 'air_temperature_maximum', 'K'): G2Param(2, 0, 0, 4), # WMO deprecated
     CFName(None, 'air_temperature_minimum', 'K'): G2Param(2, 0, 0, 5), # WMO deprecated
+    CFName('atmosphere_cloud_liquid_water_content', None, 'kg m-2'): G2Param(2, 0, 1, 69), 
+    CFName('atmosphere_cloud_ice_content', None, 'kg m-2'): G2Param(2, 0, 1, 70), 
+    
+    CFName(None, 'atmosphere_precipitable_water_content', 'kg m-2'): G2Param(2, 0, 1, 3),
     
     #WMO need to set surface level type as toa (Nominal top of the atmosphere, 8)
     CFName('toa_outgoing_longwave_flux', None, 'W m-2'): G2Param(2, 0, 5, 4, 8),  # WMO

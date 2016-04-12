@@ -1,5 +1,6 @@
 We have to copy the following files of iris package which are updated by me for the purpose of NCMRWF grib2 write/read conversion.
 
+__init__.py
 _grib_cf_map.py
 _load_convert.py
 _save_rules.py
