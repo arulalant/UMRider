@@ -1,11 +1,19 @@
 # Change Log
 
-## [v1.0.2b](https://github.com/NCMRWF/UMRider/tree/v1.0.2b) (2016-04-05)
+## [v1.0.2b](https://github.com/NCMRWF/UMRider/tree/v1.0.2b) (2016-04-12)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.2a...v1.0.2b)
 
 **Implemented enhancements:**
 
+- Support for latitude reverse NS instead of SN [\#87](https://github.com/NCMRWF/UMRider/issues/87)
+- Create flux files separately for OSF [\#86](https://github.com/NCMRWF/UMRider/issues/86)
 - Need to support ensemble pack in grib2 [\#25](https://github.com/NCMRWF/UMRider/issues/25)
+- 	support for PWAT \(Precipitable Water\) variable [\#90](https://github.com/NCMRWF/UMRider/pull/90) ([arulalant](https://github.com/arulalant))
+- Support for OSF 0.25 \(grib2\) & 0.5 \(grib1\) resolutions [\#89](https://github.com/NCMRWF/UMRider/pull/89) ([arulalant](https://github.com/arulalant))
+
+**Closed issues:**
+
+- Need to support for Global at 2.5 x 2.5 [\#84](https://github.com/NCMRWF/UMRider/issues/84)
 
 **Merged pull requests:**
 
