@@ -7,6 +7,7 @@
 *  Local Table Created By : Arulalan.T, Project Scientist - C
 *  Contact : arulalan@ncmrwf.gov.in
 *  Release Version : 0.1, No of Entries : 9, Date : 21-Jan-2016
+*  Release Version : 0.2, No of New Entries : 1, Date : 12-Apr-2016
 *  Export Command : export GRIB2TABLE=/path/to/localdir/ncmr_grib2_local_table
 *  Once we exported, then wgrib2 & g2ctl.pl will be able to read these
 *               local variables properly
@@ -41,4 +42,5 @@
 3:1:0:10:29:1:1:195:DAOT067:Dust Aerosol Optical Thickness at 0.67 µm:unitless
 3:1:0:10:29:1:1:196:DAOT087:Dust Aerosol Optical Thickness at 0.87 µm:unitless
 3:1:0:10:29:1:1:197:DAOT102:Dust Aerosol Optical Thickness at 1.02 µm:unitless
+3:1:0:10:29:1:1:198:TCDAM:Total Column Dry Aerosols Mass:kg m-2
 * ncmr grib2 local table entries end  

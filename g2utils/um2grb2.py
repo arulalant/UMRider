@@ -177,6 +177,10 @@ _orderedVars_ = {'PressureLevel': [
 ('rainfall_flux', 'm01s05i214'),
 ('snowfall_flux', 'm01s05i215'),
 ('precipitation_flux', 'm01s05i216'),
+('atmosphere_mass_content_of_water', 'm01s30i404'),
+('atmosphere_mass_content_of_dust_dry_aerosol_particles', 'm01s30i403'),
+('atmosphere_cloud_liquid_water_content', 'm01s30i405'),
+('atmosphere_cloud_ice_content', 'm01s30i406'),
 ('fog_area_fraction', 'm01s03i248'),
 ('toa_incoming_shortwave_flux', 'm01s01i207'), 
 ('toa_outgoing_shortwave_flux', 'm01s01i205'),
@@ -211,6 +215,7 @@ _orderedVars_ = {'PressureLevel': [
 # so we must keep this as the last one in the ordered variables!
 ('surface_altitude', 'm01s00i033')],
 }
+  
 
 #Define _precipVars_
 # The following vars should contains only precipitation, rainfall, snow 
@@ -259,7 +264,13 @@ _ncfilesVars_ = [('volumetric_moisture_of_soil_layer', 'm01s08i223'),
                  ('tropopause_altitude', 'm01s30i453'),
                  ('tropopause_air_temperature', 'm01s30i452'),
                  ('tropopause_air_pressure', 'm01s30i451'),
-('atmosphere_optical_thickness_due_to_dust_ambient_aerosol', 'm01s02i422'),]
+('atmosphere_optical_thickness_due_to_dust_ambient_aerosol', 'm01s02i422'),
+('atmosphere_mass_content_of_dust_dry_aerosol_particles', 'm01s30i403'),
+# surface_temperature grib code is same as air_temperature (for the purpose 
+# of OSF, Hycom requirements). So while reading surface_temperature variable 
+# from grib2 will make confusion along with air_temperature. To avoid this
+# confusion, lets write this variable in nc seperate file.
+('surface_temperature', 'm01s00i024'),]
                  
 ## Define _ncmrGrib2LocalTableVars_
 ## the following variables need to be set localTableVersion no as 1 and
@@ -268,7 +279,8 @@ _ncfilesVars_ = [('volumetric_moisture_of_soil_layer', 'm01s08i223'),
 _ncmrGrib2LocalTableVars_ = ['fog_area_fraction',
                             'toa_outgoing_longwave_flux_assuming_clear_sky',   
                             'toa_outgoing_shortwave_flux_assuming_clear_sky',
-                  'atmosphere_optical_thickness_due_to_dust_ambient_aerosol']
+                  'atmosphere_optical_thickness_due_to_dust_ambient_aerosol',
+                     'atmosphere_mass_content_of_dust_dry_aerosol_particles',]
 
 ## Define _maskOverOceanVars_
 ## the following variables need to be set mask over ocean because the original
@@ -303,7 +315,14 @@ _depedendantVars_ = {
                  
 ('surface_upwelling_longwave_flux_in_air', 'None'): [
                         ('surface_net_downward_longwave_flux', 'm01s02i201'), 
-                        ('surface_downwelling_longwave_flux', 'm01s02i207')]
+                        ('surface_downwelling_longwave_flux', 'm01s02i207')],
+
+('atmosphere_precipitable_water_content', 'None'): [
+    ('atmosphere_mass_content_of_water', 'm01s30i404'),
+    ('atmosphere_mass_content_of_dust_dry_aerosol_particles', 'm01s30i403'),
+    ('atmosphere_cloud_liquid_water_content', 'm01s30i405'),
+    ('atmosphere_cloud_ice_content', 'm01s30i406'),    
+    ]
 }
                                             
 
@@ -570,6 +589,10 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('fog_area_fraction', 'm01s03i248'),
                     ('dew_point_temperature', 'm01s03i250'),
                     ('atmosphere_boundary_layer_thickness', 'm01s00i025'),
+                    ('atmosphere_cloud_liquid_water_content', 'm01s30i405'),
+                    ('atmosphere_cloud_ice_content', 'm01s30i406'),
+                    ('atmosphere_mass_content_of_water', 'm01s30i404'),
+                    ('atmosphere_mass_content_of_dust_dry_aerosol_particles', 'm01s30i403'),                    
                     ('surface_temperature', 'm01s00i024'),
                     ('relative_humidity', 'm01s03i245'),
                     ('visibility_in_air', 'm01s03i247'),
@@ -778,6 +801,10 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('fog_area_fraction', 'm01s03i248'),
                     ('dew_point_temperature', 'm01s03i250'),
                     ('atmosphere_boundary_layer_thickness', 'm01s00i025'),
+                    ('atmosphere_cloud_liquid_water_content', 'm01s30i405'),
+                    ('atmosphere_cloud_ice_content', 'm01s30i406'),
+                    ('atmosphere_mass_content_of_water', 'm01s30i404'),
+                    ('atmosphere_mass_content_of_dust_dry_aerosol_particles', 'm01s30i403'),                    
                     ('surface_temperature', 'm01s00i024'),
                     ('relative_humidity', 'm01s03i245'),
                     ('visibility_in_air', 'm01s03i247'),
@@ -1740,8 +1767,9 @@ def doShuffleVarsInOrder(fpath):
            _requiredLat_, _convertVars_, __outFileType__, __grib1FilesNameSuffix__, \
            __removeGrib2FilesAfterGrib1FilesCreated__, _removeVars_, \
            __start_step_long_fcst_hour__, g2ctl, grib2ctl, gribmap, cnvgrib, \
-           __anl_aavars_reference_time__
+           __anl_aavars_reference_time__, _reverseLatitude_
     
+    print "doShuffleVarsInOrder Begins"
     try:        
         f = iris.load(fpath)
     except gribapi.GribInternalError as e:
@@ -1754,6 +1782,7 @@ def doShuffleVarsInOrder(fpath):
         print "ALERT!!! ERROR!!! couldn't read grib2 file to re-order", e
         return 
     # end of try:
+    print "f = ", f
     # get only the pressure coordinate variables
     unOrderedPressureLevelVarsList = [i for i in f if len(i.coords('pressure')) == 1]
     # get only the non pressure coordinate variables
@@ -1837,15 +1866,16 @@ def doShuffleVarsInOrder(fpath):
         
     # Define lat min, max of 60S to 60N and 30S to 30N
     lat_60N_start_val, lat_60N_end_val = -60, 60
-    lat_30N_start_val, lat_30N_end_val = -30, 30
+    lat_30N_start_val, lat_30N_end_val = -30, 30 
+        
     if _requiredLat_ is not None:
         # User has defined their own sub region.
         # So lets set min, max lat as user defined in case it falls within 
         # subdomain of 60S to 60N and 30S to 30N.
-        if _requiredLat_[0] > -60: lat_60N_start_val = _requiredLat_[0]
-        if _requiredLat_[-1] < 60: lat_60N_end_val = _requiredLat_[-1]
-        if _requiredLat_[0] > -30: lat_30N_start_val = _requiredLat_[0]
-        if _requiredLat_[-1] < 30: lat_30N_end_val = _requiredLat_[-1]
+        if _requiredLat_[0] > lat_60N_start_val: lat_60N_start_val = _requiredLat_[0]
+        if _requiredLat_[-1] < lat_60N_end_val: lat_60N_end_val = _requiredLat_[-1]
+        if _requiredLat_[0] > lat_30N_start_val: lat_30N_start_val = _requiredLat_[0]
+        if _requiredLat_[-1] < lat_30N_end_val: lat_30N_end_val = _requiredLat_[-1]
         # If user defined regions is out of 60S to 60N region, then we no need 
         # to adjust  the soil moisture min with 0.0051 and soil temperature 
         # min with its next mean.
@@ -1853,7 +1883,13 @@ def doShuffleVarsInOrder(fpath):
         # in case we endup with lat_60N_start_val as None, then we no need to 
         # correct min values of soil moisture and temperature.
     # end of if _requiredLat_ is not None:
-                          
+    
+    if _reverseLatitude_:
+        # Just reverse latitudes before extract the actual subdomains
+        lat_60N_start_val, lat_60N_end_val = lat_60N_end_val, lat_60N_start_val
+        lat_30N_start_val, lat_30N_end_val = lat_30N_end_val, lat_30N_start_val
+    # end of if _reverseLatitude_:
+              
     if _maskOverOceanVars_ and land_binary_mask_var and lat_60N_start_val is not None:
         
         land_binary_mask = land_binary_mask_var[0].data < 1
@@ -2000,7 +2036,65 @@ def doShuffleVarsInOrder(fpath):
         # store the 'surface_upwelling_longwave_flux' into orderedVars
         orderedVars.insert(idx, surface_upwelling_longwave_flux)
     # end of if ('surface_upwelling_longwave_flux_in_air', 'None') in _convertVars_:
-    
+
+    if ('atmosphere_precipitable_water_content', 'None') in _convertVars_:
+
+        # find the index in _convertVars_
+        idx = _convertVars_.index(('atmosphere_precipitable_water_content', 'None'))
+        # adjust the current index by subtract 1, because in previous insertion 
+        # causes order index increased by 1.
+        idx = idx-1 if (idx and oidx is None) else idx
+        oidx = idx
+        # store the atmosphere_mass_content_of_water data into temporary variable
+        atmosphere_mass_content_of_water = [var for var in orderedVars 
+               if var.standard_name == 'atmosphere_mass_content_of_water'] 
+        if not atmosphere_mass_content_of_water:
+            raise ValueError("Can not calculate atmosphere_precipitable_water_content, because unable to load atmosphere_mass_content_of_water")           
+        # store the atmosphere_mass_content_of_dust_dry_aerosol_particles data into temporary variable
+        atmosphere_mass_content_of_dust_dry_aerosol_particles = [var for var in orderedVars 
+               if var.standard_name == 'atmosphere_mass_content_of_dust_dry_aerosol_particles']
+        if not atmosphere_mass_content_of_dust_dry_aerosol_particles:
+            raise ValueError("Can not calculate atmosphere_precipitable_water_content, because unable to load atmosphere_mass_content_of_dust_dry_aerosol_particles")
+        # store the atmosphere_cloud_liquid_water_content data into temporary variable
+        atmosphere_cloud_liquid_water_content = [var for var in orderedVars 
+               if var.standard_name == 'atmosphere_cloud_liquid_water_content'] 
+        if not atmosphere_cloud_liquid_water_content:
+            raise ValueError("Can not calculate atmosphere_precipitable_water_content, because unable to load atmosphere_cloud_liquid_water_content")           
+        
+        # store the atmosphere_cloud_ice_content data into temporary variable
+        atmosphere_cloud_ice_content = [var for var in orderedVars 
+               if var.standard_name == 'atmosphere_cloud_ice_content']       
+        if not atmosphere_cloud_ice_content:
+            raise ValueError("Can not calculate atmosphere_precipitable_water_content, because unable to load atmosphere_cloud_ice_content")
+        # calculate 'atmosphere_precipitable_water_content' by subtracting [1] - [2] - [3] -[4] 
+        # [1] 'atmosphere_mass_content_of_water'
+        # [2] 'atmosphere_mass_content_of_dust_dry_aerosol_particles'
+        # [3] 'atmosphere_cloud_liquid_water_content'
+        # [4] 'atmosphere_cloud_ice_content'
+        
+        # Lets do first subtraction,  out = [1] - [2],        
+        atmosphere_precipitable_water_content = cubeSubtractor(atmosphere_mass_content_of_water[0], 
+                            atmosphere_mass_content_of_dust_dry_aerosol_particles[0], 
+                            long_name='atmosphere_precipitable_water_content',        
+                                                             removeSTASH=True)
+        # Lets make sure that standard_name is None for this variable.
+        atmosphere_precipitable_water_content.standard_name = None
+        # Lets do second subtraction,  out = out - [3],                                                   
+        atmosphere_precipitable_water_content = cubeSubtractor(atmosphere_precipitable_water_content,               
+                                     atmosphere_cloud_liquid_water_content[0],                              
+                            long_name='atmosphere_precipitable_water_content',
+                                                             removeSTASH=True) 
+
+        # Lets do third / last subtraction,  out = out - [4],                                                   
+        atmosphere_precipitable_water_content = cubeSubtractor(atmosphere_precipitable_water_content,               
+                                              atmosphere_cloud_ice_content[0],                               
+                            long_name='atmosphere_precipitable_water_content', 
+                                                             removeSTASH=True)
+
+        # lets store the 'atmosphere_precipitable_water_content' into orderedVars
+        orderedVars.insert(idx, atmosphere_precipitable_water_content)
+    # end of if ('atmosphere_precipitable_water_content', 'None') in _convertVars_:
+
     # remove temporary variables from ordered vars list 
     for dvar, dSTASH in _removeVars_:
         for ovar in orderedVars:
@@ -2156,7 +2250,7 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
             anlFiles.append(outFn)
         # end of for fcsthr in range(...):
         ## get the no of created anl files  
-        nprocesses = len(anlFiles)        
+        nprocesses = len(anlFiles)     
         # parallel begin - 3
         pool = _MyPool(nprocesses)
         print "Creating %d (non-daemon) workers and jobs in doShuffleVarsInOrder process." % nprocesses
@@ -2165,6 +2259,7 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
         # closing and joining master pools
         pool.close()     
         pool.join()
+        
         # parallel end - 3        
     # end of if ftype in ['fcst', 'forecast']: 
     print "Total time taken to convert and re-order all files was: %8.5f seconds \n" % (time.time()-_startT_)
@@ -2677,7 +2772,6 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
                           elon+targetGridResolution, targetGridResolution))]
         _doRegrid_ = True  
     # end of if targetGridResolution is None:
-    print "print _targetGrid_ = ", _targetGrid_
     print "_reverseLatitude_ =", _reverseLatitude_ 
     # check either files are exists or not. delete the existing files in case
     # of overwrite option is True, else return without re-converting files.
