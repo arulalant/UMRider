@@ -1437,9 +1437,10 @@ def regridAnlFcstFiles(arg):
                                            tpoint=timepoint, fpoint=fcstpoint, 
                                          tbounds=timebound, fbounds=fcstbound)
             # end of if doMultiHourlyMean and tmpCube.coords('forecast_period')[0].shape[0] > 1:     
-            print "before regrid", varName, tmpCube.data.min(), tmpCube.data.max()
+            print "before regrid", varName, tmpCube.data.min(), tmpCube.data.max()             
+            exmode = None # required, when user didnt do any regrid
             # interpolate it as per targetGridResolution deg resolution by 
-            # setting up sample points based on coord         
+            # setting up sample points based on coord            
             if _doRegrid_:
                 print "\n Regridding data to %sx%s degree spatial resolution \n" % (_targetGridRes_, _targetGridRes_)
                 if __LPRINT__: print "From shape", tmpCube.shape
