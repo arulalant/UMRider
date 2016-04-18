@@ -36,7 +36,7 @@ def createTarBalls(path, oftype, today, utc, stephr=6):
         subprocess.call(cmd, shell=True)    
         
         # do scp the flux tar files to ftp_server and nkn_server
-        cmd = 'ssh ncmlogin3 "scp -p %s/flux_glb_0.5_%s.tar.gz  %s:/data/ftp/pub/outgoing/NCUM_INCOIS/OSF/0.5/"' % (tarpath, today, ftp_server)
+        cmd = 'ssh ncmlogin3 "scp -p %s/flux_glb_0.5_%s.tar.gz  %s:/data/ftp/pub/outgoing/NCUM_OSF/0.5/"' % (tarpath, today, ftp_server)
         print cmd
         subprocess.call(cmd, shell=True)
         cmd = 'ssh ncmlogin3 "scp -p %s/flux_glb_0.5_%s.tar.gz  %s:NCUM/osf/0.5/"' % (tarpath, today, nkn_server)

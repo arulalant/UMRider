@@ -73,7 +73,7 @@ def createTarBalls(path, oftype, today, utc, stephr=6):
         # end of if yanal_files:        
         
         # do scp the anal tar files to ftp_server and nkn_server
-        cmd = 'ssh ncmlogin3 "scp -p %s/anal_glb_0.25_%s.tar.gz  %s:/data/ftp/pub/outgoing/NCUM_INCOIS/OSF/0.25/"' % (tarpath, today, ftp_server)
+        cmd = 'ssh ncmlogin3 "scp -p %s/anal_glb_0.25_%s.tar.gz  %s:/data/ftp/pub/outgoing/NCUM_OSF/0.25/"' % (tarpath, today, ftp_server)
         print cmd
         subprocess.call(cmd, shell=True)
         cmd = 'ssh ncmlogin3 "scp -p %s/anal_glb_0.25_%s.tar.gz  %s:NCUM/osf/0.25/"' % (tarpath, today, nkn_server)
@@ -81,7 +81,7 @@ def createTarBalls(path, oftype, today, utc, stephr=6):
         subprocess.call(cmd, shell=True)
         
         # remove past 11th day tar ball from ftp_server 
-        cmd = 'ssh ncmlogin3 "ssh %s rm -rf /data/ftp/pub/outgoing/NCUM_INCOIS/OSF/0.25/*%s*tar.gz"' % (ftp_server, y11Day)
+        cmd = 'ssh ncmlogin3 "ssh %s rm -rf /data/ftp/pub/outgoing/NCUM_OSF/0.25/*%s*tar.gz"' % (ftp_server, y11Day)
         print cmd
         try:
             subprocess.call(cmd, shell=True)
@@ -107,7 +107,7 @@ def createTarBalls(path, oftype, today, utc, stephr=6):
         subprocess.call(cmd, shell=True)
     
         # do scp the fcst tar files to ftp_server and nkn_server
-        cmd = 'ssh ncmlogin3 "scp -p %s/fcst_glb_0.25_%s.tar.gz  %s:/data/ftp/pub/outgoing/NCUM_INCOIS/OSF/0.25/"' % (tarpath, today, ftp_server)
+        cmd = 'ssh ncmlogin3 "scp -p %s/fcst_glb_0.25_%s.tar.gz  %s:/data/ftp/pub/outgoing/NCUM_OSF/0.25/"' % (tarpath, today, ftp_server)
         print cmd
         subprocess.call(cmd, shell=True)
         cmd = 'ssh ncmlogin3 "scp -p %s/fcst_glb_0.25_%s.tar.gz  %s:NCUM/osf/0.25/"' % (tarpath, today, nkn_server)
