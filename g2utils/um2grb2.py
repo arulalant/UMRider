@@ -1824,8 +1824,8 @@ def doShuffleVarsInOrder(fpath):
         # got non-pressure vars, add to ordered final vars list  
         if varName in unOrderedNonPressureLevelVars: 
             orderedVars.append(unOrderedNonPressureLevelVars[varName])
-        elif (varName, varSTASH) in _ncfilesVars_:            
-            ## generate nc file name 
+        elif (varName, varSTASH) in _ncfilesVars_:
+            ## generate nc file name
             ncfpath = varSTASH + '_' + '.'.join(fpath.split('.')[:-1]) + '.nc'
             if not os.path.isfile(ncfpath): continue
             if varSTASH not in ncloaddic:
@@ -1884,33 +1884,36 @@ def doShuffleVarsInOrder(fpath):
         # in case we endup with lat_60N_start_val as None, then we no need to 
         # correct min values of soil moisture and temperature.
     # end of if _requiredLat_ is not None:
-    
-    if _reverseLatitude_:
-        # Just reverse latitudes before extract the actual subdomains
-        lat_60N_start_val, lat_60N_end_val = lat_60N_end_val, lat_60N_start_val
-        lat_30N_start_val, lat_30N_end_val = lat_30N_end_val, lat_30N_start_val
-    # end of if _reverseLatitude_:
-              
-    if _maskOverOceanVars_ and land_binary_mask_var and lat_60N_start_val is not None:
         
+    if (_maskOverOceanVars_ and land_binary_mask_var and 
+            lat_60N_start_val is not None and lat_60N_end_val is not None):
+
         land_binary_mask = land_binary_mask_var[0].data < 1
         # here we are masking less than 1. we can do just simply == 0 also, 
         # but somehow it retains fraction values between 0 to 1. To get 
         # ride out of this fraction values, just mask out < 1.
         # get the shapes
         lsh = land_binary_mask.shape
-
-        # Define constraint to extract latitude from 60S to 60N
-        lat_60S_60N = iris.Constraint(latitude=lambda cell: lat_60N_start_val < cell < lat_60N_end_val)
-        lat_30S_30N = iris.Constraint(latitude=lambda cell: lat_30N_start_val < cell < lat_30N_end_val)
-            
+        
+        if _reverseLatitude_:
+            # Just reverse latitudes before extract the actual subdomains
+            lat_60N_start_val, lat_60N_end_val = lat_60N_end_val, lat_60N_start_val
+            lat_30N_start_val, lat_30N_end_val = lat_30N_end_val, lat_30N_start_val
+            # Define constraint to extract latitude from 60S to 60N
+            lat_60S_60N = iris.Constraint(latitude=lambda cell: lat_60N_start_val > cell > lat_60N_end_val)
+            lat_30S_30N = iris.Constraint(latitude=lambda cell: lat_30N_start_val > cell > lat_30N_end_val)
+        else:
+            # Define constraint to extract latitude from 60S to 60N
+            lat_60S_60N = iris.Constraint(latitude=lambda cell: lat_60N_start_val < cell < lat_60N_end_val)
+            lat_30S_30N = iris.Constraint(latitude=lambda cell: lat_30N_start_val < cell < lat_30N_end_val)
+        # end of if _reverseLatitude_:
+        
         for vidx, var in enumerate(orderedVars):
             vname = var.standard_name if var.standard_name else var.long_name
             if vname in _maskOverOceanVars_:    
                 # Lets reset zero values lies within 60S to 60N band
                 # with 0.0051, before ocean region has been masked.
                 # Now extract data only lies between 60S to 60N
-                
                 var_60S_60N = var.extract(lat_60S_60N)
                 print "before resetting ", vname, var_60S_60N.data.min(), var_60S_60N.data.max()
                 if vname == 'volumetric_moisture_of_soil_layer':
@@ -2260,7 +2263,6 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
         # closing and joining master pools
         pool.close()     
         pool.join()
-        
         # parallel end - 3        
     # end of if ftype in ['fcst', 'forecast']: 
     print "Total time taken to convert and re-order all files was: %8.5f seconds \n" % (time.time()-_startT_)
