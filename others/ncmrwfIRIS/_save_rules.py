@@ -130,7 +130,8 @@ _DEFAULT_DEGREES_UNITS = 1.0e-6
 
 def centre(cube, grib):
     # TODO: read centre from cube
-    gribapi.grib_set_long(grib, "centre", 74)  # UKMO
+    #gribapi.grib_set_long(grib, "centre", 74)  # UKMO
+    gribapi.grib_set_long(grib, "centre", 29) # required for NCMRWF
     gribapi.grib_set_long(grib, "subCentre", 0)  # exeter is not in the spec
 
 
@@ -162,9 +163,9 @@ def identification(cube, grib):
     centre(cube, grib)
     reference_time(cube, grib)
 
-    # operational product, operational test, research product, etc
-    # (missing for now)
-    gribapi.grib_set_long(grib, "productionStatusOfProcessedData", 255)
+    # operational product, operational test, research product, etc    
+    gribapi.grib_set_long(grib, "productionStatusOfProcessedData", 0) # required for NCMRWF
+    # set it as operational product
 
     # Code table 1.4
     # analysis, forecast, processed satellite, processed radar,
@@ -849,11 +850,12 @@ def product_definition_template_common(cube, grib):
 
     """
     set_discipline_and_parameter(cube, grib)
-
-    # Various missing values.
-    gribapi.grib_set(grib, "typeOfGeneratingProcess", 255)
-    gribapi.grib_set(grib, "backgroundProcess", 255)
-    gribapi.grib_set(grib, "generatingProcessIdentifier", 255)
+    
+    # http://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_table4-3.shtml 2 would be applicable even for analysis (since analysis also short forecast)
+    gribapi.grib_set(grib, "typeOfGeneratingProcess", 2) # required for NCMRWF
+    gribapi.grib_set(grib, "backgroundProcess", 255) # set missing values.
+    # http://www.nco.ncep.noaa.gov/pmb/docs/on388/tablea.html 96 would be more appropriate 
+    gribapi.grib_set(grib, "generatingProcessIdentifier", 96)  # required for NCMRWF
 
     # Generic time handling.
     set_forecast_time(cube, grib)

@@ -88,6 +88,7 @@ g2ctl = "/gpfs2/home/umtid/Softwares/grib2ctl/g2ctl.pl"
 grib2ctl = "/gpfs2/home/umtid/Softwares/grib2ctl/grib2ctl.pl"
 gribmap = "/gpfs1/home/Libs/GNU/GRADS/grads-2.0.2.oga.1/Contents/gribmap"
 cnvgrib = "/gpfs1/home/Libs/INTEL/CNVGRIB/CNVGRIB-1.4.1/cnvgrib-1.4.1/cnvgrib"
+wgrib2 = "/gpfs1/home/Libs/GNU/WGRIB2/v2.0.1/wgrib2"
 
 # other global variables
 __LPRINT__ = False
@@ -138,6 +139,7 @@ _createGrib2CtlIdxFiles_ = True
 _createGrib1CtlIdxFiles_ = False
 _convertGrib2FilestoGrib1Files_ = False
 __setGrib2TableParameters__ = None
+__wgrib2Arguments__ = None
 # global ordered variables (the order we want to write into grib2)
 _orderedVars_ = {'PressureLevel': [
 ## Pressure Level Variable names & STASH codes
@@ -1024,16 +1026,16 @@ class _MyPool(mppool.Pool):
 def _createDepthBelowLandSurfaceCoords1Lev(cube):
     # Dr. Saji / UM_Model_DOC suggested that UM produce Root zone soil model
     # level number is equivalent to 0 to 2m. (i.e. from 1 to 4 layer no) 
-    # So we kept here unit as 'cm'. But points are muliplied by
-    # 100 with its  corresponding cm values. Why because, that 
-    # 100 will be factorized (divied) in grib_message by setting 
-    # scaleFactorOfFirstFixedSurface as 2 and 
-    # scaleFactorOfFirstFixedSurface as 2. So we must follow 
+    # We kept here unit as 'mm'. But points are muliplied by
+    # 1000 with its  corresponding cm values. Why because, that 
+    # 1000 will be factorized (divied) in grib_message by setting 
+    # scaleFactorOfFirstFixedSurface as 3 and 
+    # scaleFactorOfSecondFixedSurface as 3. So we must follow 
     # this procedure to get correct results.
 
     # Lets create new coords with 0, 2m infomation.   
-    depth_below_land_surface = iris.coords.DimCoord(numpy.array([20000]), 
-                      bounds=numpy.array([[0, 20000]]), units=Unit('cm'), 
+    depth_below_land_surface = iris.coords.DimCoord(numpy.array([2000000]), 
+                      bounds=numpy.array([[0, 2000000]]), units=Unit('mm'), 
                                     long_name='depth_below_land_surface') 
     # add the above created new coords to the cube 
     cube.add_aux_coord(depth_below_land_surface)    
@@ -1042,20 +1044,29 @@ def _createDepthBelowLandSurfaceCoords1Lev(cube):
 def _updateDepthBelowLandSurfaceCoords4Levs(depth_below_land_surface):
     # Dr. Saji / UM_Model_DOC suggested that UM produce soil model
     # level number is equivalent to 10cm, 35cm, 1m & 2m. 
-    # So we kept here unit as 'cm'. But points are muliplied by
-    # 100 with its  corresponding cm values. Why because, that 
-    # 100 will be factorized (divied) in grib_message by setting 
-    # scaleFactorOfFirstFixedSurface as 2 and 
-    # scaleFactorOfFirstFixedSurface as 2. So that in grib2 will
-    # be able to read as 0.1 m, 0.35m, 1m & 2m. Iris will convert 
-    # cm to m while saving into grib2 file. So we must follow 
+
+    # Here we kept unit as 'mm'. But points are muliplied by
+    # 1000 with its  corresponding mm values. Why because, that 
+    # 1000 will be factorized (divied) in grib_message by setting 
+    # scaleFactorOfFirstFixedSurface as 3 and 
+    # scaleFactorOfSecondFixedSurface as 3. So that in grib2 will
+    # be able to read as 0.1m, 0.35m, 1m & 2m. Iris will convert 
+    # mm to m while saving into grib2 file. So we must follow 
     # this procedure to get correct results.
-    depth_below_land_surface.points = numpy.array([1000, 3500, 10000, 20000])
+    # Moreover IMD-MFI model required to be scaling range of 100000. So we 
+    # must follow this procedure only (i.e. mm to m conversion and not cm to m conversion) 
+    
+    # 100000 mm -> 100 m -> 100 m / 1000 (scaleFactorOfFirstFixedSurface = 3) -> 0.1 m
+    # 350000 mm -> 350 m -> 350 m / 1000 (scaleFactorOfSecondFixedSurface = 3) -> 0.35 m
+    # 1000000 mm -> 1000 m -> 1000 m / 1000 (scaleFactorOfSecondFixedSurface = 3) -> 1.0 m
+    # 2000000 mm -> 2000 m -> 2000 m / 1000 (scaleFactorOfSecondFixedSurface = 3) -> 2.0 m
+    
+    depth_below_land_surface.points = numpy.array([100000, 350000, 1000000, 2000000])
     # we must set the bounds in vertical depths, since we required
     # to mention the four different layers depth properly.
-    depth_below_land_surface.bounds = numpy.array([[0, 1000], 
-                       [1000, 3500], [3500,10000],[10000,20000]])
-    depth_below_land_surface.units = Unit('cm')
+    depth_below_land_surface.bounds = numpy.array([[0, 100000], 
+                       [100000, 350000], [350000,1000000],[1000000,2000000]])
+    depth_below_land_surface.units = Unit('mm')
     depth_below_land_surface.long_name = 'depth_below_land_surface'    
     depth_below_land_surface.standard_name = None
 # end of def _updateDepthBelowLandSurfaceCoords4Levs():
@@ -1497,7 +1508,8 @@ def regridAnlFcstFiles(arg):
                 # For the above set of variables we shouldnot convert into 
                 # masked array. Otherwise its full data goes as nan.                
                 # convert data into masked array
-                regdCube.data = numpy.ma.masked_array(regdCube.data, dtype=numpy.float64)
+                regdCube.data = numpy.ma.masked_array(regdCube.data, 
+                                    dtype=numpy.float64, fill_value=9.999e+20)
                                                 
                 if (varName, varSTASH) in [('moisture_content_of_soil_layer', 'm01s08i223'),
                                            ('sea_ice_area_fraction', 'm01s00i031'),
@@ -1514,8 +1526,9 @@ def regridAnlFcstFiles(arg):
                 # Says that 9.999e+20 value indicates as missingValue in grib2
                 # by default g2ctl.pl generate "undefr 9.999e+20", so we must 
                 # keep the fill_value / missingValue as 9.999e+20 only.
-                numpy.ma.set_fill_value(regdCube.data, 9.999e+20)
-            # end of if exmode == 'mask':       
+                numpy.ma.set_fill_value(regdCube.data, 9.999e+20)    
+            # end of if exmode == 'mask':
+            
             print "regrid done"
             print "after regrid", varName, regdCube.data.min(), regdCube.data.max() 
             if __LPRINT__: print "To shape", regdCube.shape  
@@ -1682,15 +1695,15 @@ def tweaked_messages(cubeList):
                 print 'reset typeOfTimeIncrement as 2 for', cube.standard_name
             # end of if cube.coord("forecast_period").bounds is not None:
             if cube.coords('depth_below_land_surface'):
-                # scaleFactorOfFirstFixedSurface as 2, equivalent to divide
-                # the depth_below_land_surface.points by 100. So that we can 
+                # scaleFactorOfFirstFixedSurface as 3, equivalent to divide
+                # the depth_below_land_surface.points by 1000. So that we can 
                 # be sure that grib2 has 0.1m, 0.35m, 1m & 2m. Otherwise, we 
                 # will endup with 0m, 0m, 1m & 2m and finally will loose 
                 # information about decimal values of levels.
-                gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 2)
-                gribapi.grib_set(grib_message, "scaleFactorOfSecondFixedSurface", 2)
-                print "reset scaleFactorOfFirstFixedSurface as 2"
-                print "reset scaleFactorOfSecondFixedSurface as 2"
+                gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 3)
+                gribapi.grib_set(grib_message, "scaleFactorOfSecondFixedSurface", 3)
+                print "reset scaleFactorOfFirstFixedSurface as 3"
+                print "reset scaleFactorOfSecondFixedSurface as 3"
             # end of if cube.coords('depth_below_land_surface'):    
             if cube.standard_name or cube.long_name:
                 if cube.standard_name:
@@ -1768,7 +1781,7 @@ def doShuffleVarsInOrder(fpath):
            _requiredLat_, _convertVars_, __outFileType__, __grib1FilesNameSuffix__, \
            __removeGrib2FilesAfterGrib1FilesCreated__, _removeVars_, \
            __start_step_long_fcst_hour__, g2ctl, grib2ctl, gribmap, cnvgrib, \
-           __anl_aavars_reference_time__, _reverseLatitude_
+           __anl_aavars_reference_time__, _reverseLatitude_, __wgrib2Arguments__
     
     print "doShuffleVarsInOrder Begins"
     try:        
@@ -1824,8 +1837,8 @@ def doShuffleVarsInOrder(fpath):
         # got non-pressure vars, add to ordered final vars list  
         if varName in unOrderedNonPressureLevelVars: 
             orderedVars.append(unOrderedNonPressureLevelVars[varName])
-        elif (varName, varSTASH) in _ncfilesVars_:            
-            ## generate nc file name 
+        elif (varName, varSTASH) in _ncfilesVars_:
+            ## generate nc file name
             ncfpath = varSTASH + '_' + '.'.join(fpath.split('.')[:-1]) + '.nc'
             if not os.path.isfile(ncfpath): continue
             if varSTASH not in ncloaddic:
@@ -1884,33 +1897,36 @@ def doShuffleVarsInOrder(fpath):
         # in case we endup with lat_60N_start_val as None, then we no need to 
         # correct min values of soil moisture and temperature.
     # end of if _requiredLat_ is not None:
-    
-    if _reverseLatitude_:
-        # Just reverse latitudes before extract the actual subdomains
-        lat_60N_start_val, lat_60N_end_val = lat_60N_end_val, lat_60N_start_val
-        lat_30N_start_val, lat_30N_end_val = lat_30N_end_val, lat_30N_start_val
-    # end of if _reverseLatitude_:
-              
-    if _maskOverOceanVars_ and land_binary_mask_var and lat_60N_start_val is not None:
         
+    if (_maskOverOceanVars_ and land_binary_mask_var and 
+            lat_60N_start_val is not None and lat_60N_end_val is not None):
+
         land_binary_mask = land_binary_mask_var[0].data < 1
         # here we are masking less than 1. we can do just simply == 0 also, 
         # but somehow it retains fraction values between 0 to 1. To get 
         # ride out of this fraction values, just mask out < 1.
         # get the shapes
         lsh = land_binary_mask.shape
-
-        # Define constraint to extract latitude from 60S to 60N
-        lat_60S_60N = iris.Constraint(latitude=lambda cell: lat_60N_start_val < cell < lat_60N_end_val)
-        lat_30S_30N = iris.Constraint(latitude=lambda cell: lat_30N_start_val < cell < lat_30N_end_val)
-            
+        
+        if _reverseLatitude_:
+            # Just reverse latitudes before extract the actual subdomains
+            lat_60N_start_val, lat_60N_end_val = lat_60N_end_val, lat_60N_start_val
+            lat_30N_start_val, lat_30N_end_val = lat_30N_end_val, lat_30N_start_val
+            # Define constraint to extract latitude from 60S to 60N
+            lat_60S_60N = iris.Constraint(latitude=lambda cell: lat_60N_start_val > cell > lat_60N_end_val)
+            lat_30S_30N = iris.Constraint(latitude=lambda cell: lat_30N_start_val > cell > lat_30N_end_val)
+        else:
+            # Define constraint to extract latitude from 60S to 60N
+            lat_60S_60N = iris.Constraint(latitude=lambda cell: lat_60N_start_val < cell < lat_60N_end_val)
+            lat_30S_30N = iris.Constraint(latitude=lambda cell: lat_30N_start_val < cell < lat_30N_end_val)
+        # end of if _reverseLatitude_:
+        
         for vidx, var in enumerate(orderedVars):
             vname = var.standard_name if var.standard_name else var.long_name
             if vname in _maskOverOceanVars_:    
                 # Lets reset zero values lies within 60S to 60N band
                 # with 0.0051, before ocean region has been masked.
                 # Now extract data only lies between 60S to 60N
-                
                 var_60S_60N = var.extract(lat_60S_60N)
                 print "before resetting ", vname, var_60S_60N.data.min(), var_60S_60N.data.max()
                 if vname == 'volumetric_moisture_of_soil_layer':
@@ -2105,7 +2121,10 @@ def doShuffleVarsInOrder(fpath):
 
     # generate correct file name by removing _preExtension_
     g2filepath = fpath.split(_preExtension_)
-    g2filepath = g2filepath[0] + g2filepath[-1]
+    wg2filepath = g2filepath[0] + g2filepath[-1]
+    # set ordered extension is empty incase wgrib2 argument is empyt
+    orderedExtension = '_Ordered' if (__wgrib2Arguments__ and not _convertGrib2FilestoGrib1Files_) else ''    
+    g2filepath = g2filepath[0] + orderedExtension + g2filepath[-1]    
     
     outstatus = False
     # now lets save the ordered variables into same file
@@ -2133,6 +2152,19 @@ def doShuffleVarsInOrder(fpath):
     for ncf in ncloadedfiles: os.remove(ncf)
         
     print "Created the variables in ordered fassion and saved into", g2filepath
+    
+    if __wgrib2Arguments__ is not None:
+        # execute post wgrib2 command
+        cmd = "%s %s %s %s" % (wgrib2, g2filepath, __wgrib2Arguments__, wg2filepath)
+        print cmd
+        subprocess.call(cmd, shell=True)            
+        time.sleep(10)
+        # remove the grib2 file generated by IRIS
+        os.remove(g2filepath)
+        # rename g2filepath as wg2filepath
+        g2filepath = wg2filepath
+        print "Created grib2 file using wgrib2 command with compress arguments " 
+    # end of if __wgrib2Arguments__:
                 
     if _convertGrib2FilestoGrib1Files_:
         g1filepath = '.'.join(g2filepath.split('.')[:-1])
@@ -2163,7 +2195,7 @@ def doShuffleVarsInOrder(fpath):
                 raise ValueError("unknown file type while executing grib2ctl.pl!!")
             
             print "Successfully created control and index file using grib2ctl !", g1filepath+'.ctl'
-    # end of if _createGrib1CtlIdxFiles_:
+        # end of if _createGrib1CtlIdxFiles_:
     # end of if _convertGrib2FilestoGrib1Files_:
     
     if __removeGrib2FilesAfterGrib1FilesCreated__ and _convertGrib2FilestoGrib1Files_:
@@ -2256,11 +2288,10 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
         pool = _MyPool(nprocesses)
         print "Creating %d (non-daemon) workers and jobs in doShuffleVarsInOrder process." % nprocesses
         results = pool.map(doShuffleVarsInOrder, anlFiles)   
-        
+
         # closing and joining master pools
         pool.close()     
         pool.join()
-        
         # parallel end - 3        
     # end of if ftype in ['fcst', 'forecast']: 
     print "Total time taken to convert and re-order all files was: %8.5f seconds \n" % (time.time()-_startT_)
@@ -2460,7 +2491,8 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
        __LPRINT__, __utc__, __start_step_long_fcst_hour__, _reverseLatitude_, \
        __max_long_fcst_hours__, __outFileType__, __grib1FilesNameSuffix__, \
        __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, \
-       _removeVars_, _requiredPressureLevels_, __setGrib2TableParameters__
+       _removeVars_, _requiredPressureLevels_, __setGrib2TableParameters__, \
+       __wgrib2Arguments__
      
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -2480,8 +2512,10 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     convertGrib2FilestoGrib1Files = kwarg.get('convertGrib2FilestoGrib1Files', False)
     grib1FilesNameSuffix = kwarg.get('grib1FilesNameSuffix', '1')
     removeGrib2FilesAfterGrib1FilesCreated = kwarg.get('removeGrib2FilesAfterGrib1FilesCreated', False)
-    callBackScript = kwarg.get('callBackScript', None)
     setGrib2TableParameters = kwarg.get('setGrib2TableParameters', None)
+    wgrib2Arguments = kwarg.get('wgrib2Arguments', None)
+    callBackScript = kwarg.get('callBackScript', None)
+    
     
     # assign out file type in global variable
     __outFileType__ = 'fcst'
@@ -2503,6 +2537,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     _createGrib1CtlIdxFiles_ = createGrib1CtlIdxFiles
     _convertGrib2FilestoGrib1Files_ = convertGrib2FilestoGrib1Files
     __setGrib2TableParameters__ = setGrib2TableParameters
+    __wgrib2Arguments__ = wgrib2Arguments
     # forecast filenames partial name
     fcst_fnames = ['umglaa_pb','umglaa_pd', 'umglaa_pe', 'umglaa_pf', 'umglaa_pi']    
         
@@ -2636,7 +2671,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
        __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, \
        _removeVars_, __anl_step_hour__, _requiredPressureLevels_, \
        __setGrib2TableParameters__, __anl_aavars_reference_time__, \
-       __anl_aavars_time_bounds__, _reverseLatitude_  
+       __anl_aavars_time_bounds__, _reverseLatitude_, __wgrib2Arguments__  
            
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -2657,9 +2692,10 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     convertGrib2FilestoGrib1Files = kwarg.get('convertGrib2FilestoGrib1Files', False)
     grib1FilesNameSuffix = kwarg.get('grib1FilesNameSuffix', '1')
     removeGrib2FilesAfterGrib1FilesCreated = kwarg.get('removeGrib2FilesAfterGrib1FilesCreated', False)
-    callBackScript = kwarg.get('callBackScript', None)
     setGrib2TableParameters = kwarg.get('setGrib2TableParameters', None)
-    
+    wgrib2Arguments = kwarg.get('wgrib2Arguments', None)
+    callBackScript = kwarg.get('callBackScript', None)
+        
     # assign out file type in global variable
     __outFileType__ = 'ana'
     # assign the convert vars list of tuples to global variable
@@ -2681,6 +2717,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     _createGrib1CtlIdxFiles_ = createGrib1CtlIdxFiles
     _convertGrib2FilestoGrib1Files_ = convertGrib2FilestoGrib1Files
     __setGrib2TableParameters__ = setGrib2TableParameters
+    __wgrib2Arguments__ = wgrib2Arguments
     # analysis filenames partial name
     anl_fnames = ['umglca_pb', 'umglca_pd', 'umglca_pe', 'umglca_pf', 'umglca_pi']  
     if utc == '00': anl_fnames.insert(0, 'qwqg00.pp0')
