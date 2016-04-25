@@ -1024,16 +1024,16 @@ class _MyPool(mppool.Pool):
 def _createDepthBelowLandSurfaceCoords1Lev(cube):
     # Dr. Saji / UM_Model_DOC suggested that UM produce Root zone soil model
     # level number is equivalent to 0 to 2m. (i.e. from 1 to 4 layer no) 
-    # So we kept here unit as 'cm'. But points are muliplied by
-    # 100 with its  corresponding cm values. Why because, that 
-    # 100 will be factorized (divied) in grib_message by setting 
-    # scaleFactorOfFirstFixedSurface as 2 and 
-    # scaleFactorOfFirstFixedSurface as 2. So we must follow 
+    # We kept here unit as 'mm'. But points are muliplied by
+    # 1000 with its  corresponding cm values. Why because, that 
+    # 1000 will be factorized (divied) in grib_message by setting 
+    # scaleFactorOfFirstFixedSurface as 3 and 
+    # scaleFactorOfSecondFixedSurface as 3. So we must follow 
     # this procedure to get correct results.
 
     # Lets create new coords with 0, 2m infomation.   
-    depth_below_land_surface = iris.coords.DimCoord(numpy.array([20000]), 
-                      bounds=numpy.array([[0, 20000]]), units=Unit('cm'), 
+    depth_below_land_surface = iris.coords.DimCoord(numpy.array([2000000]), 
+                      bounds=numpy.array([[0, 2000000]]), units=Unit('mm'), 
                                     long_name='depth_below_land_surface') 
     # add the above created new coords to the cube 
     cube.add_aux_coord(depth_below_land_surface)    
@@ -1042,20 +1042,29 @@ def _createDepthBelowLandSurfaceCoords1Lev(cube):
 def _updateDepthBelowLandSurfaceCoords4Levs(depth_below_land_surface):
     # Dr. Saji / UM_Model_DOC suggested that UM produce soil model
     # level number is equivalent to 10cm, 35cm, 1m & 2m. 
-    # So we kept here unit as 'cm'. But points are muliplied by
-    # 100 with its  corresponding cm values. Why because, that 
-    # 100 will be factorized (divied) in grib_message by setting 
-    # scaleFactorOfFirstFixedSurface as 2 and 
-    # scaleFactorOfFirstFixedSurface as 2. So that in grib2 will
-    # be able to read as 0.1 m, 0.35m, 1m & 2m. Iris will convert 
-    # cm to m while saving into grib2 file. So we must follow 
+
+    # Here we kept unit as 'mm'. But points are muliplied by
+    # 1000 with its  corresponding mm values. Why because, that 
+    # 1000 will be factorized (divied) in grib_message by setting 
+    # scaleFactorOfFirstFixedSurface as 3 and 
+    # scaleFactorOfSecondFixedSurface as 3. So that in grib2 will
+    # be able to read as 0.1m, 0.35m, 1m & 2m. Iris will convert 
+    # mm to m while saving into grib2 file. So we must follow 
     # this procedure to get correct results.
-    depth_below_land_surface.points = numpy.array([1000, 3500, 10000, 20000])
+    # Moreover IMD-MFI model required to be scaling range of 100000. So we 
+    # must follow this procedure only (i.e. mm to m conversion and not cm to m conversion) 
+    
+    # 100000 mm -> 100 m -> 100 m / 1000 (scaleFactorOfFirstFixedSurface = 3) -> 0.1 m
+    # 350000 mm -> 350 m -> 350 m / 1000 (scaleFactorOfSecondFixedSurface = 3) -> 0.35 m
+    # 1000000 mm -> 1000 m -> 1000 m / 1000 (scaleFactorOfSecondFixedSurface = 3) -> 1.0 m
+    # 2000000 mm -> 2000 m -> 2000 m / 1000 (scaleFactorOfSecondFixedSurface = 3) -> 2.0 m
+    
+    depth_below_land_surface.points = numpy.array([100000, 350000, 1000000, 2000000])
     # we must set the bounds in vertical depths, since we required
     # to mention the four different layers depth properly.
-    depth_below_land_surface.bounds = numpy.array([[0, 1000], 
-                       [1000, 3500], [3500,10000],[10000,20000]])
-    depth_below_land_surface.units = Unit('cm')
+    depth_below_land_surface.bounds = numpy.array([[0, 100000], 
+                       [100000, 350000], [350000,1000000],[1000000,2000000]])
+    depth_below_land_surface.units = Unit('mm')
     depth_below_land_surface.long_name = 'depth_below_land_surface'    
     depth_below_land_surface.standard_name = None
 # end of def _updateDepthBelowLandSurfaceCoords4Levs():
@@ -1497,7 +1506,8 @@ def regridAnlFcstFiles(arg):
                 # For the above set of variables we shouldnot convert into 
                 # masked array. Otherwise its full data goes as nan.                
                 # convert data into masked array
-                regdCube.data = numpy.ma.masked_array(regdCube.data, dtype=numpy.float64)
+                regdCube.data = numpy.ma.masked_array(regdCube.data, 
+                                    dtype=numpy.float64, fill_value=9.999e+20)
                                                 
                 if (varName, varSTASH) in [('moisture_content_of_soil_layer', 'm01s08i223'),
                                            ('sea_ice_area_fraction', 'm01s00i031'),
@@ -1514,8 +1524,9 @@ def regridAnlFcstFiles(arg):
                 # Says that 9.999e+20 value indicates as missingValue in grib2
                 # by default g2ctl.pl generate "undefr 9.999e+20", so we must 
                 # keep the fill_value / missingValue as 9.999e+20 only.
-                numpy.ma.set_fill_value(regdCube.data, 9.999e+20)
-            # end of if exmode == 'mask':       
+                numpy.ma.set_fill_value(regdCube.data, 9.999e+20)    
+            # end of if exmode == 'mask':
+            
             print "regrid done"
             print "after regrid", varName, regdCube.data.min(), regdCube.data.max() 
             if __LPRINT__: print "To shape", regdCube.shape  
@@ -1682,15 +1693,15 @@ def tweaked_messages(cubeList):
                 print 'reset typeOfTimeIncrement as 2 for', cube.standard_name
             # end of if cube.coord("forecast_period").bounds is not None:
             if cube.coords('depth_below_land_surface'):
-                # scaleFactorOfFirstFixedSurface as 2, equivalent to divide
-                # the depth_below_land_surface.points by 100. So that we can 
+                # scaleFactorOfFirstFixedSurface as 3, equivalent to divide
+                # the depth_below_land_surface.points by 1000. So that we can 
                 # be sure that grib2 has 0.1m, 0.35m, 1m & 2m. Otherwise, we 
                 # will endup with 0m, 0m, 1m & 2m and finally will loose 
                 # information about decimal values of levels.
-                gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 2)
-                gribapi.grib_set(grib_message, "scaleFactorOfSecondFixedSurface", 2)
-                print "reset scaleFactorOfFirstFixedSurface as 2"
-                print "reset scaleFactorOfSecondFixedSurface as 2"
+                gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 3)
+                gribapi.grib_set(grib_message, "scaleFactorOfSecondFixedSurface", 3)
+                print "reset scaleFactorOfFirstFixedSurface as 3"
+                print "reset scaleFactorOfSecondFixedSurface as 3"
             # end of if cube.coords('depth_below_land_surface'):    
             if cube.standard_name or cube.long_name:
                 if cube.standard_name:
