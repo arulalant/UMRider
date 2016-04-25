@@ -20,7 +20,7 @@ from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                     removeGrib2FilesAfterGrib1FilesCreated, \
                     anl_step_hour, pressureLevels, callBackScript, \
                     setGrib2TableParameters, anl_aavars_reference_time, \
-                    anl_aavars_time_bounds
+                    anl_aavars_time_bounds, wgrib2Arguments
 
 if loadg2utils == 'system':
     # Load g2utils from system python which has installed through setup.py
@@ -72,6 +72,7 @@ while sDay <= eDay:
                 anl_aavars_time_bounds=anl_aavars_time_bounds,
                        overwrite=overwriteFiles, lprint=debug,
               setGrib2TableParameters=setGrib2TableParameters,
+                              wgrib2Arguments=wgrib2Arguments,
                                 callBackScript=callBackScript)
     print "Time lag incremented by 1"
     sDay += lag

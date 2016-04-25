@@ -19,7 +19,7 @@ from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                  createGrib1CtlIdxFiles, convertGrib2FilestoGrib1Files, \
                  start_step_long_fcst_hour, grib1FilesNameSuffix, \
                  removeGrib2FilesAfterGrib1FilesCreated, pressureLevels, \
-                 callBackScript, setGrib2TableParameters
+                 callBackScript, setGrib2TableParameters, wgrib2Arguments
 
 if loadg2utils == 'system':
     # Load g2utils from system python which has installed through setup.py
@@ -70,6 +70,7 @@ while sDay <= eDay:
                max_long_fcst_hours=max_long_fcst_hours_at_00z,             
                        overwrite=overwriteFiles, lprint=debug,
               setGrib2TableParameters=setGrib2TableParameters,
+                              wgrib2Arguments=wgrib2Arguments,
                                 callBackScript=callBackScript)
     print "Time lag incremented by 1"
     sDay += lag

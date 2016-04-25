@@ -73,6 +73,8 @@ convertGrib2FilestoGrib1Files = eval(cdic.get('convertGrib2FilestoGrib1Files', '
 createGrib1CtlIdxFiles = eval(cdic.get('createGrib1CtlIdxFiles', 'False'))
 removeGrib2FilesAfterGrib1FilesCreated = eval(cdic.get('removeGrib2FilesAfterGrib1FilesCreated', 'False'))
 grib1FilesNameSuffix = eval(cdic.get('grib1FilesNameSuffix', '.grib1'))
+wgrib2Arguments = cdic.get('wgrib2Arguments', '-set_grib_type complex2 -grib_out')
+wgrib2Arguments = None if wgrib2Arguments in ['None', ''] else wgrib2Arguments
 callBackScript = cdic.get('callBackScript', None)
 callBackScript = None if callBackScript in ['None', ''] else callBackScript
 setGrib2TableParameters = eval(cdic.get('setGrib2TableParameters', 'None'))
@@ -198,6 +200,7 @@ print "createGrib1CtlIdxFiles = ", createGrib1CtlIdxFiles
 print "removeGrib2FilesAfterGrib1FilesCreated = ", removeGrib2FilesAfterGrib1FilesCreated
 if setGrib2TableParameters: print "setGrib2TableParameters = ", setGrib2TableParameters
 if callBackScript: print "callBackScript = ", callBackScript
+if wgrib2Arguments: print "wgrib2Arguments = ", wgrib2Arguments
 print "Successfully loaded the above params from UMRIDER_SETUP configure file!", setupfile
 print "*" * 80
 print "Successfully loaded the below variables from UMRIDER_VARS configure file!", varfile 
