@@ -1,10 +1,11 @@
 # Change Log
 
-## [v1.0.2b](https://github.com/NCMRWF/UMRider/tree/v1.0.2b) (2016-04-12)
+## [v1.0.2b](https://github.com/NCMRWF/UMRider/tree/v1.0.2b) (2016-04-25)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.2a...v1.0.2b)
 
 **Implemented enhancements:**
 
+- Need wgrib2 commands argument in setup.cfg [\#94](https://github.com/NCMRWF/UMRider/issues/94)
 - Support for latitude reverse NS instead of SN [\#87](https://github.com/NCMRWF/UMRider/issues/87)
 - Create flux files separately for OSF [\#86](https://github.com/NCMRWF/UMRider/issues/86)
 - Need to support ensemble pack in grib2 [\#25](https://github.com/NCMRWF/UMRider/issues/25)
@@ -17,6 +18,9 @@
 
 **Merged pull requests:**
 
+-  support for wgrib2Arguments option [\#95](https://github.com/NCMRWF/UMRider/pull/95) ([arulalant](https://github.com/arulalant))
+- ftp path out update [\#93](https://github.com/NCMRWF/UMRider/pull/93) ([arulalant](https://github.com/arulalant))
+- update bsub scripts osf log path [\#92](https://github.com/NCMRWF/UMRider/pull/92) ([arulalant](https://github.com/arulalant))
 - support for global 2.5X2.5 resolution [\#85](https://github.com/NCMRWF/UMRider/pull/85) ([arulalant](https://github.com/arulalant))
 
 ## [v1.0.2a](https://github.com/NCMRWF/UMRider/tree/v1.0.2a) (2016-03-29)
