@@ -2123,7 +2123,7 @@ def doShuffleVarsInOrder(fpath):
     g2filepath = fpath.split(_preExtension_)
     wg2filepath = g2filepath[0] + g2filepath[-1]
     # set ordered extension is empty incase wgrib2 argument is empyt
-    orderedExtension = '_Ordered' if (__wgrib2Arguments__ and not _convertGrib2FilestoGrib1Files_) else ''    
+    orderedExtension = '_Ordered' if __wgrib2Arguments__ else ''    
     g2filepath = g2filepath[0] + orderedExtension + g2filepath[-1]    
     
     outstatus = False
@@ -2283,15 +2283,17 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
             anlFiles.append(outFn)
         # end of for fcsthr in range(...):
         ## get the no of created anl files  
-        nprocesses = len(anlFiles)     
-        # parallel begin - 3
-        pool = _MyPool(nprocesses)
-        print "Creating %d (non-daemon) workers and jobs in doShuffleVarsInOrder process." % nprocesses
-        results = pool.map(doShuffleVarsInOrder, anlFiles)   
+#        nprocesses = len(anlFiles)     
+#        # parallel begin - 3
+#        pool = _MyPool(nprocesses)
+#        print "Creating %d (non-daemon) workers and jobs in doShuffleVarsInOrder process." % nprocesses
+#        results = pool.map(doShuffleVarsInOrder, anlFiles)   
 
-        # closing and joining master pools
-        pool.close()     
-        pool.join()
+#        # closing and joining master pools
+#        pool.close()     
+#        pool.join()
+        
+        doShuffleVarsInOrder(anlFiles[0])
         # parallel end - 3        
     # end of if ftype in ['fcst', 'forecast']: 
     print "Total time taken to convert and re-order all files was: %8.5f seconds \n" % (time.time()-_startT_)
