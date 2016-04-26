@@ -168,6 +168,8 @@ _orderedVars_ = {'PressureLevel': [
 ('high_type_cloud_area_fraction', 'm01s09i205'),
 ('medium_type_cloud_area_fraction', 'm01s09i204'),
 ('low_type_cloud_area_fraction', 'm01s09i203'), 
+('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),
+('cloud_area_fraction_assuming_maximum_random_overlap', 'm01s09i217'),
 ('x_wind', 'm01s03i225'), 
 ('y_wind', 'm01s03i226'),    
 ('visibility_in_air', 'm01s03i247'),
@@ -282,7 +284,9 @@ _ncmrGrib2LocalTableVars_ = ['fog_area_fraction',
                             'toa_outgoing_longwave_flux_assuming_clear_sky',   
                             'toa_outgoing_shortwave_flux_assuming_clear_sky',
                   'atmosphere_optical_thickness_due_to_dust_ambient_aerosol',
-                     'atmosphere_mass_content_of_dust_dry_aerosol_particles',]
+                     'atmosphere_mass_content_of_dust_dry_aerosol_particles',
+                               'cloud_area_fraction_assuming_random_overlap',
+                       'cloud_area_fraction_assuming_maximum_random_overlap',]
 
 ## Define _maskOverOceanVars_
 ## the following variables need to be set mask over ocean because the original
@@ -666,6 +670,8 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                         ('y_wind', 'm01s03i226'),
                         ('atmosphere_convective_available_potential_energy_wrt_surface', 'm01s05i233'), # CAPE
                         ('atmosphere_convective_inhibition_wrt_surface', 'm01s05i234'), #CIN
+                        ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),
+                        ('cloud_area_fraction_assuming_maximum_random_overlap', 'm01s09i217'),
                         ]
        
         if inDataPathHour == '00' and __anl_step_hour__ != 3:
@@ -869,6 +875,8 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('y_wind', 'm01s03i226'),
                     ('atmosphere_convective_available_potential_energy_wrt_surface', 'm01s05i233'), # CAPE
                     ('atmosphere_convective_inhibition_wrt_surface', 'm01s05i234'), #CIN
+                    ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),
+                    ('cloud_area_fraction_assuming_maximum_random_overlap', 'm01s09i217'),
                     # The precipitation_amount, *snowfall_amount, and
                     # *rainfall_amount variable must be at the last
                     # in this list. we will have to do 6 hourly accumulation
@@ -1090,7 +1098,7 @@ def _convert2VolumetricMoisture(cube, levels=[100.0, 250.0, 650.0, 1000.0]):
     ## fourth layer by 1000.
     
     ## By this way, we converted moisture_content_of_soil_layer 
-    ## from Kg/m2 into voulumetric_soil_moisture_of_layer m3/m3.
+    ## from Kg/m2 into volumetric_soil_moisture_of_layer m3/m3.
     
     ## Reference : "Comparison of the Met Office soil moisture
     ## analyses with SMOS retrievals (2010-2011)", MARCH 2013.
@@ -1294,11 +1302,12 @@ def regridAnlFcstFiles(arg):
         STASHConstraint = iris.AttributeConstraint(STASH=varSTASH)
         # get the standard_name of variable 
         stdNm = cubes.extract(varConstraint & STASHConstraint)[0].standard_name
+        longNm = cubes.extract(varConstraint & STASHConstraint)[0].long_name
         print "stdNm", stdNm, infile
-        if stdNm is None:
+        if stdNm is None and longNm is None:
             print "Unknown variable standard_name for '%s' of %s. So skipping it" % (varName, infile)
             continue
-        # end of if 'unknown' in stdNm: 
+        # end of if stdNm is None and longNm is None:
         print "  Working on variable: %s \n" %stdNm
         
         if (varName, varSTASH) in [('soil_temperature', 'm01s03i238'), 
@@ -2283,17 +2292,15 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
             anlFiles.append(outFn)
         # end of for fcsthr in range(...):
         ## get the no of created anl files  
-#        nprocesses = len(anlFiles)     
-#        # parallel begin - 3
-#        pool = _MyPool(nprocesses)
-#        print "Creating %d (non-daemon) workers and jobs in doShuffleVarsInOrder process." % nprocesses
-#        results = pool.map(doShuffleVarsInOrder, anlFiles)   
-
-#        # closing and joining master pools
-#        pool.close()     
-#        pool.join()
+        nprocesses = len(anlFiles)     
+        # parallel begin - 3 # parallel analysis required for 3-hourly analysis files.
+        pool = _MyPool(nprocesses)
+        print "Creating %d (non-daemon) workers and jobs in doShuffleVarsInOrder process." % nprocesses
+        results = pool.map(doShuffleVarsInOrder, anlFiles)
+        # closing and joining master pools
+        pool.close()     
+        pool.join()
         
-        doShuffleVarsInOrder(anlFiles[0])
         # parallel end - 3        
     # end of if ftype in ['fcst', 'forecast']: 
     print "Total time taken to convert and re-order all files was: %8.5f seconds \n" % (time.time()-_startT_)
