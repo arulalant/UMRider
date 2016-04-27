@@ -8,6 +8,8 @@
 *  Contact : arulalan@ncmrwf.gov.in
 *  Release Version : 0.1, No of Entries : 9, Date : 21-Jan-2016
 *  Release Version : 0.2, No of New Entries : 1, Date : 12-Apr-2016
+*  Release Version : 0.3, No of New Entries : 2, Date : 26-Apr-2016
+*  Total No of Entries : 12
 *  Export Command : export GRIB2TABLE=/path/to/localdir/ncmr_grib2_local_table
 *  Once we exported, then wgrib2 & g2ctl.pl will be able to read these
 *               local variables properly
@@ -43,4 +45,6 @@
 3:1:0:10:29:1:1:196:DAOT087:Dust Aerosol Optical Thickness at 0.87 µm:unitless
 3:1:0:10:29:1:1:197:DAOT102:Dust Aerosol Optical Thickness at 1.02 µm:unitless
 3:1:0:10:29:1:1:198:TCDAM:Total Column Dry Aerosols Mass:kg m-2
+0:1:0:10:29:1:6:202:TCDCRO:Total Cloud Cover Assuming Random Overlap:%
+0:1:0:10:29:1:6:203:TCDCMRO:Total Cloud Cover Assuming Maximum Random Overlap:%
 * ncmr grib2 local table entries end  

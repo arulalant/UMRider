@@ -190,6 +190,9 @@ GRIB2_TO_CF = {
     G2Param(2, 0, 1, 22, 105, 0): CFName(None, 'cloud_mixing_ratio', 'kg kg-1'), # 500100
     G2Param(2, 0, 19, 11, 105, 0): CFName(None, 'turbulent_kinetic_energy', 'J kg-1'), # 500158
     
+    G2Param(2, 0, 6, 202): CFName(None, 'cloud_area_fraction_assuming_random_overlap', '%'), # NCMRWF Local
+    G2Param(2, 0, 6, 203): CFName(None, 'cloud_area_fraction_assuming_maximum_random_overlap', '%'), # NCMRWF Local
+    
     ### NCEP map begin ###
     G2Param(2, 0, 1, 15): CFName('stratiform_snowfall_amount', None, 'kg m-2'), # 260012    
     G2Param(2, 0, 1, 14): CFName('convective_snowfall_amount', None, 'kg m-2'), # 260011
@@ -384,6 +387,9 @@ CF_TO_GRIB2 = {
     # scaleFactorOfFirstFixedSurface):
     CFName(None, 'cloud_mixing_ratio', 'kg kg-1'): G2Param(2, 0, 1, 22, 105, 0), # 500100
     CFName(None, 'turbulent_kinetic_energy', 'J kg-1'): G2Param(2, 0, 19, 11, 105, 0), # 500158
+    
+    CFName(None, 'cloud_area_fraction_assuming_random_overlap', '%'): G2Param(2, 0, 6, 202), # NCMRWF Local
+    CFName(None, 'cloud_area_fraction_assuming_maximum_random_overlap', '%'): G2Param(2, 0, 6, 203), # NCMRWF Local
     
     ### NCEP map begin ###
     CFName('stratiform_snowfall_amount', None, 'kg m-2'): G2Param(2, 0, 1, 15), # 260012  

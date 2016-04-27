@@ -140,6 +140,9 @@ _createGrib1CtlIdxFiles_ = False
 _convertGrib2FilestoGrib1Files_ = False
 __setGrib2TableParameters__ = None
 __wgrib2Arguments__ = None
+# By default __soilFirstSecondFixedSurfaceUnit__ takes as 'cm', suggested for
+# WRF-Noah model. 
+__soilFirstSecondFixedSurfaceUnit__ = 'cm'
 # global ordered variables (the order we want to write into grib2)
 _orderedVars_ = {'PressureLevel': [
 ## Pressure Level Variable names & STASH codes
@@ -168,6 +171,8 @@ _orderedVars_ = {'PressureLevel': [
 ('high_type_cloud_area_fraction', 'm01s09i205'),
 ('medium_type_cloud_area_fraction', 'm01s09i204'),
 ('low_type_cloud_area_fraction', 'm01s09i203'), 
+('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),
+('cloud_area_fraction_assuming_maximum_random_overlap', 'm01s09i217'),
 ('x_wind', 'm01s03i225'), 
 ('y_wind', 'm01s03i226'),    
 ('visibility_in_air', 'm01s03i247'),
@@ -282,7 +287,9 @@ _ncmrGrib2LocalTableVars_ = ['fog_area_fraction',
                             'toa_outgoing_longwave_flux_assuming_clear_sky',   
                             'toa_outgoing_shortwave_flux_assuming_clear_sky',
                   'atmosphere_optical_thickness_due_to_dust_ambient_aerosol',
-                     'atmosphere_mass_content_of_dust_dry_aerosol_particles',]
+                     'atmosphere_mass_content_of_dust_dry_aerosol_particles',
+                               'cloud_area_fraction_assuming_random_overlap',
+                       'cloud_area_fraction_assuming_maximum_random_overlap',]
 
 ## Define _maskOverOceanVars_
 ## the following variables need to be set mask over ocean because the original
@@ -666,6 +673,8 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                         ('y_wind', 'm01s03i226'),
                         ('atmosphere_convective_available_potential_energy_wrt_surface', 'm01s05i233'), # CAPE
                         ('atmosphere_convective_inhibition_wrt_surface', 'm01s05i234'), #CIN
+                        ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),
+                        ('cloud_area_fraction_assuming_maximum_random_overlap', 'm01s09i217'),
                         ]
        
         if inDataPathHour == '00' and __anl_step_hour__ != 3:
@@ -869,6 +878,8 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('y_wind', 'm01s03i226'),
                     ('atmosphere_convective_available_potential_energy_wrt_surface', 'm01s05i233'), # CAPE
                     ('atmosphere_convective_inhibition_wrt_surface', 'm01s05i234'), #CIN
+                    ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),
+                    ('cloud_area_fraction_assuming_maximum_random_overlap', 'm01s09i217'),
                     # The precipitation_amount, *snowfall_amount, and
                     # *rainfall_amount variable must be at the last
                     # in this list. we will have to do 6 hourly accumulation
@@ -1025,18 +1036,34 @@ class _MyPool(mppool.Pool):
 
 def _createDepthBelowLandSurfaceCoords1Lev(cube):
     # Dr. Saji / UM_Model_DOC suggested that UM produce Root zone soil model
-    # level number is equivalent to 0 to 2m. (i.e. from 1 to 4 layer no) 
-    # We kept here unit as 'mm'. But points are muliplied by
-    # 1000 with its  corresponding cm values. Why because, that 
-    # 1000 will be factorized (divied) in grib_message by setting 
-    # scaleFactorOfFirstFixedSurface as 3 and 
-    # scaleFactorOfSecondFixedSurface as 3. So we must follow 
-    # this procedure to get correct results.
+    # level number is equivalent to 0 to 2m. (i.e. from 1 to 4 layer no)
+    
+    global __soilFirstSecondFixedSurfaceUnit__ 
 
-    # Lets create new coords with 0, 2m infomation.   
-    depth_below_land_surface = iris.coords.DimCoord(numpy.array([2000000]), 
-                      bounds=numpy.array([[0, 2000000]]), units=Unit('mm'), 
-                                    long_name='depth_below_land_surface') 
+    if __soilFirstSecondFixedSurfaceUnit__ == 'cm':
+        # So we kept here unit as 'cm'. But points are muliplied by
+        # 100 with its  corresponding cm values. Why because, that 
+        # 100 will be factorized (divied) in grib_message by setting 
+        # scaleFactorOfFirstFixedSurface as 2 and 
+        # scaleFactorOfFirstFixedSurface as 2. So we must follow 
+        # Lets create new coords with 0, 2m infomation.   
+        depth_below_land_surface = iris.coords.DimCoord(numpy.array([20000]), 
+                         bounds=numpy.array([[0, 20000]]), units=Unit('cm'),
+                                       long_name='depth_below_land_surface')
+    elif __soilFirstSecondFixedSurfaceUnit__ == 'mm':  
+        # We kept here unit as 'mm'. But points are muliplied by
+        # 1000 with its  corresponding cm values. Why because, that 
+        # 1000 will be factorized (divied) in grib_message by setting 
+        # scaleFactorOfFirstFixedSurface as 3 and 
+        # scaleFactorOfSecondFixedSurface as 3. So we must follow 
+        # this procedure to get correct results.
+
+        # Lets create new coords with 0, 2m infomation.   
+        depth_below_land_surface = iris.coords.DimCoord(numpy.array([2000000]), 
+                          bounds=numpy.array([[0, 2000000]]), units=Unit('mm'), 
+                                        long_name='depth_below_land_surface') 
+    # end of if __soilFirstSecondFixedSurfaceUnit__ == 'cm':
+    
     # add the above created new coords to the cube 
     cube.add_aux_coord(depth_below_land_surface)    
 # end of def _createDepthBelowLandSurfaceCoords1Lev():
@@ -1044,29 +1071,56 @@ def _createDepthBelowLandSurfaceCoords1Lev(cube):
 def _updateDepthBelowLandSurfaceCoords4Levs(depth_below_land_surface):
     # Dr. Saji / UM_Model_DOC suggested that UM produce soil model
     # level number is equivalent to 10cm, 35cm, 1m & 2m. 
+    
+    global __soilFirstSecondFixedSurfaceUnit__ 
 
-    # Here we kept unit as 'mm'. But points are muliplied by
-    # 1000 with its  corresponding mm values. Why because, that 
-    # 1000 will be factorized (divied) in grib_message by setting 
-    # scaleFactorOfFirstFixedSurface as 3 and 
-    # scaleFactorOfSecondFixedSurface as 3. So that in grib2 will
-    # be able to read as 0.1m, 0.35m, 1m & 2m. Iris will convert 
-    # mm to m while saving into grib2 file. So we must follow 
-    # this procedure to get correct results.
-    # Moreover IMD-MFI model required to be scaling range of 100000. So we 
-    # must follow this procedure only (i.e. mm to m conversion and not cm to m conversion) 
+    if __soilFirstSecondFixedSurfaceUnit__ == 'cm':
+        # So we kept here unit as 'cm'. But points are muliplied by
+        # 100 with its  corresponding cm values. Why because, that 
+        # 100 will be factorized (divied) in grib_message by setting 
+        # scaleFactorOfFirstFixedSurface as 2 and 
+        # scaleFactorOfFirstFixedSurface as 2. So that in grib2 will
+        # be able to read as 0.1 m, 0.35m, 1m & 2m. Iris will convert 
+        # cm to m while saving into grib2 file. So we must follow 
+        # this procedure to get correct results. (tested and suggested for 
+        # WRF-Noah model input)
+        
+        # 1000 cm -> 10 m -> 10 m / 100 (scaleFactorOfFirstFixedSurface = 2) -> 0.1 m
+        # 3500 cm -> 35 m -> 35 m / 100 (scaleFactorOfSecondFixedSurface = 2) -> 0.35 m
+        # 10000 cm -> 100 m -> 100 m / 100 (scaleFactorOfSecondFixedSurface = 2) -> 1.0 m
+        # 20000 cm -> 200 m -> 200 m / 100 (scaleFactorOfSecondFixedSurface = 2) -> 2.0 m
+        
+        depth_below_land_surface.points = numpy.array([1000, 3500, 10000, 20000])
+        # we must set the bounds in vertical depths, since we required
+        # to mention the four different layers depth properly.
+        depth_below_land_surface.bounds = numpy.array([[0, 1000], 
+                                   [1000, 3500], [3500,10000],[10000,20000]])
+        depth_below_land_surface.units = Unit('cm')
+    elif __soilFirstSecondFixedSurfaceUnit__ == 'mm':
+        # Here we kept unit as 'mm'. But points are muliplied by
+        # 1000 with its  corresponding mm values. Why because, that 
+        # 1000 will be factorized (divied) in grib_message by setting 
+        # scaleFactorOfFirstFixedSurface as 3 and 
+        # scaleFactorOfSecondFixedSurface as 3. So that in grib2 will
+        # be able to read as 0.1m, 0.35m, 1m & 2m. Iris will convert 
+        # mm to m while saving into grib2 file. So we must follow 
+        # this procedure to get correct results.
+        # Moreover IMD-MFI model required to be scaling range of 100000. So we 
+        # must follow this procedure only (i.e. mm to m conversion and not cm to m conversion) 
+        
+        # 100000 mm -> 100 m -> 100 m / 1000 (scaleFactorOfFirstFixedSurface = 3) -> 0.1 m
+        # 350000 mm -> 350 m -> 350 m / 1000 (scaleFactorOfSecondFixedSurface = 3) -> 0.35 m
+        # 1000000 mm -> 1000 m -> 1000 m / 1000 (scaleFactorOfSecondFixedSurface = 3) -> 1.0 m
+        # 2000000 mm -> 2000 m -> 2000 m / 1000 (scaleFactorOfSecondFixedSurface = 3) -> 2.0 m
+        
+        depth_below_land_surface.points = numpy.array([100000, 350000, 1000000, 2000000])
+        # we must set the bounds in vertical depths, since we required
+        # to mention the four different layers depth properly.
+        depth_below_land_surface.bounds = numpy.array([[0, 100000], 
+                           [100000, 350000], [350000,1000000],[1000000,2000000]])
+        depth_below_land_surface.units = Unit('mm')
+    # end of if __soilFirstSecondFixedSurfaceUnit__ == 'cm':
     
-    # 100000 mm -> 100 m -> 100 m / 1000 (scaleFactorOfFirstFixedSurface = 3) -> 0.1 m
-    # 350000 mm -> 350 m -> 350 m / 1000 (scaleFactorOfSecondFixedSurface = 3) -> 0.35 m
-    # 1000000 mm -> 1000 m -> 1000 m / 1000 (scaleFactorOfSecondFixedSurface = 3) -> 1.0 m
-    # 2000000 mm -> 2000 m -> 2000 m / 1000 (scaleFactorOfSecondFixedSurface = 3) -> 2.0 m
-    
-    depth_below_land_surface.points = numpy.array([100000, 350000, 1000000, 2000000])
-    # we must set the bounds in vertical depths, since we required
-    # to mention the four different layers depth properly.
-    depth_below_land_surface.bounds = numpy.array([[0, 100000], 
-                       [100000, 350000], [350000,1000000],[1000000,2000000]])
-    depth_below_land_surface.units = Unit('mm')
     depth_below_land_surface.long_name = 'depth_below_land_surface'    
     depth_below_land_surface.standard_name = None
 # end of def _updateDepthBelowLandSurfaceCoords4Levs():
@@ -1090,7 +1144,7 @@ def _convert2VolumetricMoisture(cube, levels=[100.0, 250.0, 650.0, 1000.0]):
     ## fourth layer by 1000.
     
     ## By this way, we converted moisture_content_of_soil_layer 
-    ## from Kg/m2 into voulumetric_soil_moisture_of_layer m3/m3.
+    ## from Kg/m2 into volumetric_soil_moisture_of_layer m3/m3.
     
     ## Reference : "Comparison of the Met Office soil moisture
     ## analyses with SMOS retrievals (2010-2011)", MARCH 2013.
@@ -1294,11 +1348,12 @@ def regridAnlFcstFiles(arg):
         STASHConstraint = iris.AttributeConstraint(STASH=varSTASH)
         # get the standard_name of variable 
         stdNm = cubes.extract(varConstraint & STASHConstraint)[0].standard_name
+        longNm = cubes.extract(varConstraint & STASHConstraint)[0].long_name
         print "stdNm", stdNm, infile
-        if stdNm is None:
+        if stdNm is None and longNm is None:
             print "Unknown variable standard_name for '%s' of %s. So skipping it" % (varName, infile)
             continue
-        # end of if 'unknown' in stdNm: 
+        # end of if stdNm is None and longNm is None:
         print "  Working on variable: %s \n" %stdNm
         
         if (varName, varSTASH) in [('soil_temperature', 'm01s03i238'), 
@@ -1673,7 +1728,7 @@ def regridAnlFcstFiles(arg):
 
 def tweaked_messages(cubeList):
     global _ncmrGrib2LocalTableVars_, _aod_pseudo_level_var_, \
-           __setGrib2TableParameters__
+           __setGrib2TableParameters__, __soilFirstSecondFixedSurfaceUnit__
     
     for cube in cubeList:
         for cube, grib_message in iris.fileformats.grib.as_pairs(cube):
@@ -1694,16 +1749,28 @@ def tweaked_messages(cubeList):
                 gribapi.grib_set(grib_message, "typeOfTimeIncrement", 2)           
                 print 'reset typeOfTimeIncrement as 2 for', cube.standard_name
             # end of if cube.coord("forecast_period").bounds is not None:
-            if cube.coords('depth_below_land_surface'):
-                # scaleFactorOfFirstFixedSurface as 3, equivalent to divide
-                # the depth_below_land_surface.points by 1000. So that we can 
-                # be sure that grib2 has 0.1m, 0.35m, 1m & 2m. Otherwise, we 
-                # will endup with 0m, 0m, 1m & 2m and finally will loose 
-                # information about decimal values of levels.
-                gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 3)
-                gribapi.grib_set(grib_message, "scaleFactorOfSecondFixedSurface", 3)
-                print "reset scaleFactorOfFirstFixedSurface as 3"
-                print "reset scaleFactorOfSecondFixedSurface as 3"
+            if cube.coords('depth_below_land_surface'):                
+                if __soilFirstSecondFixedSurfaceUnit__ == 'cm':
+                    # scaleFactorOfFirstFixedSurface as 2, equivalent to divide
+                    # the depth_below_land_surface.points by 100. So that we can 
+                    # be sure that grib2 has 0.1m, 0.35m, 1m & 2m. Otherwise, we 
+                    # will endup with 0m, 0m, 1m & 2m and finally will loose 
+                    # information about decimal values of levels.
+                    gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 2)
+                    gribapi.grib_set(grib_message, "scaleFactorOfSecondFixedSurface", 2)
+                    print "reset scaleFactorOfFirstFixedSurface as 2"
+                    print "reset scaleFactorOfSecondFixedSurface as 2"
+                elif __soilFirstSecondFixedSurfaceUnit__ == 'mm':
+                    # scaleFactorOfFirstFixedSurface as 3, equivalent to divide
+                    # the depth_below_land_surface.points by 1000. So that we can 
+                    # be sure that grib2 has 0.1m, 0.35m, 1m & 2m. Otherwise, we 
+                    # will endup with 0m, 0m, 1m & 2m and finally will loose 
+                    # information about decimal values of levels.
+                    gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 3)
+                    gribapi.grib_set(grib_message, "scaleFactorOfSecondFixedSurface", 3)
+                    print "reset scaleFactorOfFirstFixedSurface as 3"
+                    print "reset scaleFactorOfSecondFixedSurface as 3"
+                # end of if __soilFirstSecondFixedSurfaceUnit__ == 'cm':
             # end of if cube.coords('depth_below_land_surface'):    
             if cube.standard_name or cube.long_name:
                 if cube.standard_name:
@@ -2123,7 +2190,7 @@ def doShuffleVarsInOrder(fpath):
     g2filepath = fpath.split(_preExtension_)
     wg2filepath = g2filepath[0] + g2filepath[-1]
     # set ordered extension is empty incase wgrib2 argument is empyt
-    orderedExtension = '_Ordered' if (__wgrib2Arguments__ and not _convertGrib2FilestoGrib1Files_) else ''    
+    orderedExtension = '_Ordered' if __wgrib2Arguments__ else ''    
     g2filepath = g2filepath[0] + orderedExtension + g2filepath[-1]    
     
     outstatus = False
@@ -2284,14 +2351,14 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
         # end of for fcsthr in range(...):
         ## get the no of created anl files  
         nprocesses = len(anlFiles)     
-        # parallel begin - 3
+        # parallel begin - 3 # parallel analysis required for 3-hourly analysis files.
         pool = _MyPool(nprocesses)
         print "Creating %d (non-daemon) workers and jobs in doShuffleVarsInOrder process." % nprocesses
-        results = pool.map(doShuffleVarsInOrder, anlFiles)   
-
+        results = pool.map(doShuffleVarsInOrder, anlFiles)
         # closing and joining master pools
         pool.close()     
         pool.join()
+        
         # parallel end - 3        
     # end of if ftype in ['fcst', 'forecast']: 
     print "Total time taken to convert and re-order all files was: %8.5f seconds \n" % (time.time()-_startT_)
@@ -2492,7 +2559,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
        __max_long_fcst_hours__, __outFileType__, __grib1FilesNameSuffix__, \
        __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, \
        _removeVars_, _requiredPressureLevels_, __setGrib2TableParameters__, \
-       __wgrib2Arguments__
+       __wgrib2Arguments__, __soilFirstSecondFixedSurfaceUnit__
      
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -2504,6 +2571,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     latitude = kwarg.get('latitude', None)
     longitude = kwarg.get('longitude', None)
     pressureLevels = kwarg.get('pressureLevels', None)
+    soilFirstSecondFixedSurfaceUnit = kwarg.get('soilFirstSecondFixedSurfaceUnit', 'cm')
     start_step_long_fcst_hour = kwarg.get('start_step_long_fcst_hour', 6)
     max_long_fcst_hours = kwarg.get('max_long_fcst_hours', 240)
     fcstFileNameStructure = kwarg.get('fcstFileNameStructure', None)
@@ -2533,6 +2601,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     __grib1FilesNameSuffix__ = grib1FilesNameSuffix
     _targetGridRes_ = str(targetGridResolution)    
     _requiredPressureLevels_ = pressureLevels    
+    __soilFirstSecondFixedSurfaceUnit__ = soilFirstSecondFixedSurfaceUnit
     _createGrib2CtlIdxFiles_ = createGrib2CtlIdxFiles
     _createGrib1CtlIdxFiles_ = createGrib1CtlIdxFiles
     _convertGrib2FilestoGrib1Files_ = convertGrib2FilestoGrib1Files
@@ -2671,7 +2740,8 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
        __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, \
        _removeVars_, __anl_step_hour__, _requiredPressureLevels_, \
        __setGrib2TableParameters__, __anl_aavars_reference_time__, \
-       __anl_aavars_time_bounds__, _reverseLatitude_, __wgrib2Arguments__  
+       __anl_aavars_time_bounds__, _reverseLatitude_, __wgrib2Arguments__, \
+       __soilFirstSecondFixedSurfaceUnit__  
            
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -2683,10 +2753,11 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     latitude = kwarg.get('latitude', None)
     longitude = kwarg.get('longitude', None)
     pressureLevels = kwarg.get('pressureLevels', None)
+    soilFirstSecondFixedSurfaceUnit = kwarg.get('soilFirstSecondFixedSurfaceUnit', 'cm')
     anl_step_hour = kwarg.get('anl_step_hour', 6)
     anl_aavars_reference_time = kwarg.get('anl_aavars_reference_time', 'shortforecast')
     anl_aavars_time_bounds = kwarg.get('anl_aavars_time_bounds', True)
-    anlFileNameStructure = kwarg.get('anlFileNameStructure', None)
+    anlFileNameStructure = kwarg.get('anlFileNameStructure', None)    
     createGrib2CtlIdxFiles = kwarg.get('createGrib2CtlIdxFiles', True)
     createGrib1CtlIdxFiles = kwarg.get('createGrib1CtlIdxFiles', False)
     convertGrib2FilestoGrib1Files = kwarg.get('convertGrib2FilestoGrib1Files', False)
@@ -2713,6 +2784,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     __grib1FilesNameSuffix__ = grib1FilesNameSuffix
     _targetGridRes_ = str(targetGridResolution)    
     _requiredPressureLevels_ = pressureLevels    
+    __soilFirstSecondFixedSurfaceUnit__ = soilFirstSecondFixedSurfaceUnit
     _createGrib2CtlIdxFiles_ = createGrib2CtlIdxFiles
     _createGrib1CtlIdxFiles_ = createGrib1CtlIdxFiles
     _convertGrib2FilestoGrib1Files_ = convertGrib2FilestoGrib1Files
