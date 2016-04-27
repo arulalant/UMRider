@@ -60,6 +60,7 @@ requiredLat = eval(cdic.get('latitude', 'None'))
 requiredLon = eval(cdic.get('longitude', 'None'))
 targetGridResolution = eval(cdic.get('targetGridResolution', 'None'))
 pressureLevels = eval(cdic.get('pressureLevels', 'None'))
+soilFirstSecondFixedSurfaceUnit = cdic.get('soilFirstSecondFixedSurfaceUnit', 'cm')
 anl_step_hour = eval(cdic.get('anl_step_hour', '6'))
 anl_aavars_reference_time = cdic.get('anl_aavars_reference_time', 'shortforecast')
 anl_aavars_time_bounds = eval(cdic.get('anl_aavars_time_bounds', 'True'))
@@ -79,7 +80,9 @@ callBackScript = cdic.get('callBackScript', None)
 callBackScript = None if callBackScript in ['None', ''] else callBackScript
 setGrib2TableParameters = eval(cdic.get('setGrib2TableParameters', 'None'))
 
-
+if soilFirstSecondFixedSurfaceUnit not in ('cm', 'mm'):
+    raise ValueError("soilFirstSecondFixedSurfaceUnit takes either 'cm' or 'mm'")
+    
 if anlOutGrib2FilesNameStructure:
     if not anlOutGrib2FilesNameStructure[-1].endswith('2'):
         raise ValueError('anlOutGrib2FilesNameStructure last option must endswith 2 to indicating that grib2 file')
@@ -185,6 +188,7 @@ print "debug = ", debug
 print "latitude = ", requiredLat
 print "longitude = ", requiredLon
 print "pressureLevels = ", pressureLevels
+print "soilFirstSecondFixedSurfaceUnit = ", soilFirstSecondFixedSurfaceUnit
 print "anl_step_hour = ", anl_step_hour
 print "anl_aavars_reference_time = ", anl_aavars_reference_time
 print "anl_aavars_time_bounds = ", anl_aavars_time_bounds
