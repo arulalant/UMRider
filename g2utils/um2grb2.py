@@ -2664,27 +2664,34 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     
     _opPath_ = os.path.join(outPath, _current_date_)
     createDirWhileParallelRacing(_opPath_)
-        
+    
+    # define default global lat start, lon end points
+    slat, elat = (-90., 90.)
+    # define default global lon start, lon end points 
+    slon, elon = (0., 360.)
+    # define user defined custom lat & lon start and end points
+    if latitude: 
+        (slat, elat) = latitude        
+        if slat > elat:
+            # just make sure while extracting south to north
+            slat, elat = elat, slat            
+            # and reverse while saving into grib2 file.
+            _reverseLatitude_ = True
+        # end of if slat > elat:
+        _requiredLat_ = (slat, elat)
+    # end of if latitude: 
+    
     if targetGridResolution is None:
-        _doRegrid_ = False  
+        _doRegrid_ = False
+        if longitude: (slon, elon) = longitude
+        # reduce one step if user passed / default lon is 360. If we write 
+        # longitude from 0 upto 360, wgrib2 reads it as 0 to 0. To avoid it, 
+        # just reduct one small step in longitude only incase of 360.
+        if int(elon) == 360: elon -= 0.0001
+        if longitude: _requiredLon_ = (slon, elon)
     else:
         if not isinstance(targetGridResolution, (int, float)):
-            raise ValueError("targetGridResolution must be either int or float")
-        # define default global lat start, lon end points
-        slat, elat = (-90., 90.)
-        # define default global lon start, lon end points 
-        slon, elon = (0., 360.)
-        # define user defined custom lat & lon start and end points
-        if latitude: 
-            (slat, elat) = latitude
-            if slat > elat:
-                # just make sure while extracting south to north
-                slat, elat = elat, slat 
-                _requiredLat_ = (slat, elat)
-                # and reverse while saving into grib2 file.
-                _reverseLatitude_ = True
-            # end of if slat > elat:
-        # end of if latitude: 
+            raise ValueError("targetGridResolution must be either int or float")        
         if longitude: (slon, elon) = longitude
         # reduce one step if user passed / default lon is 360. If we write 
         # longitude from 0 upto 360, wgrib2 reads it as 0 to 0. To avoid it, 
@@ -2848,26 +2855,33 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     _opPath_ = os.path.join(outPath, _current_date_)
     createDirWhileParallelRacing(_opPath_)
     
+    # define default global lat start, lon end points
+    slat, elat = (-90., 90.)
+    # define default global lon start, lon end points 
+    slon, elon = (0., 360.)
+    # define user defined custom lat & lon start and end points
+    if latitude: 
+        (slat, elat) = latitude
+        if slat > elat:
+            # just make sure while extracting south to north
+            slat, elat = elat, slat            
+            # and reverse while saving into grib2 file.
+            _reverseLatitude_ = True
+        # end of if slat > elat:
+        _requiredLat_ = (slat, elat)
+    # end of if latitude: 
+    
     if targetGridResolution is None:
         _doRegrid_ = False  
+        if longitude: (slon, elon) = longitude
+        # reduce one step if user passed / default lon is 360. If we write 
+        # longitude from 0 upto 360, wgrib2 reads it as 0 to 0. To avoid it, 
+        # just reduct one small step in longitude only incase of 360.
+        if int(elon) == 360: elon -= 0.0001
+        if longitude: _requiredLon_ = (slon, elon)
     else:
         if not isinstance(targetGridResolution, (int, float)):
-            raise ValueError("targetGridResolution must be either int or float")
-        # define default global lat start, lon end points
-        slat, elat = (-90., 90.)
-        # define default global lon start, lon end points 
-        slon, elon = (0., 360.)
-        # define user defined custom lat & lon start and end points
-        if latitude: 
-            (slat, elat) = latitude
-            if slat > elat:
-                # just make sure while extracting south to north
-                slat, elat = elat, slat
-                _requiredLat_ = (slat, elat)
-                # and reverse while saving into grib2 file.
-                _reverseLatitude_ = True
-            # end of if slat > elat:
-        # end of if latitude: 
+            raise ValueError("targetGridResolution must be either int or float")        
         if longitude: (slon, elon) = longitude
         # reduce one step if user passed / default lon is 360. If we write 
         # longitude from 0 upto 360, wgrib2 reads it as 0 to 0. To avoid it, 
