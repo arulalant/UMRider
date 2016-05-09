@@ -14,10 +14,10 @@ import os, sys, datetime
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                  debug, targetGridResolution, overwriteFiles, neededVars, \
-                 requiredLat, requiredLon, max_long_fcst_hours_at_00z, \
+                 requiredLat, requiredLon, end_long_fcst_hour_at_00z, \
                  fcstOutGrib2FilesNameStructure, createGrib2CtlIdxFiles, \
                  createGrib1CtlIdxFiles, convertGrib2FilestoGrib1Files, \
-                 start_step_long_fcst_hour, grib1FilesNameSuffix, \
+                 start_long_fcst_hour, fcst_step_hour, grib1FilesNameSuffix, \
                  removeGrib2FilesAfterGrib1FilesCreated, pressureLevels, \
                  callBackScript, setGrib2TableParameters, wgrib2Arguments, \
                  soilFirstSecondFixedSurfaceUnit
@@ -68,8 +68,9 @@ soilFirstSecondFixedSurfaceUnit=soilFirstSecondFixedSurfaceUnit,
   convertGrib2FilestoGrib1Files=convertGrib2FilestoGrib1Files, 
                     grib1FilesNameSuffix=grib1FilesNameSuffix,          
   removeGrib2FilesAfterGrib1FilesCreated=removeGrib2FilesAfterGrib1FilesCreated,
-          start_step_long_fcst_hour=start_step_long_fcst_hour,
-               max_long_fcst_hours=max_long_fcst_hours_at_00z,             
+                    start_long_fcst_hour=start_long_fcst_hour,
+                 end_long_fcst_hour=end_long_fcst_hour_at_00z,
+                                fcst_step_hour=fcst_step_hour,             
                        overwrite=overwriteFiles, lprint=debug,
               setGrib2TableParameters=setGrib2TableParameters,
                               wgrib2Arguments=wgrib2Arguments,

@@ -64,9 +64,10 @@ soilFirstSecondFixedSurfaceUnit = cdic.get('soilFirstSecondFixedSurfaceUnit', 'c
 anl_step_hour = eval(cdic.get('anl_step_hour', '6'))
 anl_aavars_reference_time = cdic.get('anl_aavars_reference_time', 'shortforecast')
 anl_aavars_time_bounds = eval(cdic.get('anl_aavars_time_bounds', 'True'))
-start_step_long_fcst_hour = eval(cdic.get('start_step_long_fcst_hour', '6'))
-max_long_fcst_hours_at_00z = eval(cdic.get('max_long_fcst_hours_at_00z', '240'))
-max_long_fcst_hours_at_12z = eval(cdic.get('max_long_fcst_hours_at_12z', '120'))
+fcst_step_hour = eval(cdic.get('fcst_step_hour', '6'))
+start_long_fcst_hour = eval(cdic.get('start_long_fcst_hour', '6'))
+end_long_fcst_hour_at_00z = eval(cdic.get('end_long_fcst_hour_at_00z', '240'))
+end_long_fcst_hour_at_12z = eval(cdic.get('end_long_fcst_hour_at_12z', '120'))
 anlOutGrib2FilesNameStructure = eval(cdic.get('anlOutGrib2FilesNameStructure', 'None'))
 fcstOutGrib2FilesNameStructure = eval(cdic.get('fcstOutGrib2FilesNameStructure','None'))
 createGrib2CtlIdxFiles = eval(cdic.get('createGrib2CtlIdxFiles', 'True'))
@@ -94,11 +95,11 @@ if fcstOutGrib2FilesNameStructure:
 if createGrib1CtlIdxFiles and not convertGrib2FilestoGrib1Files:
     raise ValueError("Enabled createGrib1CtlIdxFiles option, but not enabled convertGrib2FilestoGrib1Files option")
 
-if not isinstance(max_long_fcst_hours_at_00z, int):
-    raise ValueError('max_long_fcst_hours_at_00z must be an integer')
+if not isinstance(end_long_fcst_hour_at_00z, int):
+    raise ValueError('end_long_fcst_hour_at_00z must be an integer')
 
-if not isinstance(max_long_fcst_hours_at_12z, int):
-    raise ValueError('max_long_fcst_hours_at_12z must be an integer')
+if not isinstance(end_long_fcst_hour_at_12z, int):
+    raise ValueError('end_long_fcst_hour_at_12z must be an integer')
 
 if requiredLat:
     if not isinstance(requiredLat, (tuple, list)):
@@ -192,9 +193,10 @@ print "soilFirstSecondFixedSurfaceUnit = ", soilFirstSecondFixedSurfaceUnit
 print "anl_step_hour = ", anl_step_hour
 print "anl_aavars_reference_time = ", anl_aavars_reference_time
 print "anl_aavars_time_bounds = ", anl_aavars_time_bounds
-print "start_step_long_fcst_hour = ", start_step_long_fcst_hour
-print "max_long_fcst_hours_at_00z = ", max_long_fcst_hours_at_00z
-print "max_long_fcst_hours_at_12z = ", max_long_fcst_hours_at_12z
+print "start_long_fcst_hour = ", start_long_fcst_hour
+print "fcst_step_hour = ", fcst_step_hour
+print "end_long_fcst_hour_at_00z = ", end_long_fcst_hour_at_00z
+print "end_long_fcst_hour_at_12z = ", end_long_fcst_hour_at_12z
 if anlOutGrib2FilesNameStructure: print "anlOutGrib2FilesNameStructure = ", anlOutGrib2FilesNameStructure
 if fcstOutGrib2FilesNameStructure: print "fcstOutGrib2FilesNameStructure = ", fcstOutGrib2FilesNameStructure
 print "createGrib2CtlIdxFiles = ", createGrib2CtlIdxFiles

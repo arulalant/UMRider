@@ -96,10 +96,12 @@ __utc__ = '00'
 __outFileType__ = 'ana'
 # start and step hour in short forecast files
 __anl_step_hour__ = 6
-# start and step hour in long forecast files
-__start_step_long_fcst_hour__ = 6
+# start hour in long forecast files
+__start_long_fcst_hour__ = 6
+# step hour in long forecast files
+__fcst_step_hour__ = 6
 # maximum long forecast hours produced by model
-__max_long_fcst_hours__ = 240
+__end_long_fcst_hour__ = 240
 # analysis reference time applicable only to average/accumulation vars.
 __anl_aavars_reference_time__ = 'shortforecast'
 # analysis time bounds option applicable only to average/accumulation vars.
@@ -570,7 +572,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
     Updated : 07-12-2015
     Updated : 10-12-2015
     """
-    global __anl_step_hour__, __start_step_long_fcst_hour__
+    global __anl_step_hour__, __fcst_step_hour__
     
     hr = int(hr)
     
@@ -830,13 +832,13 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     # water equivalent of snow amount.
                     ('snowfall_amount', 'm01s00i023')] 
         # the cube contains Instantaneous data at every 3-hours.
-        if __start_step_long_fcst_hour__ == 3:
+        if __fcst_step_hour__ == 3:
             # applicable only for 3 hour instantaneous/intervals
             fcstHours = numpy.array([3, 6, 9, 12, 15, 18, 21, 24]) + hr
-        elif __start_step_long_fcst_hour__ == 6:
+        elif __fcst_step_hour__ == 6:
             # applicable only for 6 hour instantaneous/intervals
             fcstHours = numpy.array([6, 12, 18, 24]) + hr
-        elif __start_step_long_fcst_hour__ == 24:
+        elif __fcst_step_hour__ == 24:
             # applicable only for 24 hour instantaneous/intervals
             fcstHours = numpy.array([24]) + hr
         # we are extracting at particular instantaneous value, so no need to 
@@ -853,13 +855,13 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('y_wind', 'm01s15i202'),
                     ('upward_air_velocity', 'm01s15i242')]
         # the cube contains Instantaneous data at every 3-hours.
-        if __start_step_long_fcst_hour__ == 3:
+        if __fcst_step_hour__ == 3:
             # applicable only for 3 hour instantaneous/intervals
             fcstHours = numpy.array([3, 6, 9, 12, 15, 18, 21, 24]) + hr
-        elif __start_step_long_fcst_hour__ == 6:
+        elif __fcst_step_hour__ == 6:
             # applicable only for 6 hour instantaneous/intervals
             fcstHours = numpy.array([6, 12, 18, 24]) + hr
-        elif __start_step_long_fcst_hour__ == 24:
+        elif __fcst_step_hour__ == 24:
             # applicable only for 24 hour instantaneous/intervals
             fcstHours = numpy.array([24]) + hr      
         # we are extracting at particular instantaneous value, so no need to 
@@ -897,13 +899,13 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('stratiform_rainfall_amount', 'm01s04i201'),
                     ('convective_rainfall_amount', 'm01s05i201'),]
         # the cube contains Instantaneous data at every 1-hours.
-        if __start_step_long_fcst_hour__ == 3:
+        if __fcst_step_hour__ == 3:
             # applicable only for 3 hour instantaneous/intervals
             fcstHours = numpy.array([3, 6, 9, 12, 15, 18, 21, 24]) + hr
-        elif __start_step_long_fcst_hour__ == 6:
+        elif __fcst_step_hour__ == 6:
             # applicable only for 6 hour instantaneous/intervals
             fcstHours = numpy.array([6, 12, 18, 24]) + hr
-        elif __start_step_long_fcst_hour__ == 24:
+        elif __fcst_step_hour__ == 24:
             # applicable only for 24 hour instantaneous/intervals
             fcstHours = numpy.array([24]) + hr
         # we are extracting at particular instantaneous value, so no need to 
@@ -929,19 +931,19 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
              ('precipitation_flux', 'm01s05i216'),                          
              ('rainfall_flux', 'm01s05i214'),]
         # the cube contains data of every 3-hourly average or accumutated.
-        if __start_step_long_fcst_hour__ == 3:
+        if __fcst_step_hour__ == 3:
             # applicable only for 3 hour average or accumutated.
             fcstHours = numpy.array([1.5, 4.5, 7.5, 10.5, 13.5, 16.5, 19.5, 22.5]) + hr
             # model itself produced 3 hourly average or accumutated. So we 
             # no need to do average/accumulation explicitly.
             doMultiHourlyMean = False
-        elif __start_step_long_fcst_hour__ == 6:       
+        elif __fcst_step_hour__ == 6:       
             # applicable only for 6 hour average or accumutated.
             fcstHours = numpy.array([(1, 5), (7, 11), (13, 17), (19, 23)]) + hr  
             # model produced 3 hourly average or accumutated. So we must 
             # need to do 6 hourly average/accumulation explicitly.
             doMultiHourlyMean = True  
-        elif __start_step_long_fcst_hour__ == 24:
+        elif __fcst_step_hour__ == 24:
             # applicable only for 24 hour average or accumutated.
             fcstHours = numpy.array([(1, 23)]) + hr  
             # model produced 3 hourly average or accumutated. So we must 
@@ -964,19 +966,19 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # though, here we set up fcstHours and doMultiHourlyMean values w.r.t 
         # dust aod only. For other 2 soil vars, we are fixing the values 
         # before extract those vars!
-        if __start_step_long_fcst_hour__ == 3:
+        if __fcst_step_hour__ == 3:
             # applicable only for 3 hour average or accumutated.
             fcstHours = numpy.array([1.5, 4.5, 7.5, 10.5, 13.5, 16.5, 19.5, 22.5]) + hr
             # model itself produced 3 hourly average or accumutated. So we 
             # no need to do average/accumulation explicitly.
             doMultiHourlyMean = False
-        elif __start_step_long_fcst_hour__ == 6:
+        elif __fcst_step_hour__ == 6:
             # applicable only for 6 hour average or accumutated.
             fcstHours = numpy.array([(1, 5), (7, 11), (13, 17), (19, 23)]) + hr 
             # model produced 3 hourly average or accumutated. So we must 
             # need to do 6 hourly average/accumulation explicitly.
             doMultiHourlyMean = True 
-        elif __start_step_long_fcst_hour__ == 24:
+        elif __fcst_step_hour__ == 24:
             # applicable only for 24 hour average or accumutated.
             fcstHours = numpy.array([(1, 23)]) + hr     
             # model produced 3 hourly average or accumutated. So we must 
@@ -1218,7 +1220,7 @@ def regridAnlFcstFiles(arg):
            _inDataPath_, _opPath_, _preExtension_, _accumulationVars_, _ncfilesVars_, \
            _convertVars_, _requiredLat_, _requiredLon_, _doRegrid_, __utc__, \
            __anlFileNameStructure__, __fcstFileNameStructure__, __LPRINT__, \
-           __start_step_long_fcst_hour__, __anl_step_hour__, \
+           __fcst_step_hour__, __anl_step_hour__, \
            _precipVars_, _requiredPressureLevels_, __anl_aavars_reference_time__, \
            __anl_aavars_time_bounds__ 
    
@@ -1265,7 +1267,7 @@ def regridAnlFcstFiles(arg):
     if fpname.startswith('umglaa'):
         dtype = 'fcst'         
         outFileNameStructure = __fcstFileNameStructure__
-        start_step_fcst_hour = __start_step_long_fcst_hour__
+        start_step_fcst_hour = __fcst_step_hour__
     elif fpname.startswith(('umglca', 'qwqg00')):
         dtype = 'ana'
         outFileNameStructure = __anlFileNameStructure__
@@ -1847,7 +1849,7 @@ def doShuffleVarsInOrder(fpath):
            _createGrib1CtlIdxFiles_, _convertGrib2FilestoGrib1Files_, \
            _requiredLat_, _convertVars_, __outFileType__, __grib1FilesNameSuffix__, \
            __removeGrib2FilesAfterGrib1FilesCreated__, _removeVars_, \
-           __start_step_long_fcst_hour__, g2ctl, grib2ctl, gribmap, cnvgrib, \
+           __fcst_step_hour__, g2ctl, grib2ctl, gribmap, cnvgrib, \
            __anl_aavars_reference_time__, _reverseLatitude_, __wgrib2Arguments__
     
     print "doShuffleVarsInOrder Begins"
@@ -2058,7 +2060,7 @@ def doShuffleVarsInOrder(fpath):
     # why do we need to repeat the same static variables in all the 
     # forecast files... So removing it, but keeps in analysis file.
     if __outFileType__ in ['prg', 'fcst'] and land_binary_mask_var and \
-                                  __start_step_long_fcst_hour__ in [6]: 
+                                  __fcst_step_hour__ in [6]: 
         # remove only for 6 hourly ncum post prodction. Not for others!
         # say for 3 hourly hycom model input landsea binary mask needed in all
         # forecast files.
@@ -2295,9 +2297,9 @@ def doShuffleVarsInOrder(fpath):
 
 def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
             
-    global _current_date_, _opPath_, _preExtension_, __max_long_fcst_hours__, \
+    global _current_date_, _opPath_, _preExtension_, __end_long_fcst_hour__, \
            __anlFileNameStructure__, __fcstFileNameStructure__, \
-           __max_long_fcst_hours__, __start_step_long_fcst_hour__, __utc__
+           __end_long_fcst_hour__, __fcst_step_hour__, __utc__, __start_long_fcst_hour__
             
     print "Lets re-order variables for all the files!!!"
     #####
@@ -2313,8 +2315,8 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
         # get the out fileName Structure based on pre / user defined indecies                       
         outFnIndecies = __getAnlFcstFileNameIdecies__(__fcstFileNameStructure__)
         fcstFiles = []
-        for fcsthr in range(__start_step_long_fcst_hour__, 
-                   __max_long_fcst_hours__+1, __start_step_long_fcst_hour__):            
+        for fcsthr in range(__start_long_fcst_hour__, 
+                   __end_long_fcst_hour__+1, __fcst_step_hour__):            
             # generate the out file name based on actual informations                                 
             outFn = __genAnlFcstOutFileName__(__fcstFileNameStructure__, 
                                   outFnIndecies, _current_date_, fcsthr, 
@@ -2377,13 +2379,18 @@ def doFcstConvert(fname):
     :param fname: Name of the FF filename in question as a "string"
     :return: Nothing! TANGIBLE!
     """
-    global __max_long_fcst_hours__
+    global __start_long_fcst_hour__, __end_long_fcst_hour__
     
+    # calculate start hour of long fcst in multiples of 24. Why?
+    # 00 hr contains from 06 to 24 hours data.
+    # 24 hr contains from 24 to 48 hours data, and so on.
+    start_fcst_hour = (__start_long_fcst_hour__ / 24) * 24
+        
     # here max fcst hours goes upto 240 only, not 241. why ??
     # because 216 long fcst hours contains upto 240th hour fcst.
     # and 240th long fcst contains upto 264th hour fcst.
-    # so here no need to add +1 to __max_long_fcst_hours__.
-    fcst_times = [str(hr).zfill(3) for hr in range(0, __max_long_fcst_hours__, 24)]
+    # so here no need to add +1 to __end_long_fcst_hour__.
+    fcst_times = [str(hr).zfill(3) for hr in range(start_fcst_hour, __end_long_fcst_hour__, 24)]
     fcst_filenames = [(fname, hr) for hr in fcst_times]
     nchild = len(fcst_times)
     # create the no of child parallel processes
@@ -2451,16 +2458,21 @@ def convertFilesInParallel(fnames, ftype):
 
 def _checkInFilesStatus(path, ftype, pfnames):
     
-    global __max_long_fcst_hours__
+    global __start_long_fcst_hour__, __end_long_fcst_hour__
     
     if ftype in ['ana', 'anl']:
         fhrs = ['000'] 
     elif ftype in ['fcst', 'prg']:
+        # calculate start hour of long fcst in multiples of 24. Why?
+        # 00 hr contains from 06 to 24 hours data.
+        # 24 hr contains from 24 to 48 hours data, and so on.
+        start_fcst_hour = (__start_long_fcst_hour__ / 24) * 24
+
         # here max fcst hours goes upto 240 only, not 241. why ??
         # because 216 long fcst hours contains upto 240th hour fcst.
         # and 240th long fcst contains upto 264th hour fcst.
-        # so here no need to add +1 to __max_long_fcst_hours__.
-        fhrs = [str(hr).zfill(3) for hr in range(0, __max_long_fcst_hours__, 24)]
+        # so here no need to add +1 to __end_long_fcst_hour__.
+        fhrs = [str(hr).zfill(3) for hr in range(start_fcst_hour, __end_long_fcst_hour__, 24)]
     
     fileNotExistList = []
     for pfname in pfnames:
@@ -2483,9 +2495,9 @@ def _checkInFilesStatus(path, ftype, pfnames):
 
 def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
     
-    global _preExtension_, __max_long_fcst_hours__, __anlFileNameStructure__,\
-           __fcstFileNameStructure__, __start_step_long_fcst_hour__, \
-           __anl_step_hour__, __utc__
+    global _preExtension_, __end_long_fcst_hour__, __anlFileNameStructure__,\
+           __fcstFileNameStructure__, __fcst_step_hour__, \
+           __anl_step_hour__, __utc__, __start_long_fcst_hour__
            
     if ftype in ['ana', 'anl']:
         outFileNameStructure = __anlFileNameStructure__
@@ -2497,8 +2509,8 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
         fhrs = range(0+simulated_hr, 6+simulated_hr, __anl_step_hour__)     
     elif ftype in ['fcst', 'prg']:
         outFileNameStructure = __fcstFileNameStructure__
-        fhrs = range(__start_step_long_fcst_hour__, __max_long_fcst_hours__+1, 
-                                                __start_step_long_fcst_hour__)
+        fhrs = range(__start_long_fcst_hour__, __end_long_fcst_hour__+1, 
+                                                     __fcst_step_hour__)
     
     # get the out fileName Structure based on pre / user defined indecies
     outFnIndecies = __getAnlFcstFileNameIdecies__(outFileNameStructure)
@@ -2555,11 +2567,12 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
        _inDataPath_, _opPath_, _doRegrid_, _convertVars_, _requiredLat_, \
        _requiredLon_, _createGrib2CtlIdxFiles_, _createGrib1CtlIdxFiles_, \
        _convertGrib2FilestoGrib1Files_, __fcstFileNameStructure__, \
-       __LPRINT__, __utc__, __start_step_long_fcst_hour__, _reverseLatitude_, \
-       __max_long_fcst_hours__, __outFileType__, __grib1FilesNameSuffix__, \
+       __LPRINT__, __utc__, __fcst_step_hour__, _reverseLatitude_, \
+       __end_long_fcst_hour__, __outFileType__, __grib1FilesNameSuffix__, \
        __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, \
        _removeVars_, _requiredPressureLevels_, __setGrib2TableParameters__, \
-       __wgrib2Arguments__, __soilFirstSecondFixedSurfaceUnit__
+       __wgrib2Arguments__, __soilFirstSecondFixedSurfaceUnit__, \
+       __start_long_fcst_hour__
      
     # load key word arguments
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -2572,8 +2585,9 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     longitude = kwarg.get('longitude', None)
     pressureLevels = kwarg.get('pressureLevels', None)
     soilFirstSecondFixedSurfaceUnit = kwarg.get('soilFirstSecondFixedSurfaceUnit', 'cm')
-    start_step_long_fcst_hour = kwarg.get('start_step_long_fcst_hour', 6)
-    max_long_fcst_hours = kwarg.get('max_long_fcst_hours', 240)
+    fcst_step_hour = kwarg.get('fcst_step_hour', 6)
+    start_long_fcst_hour = kwarg.get('start_long_fcst_hour', 6)
+    end_long_fcst_hour = kwarg.get('end_long_fcst_hour', 240)
     fcstFileNameStructure = kwarg.get('fcstFileNameStructure', None)
     createGrib2CtlIdxFiles = kwarg.get('createGrib2CtlIdxFiles', True)
     createGrib1CtlIdxFiles = kwarg.get('createGrib1CtlIdxFiles', False)
@@ -2595,8 +2609,9 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     __LPRINT__ = lprint    
     # update global variables
     __utc__ = utc
-    __start_step_long_fcst_hour__ = start_step_long_fcst_hour
-    __max_long_fcst_hours__ = max_long_fcst_hours
+    __fcst_step_hour__ = fcst_step_hour
+    __start_long_fcst_hour__ = start_long_fcst_hour
+    __end_long_fcst_hour__ = end_long_fcst_hour
     __removeGrib2FilesAfterGrib1FilesCreated__ = removeGrib2FilesAfterGrib1FilesCreated
     __grib1FilesNameSuffix__ = grib1FilesNameSuffix
     _targetGridRes_ = str(targetGridResolution)    
