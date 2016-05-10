@@ -1230,7 +1230,7 @@ def regridAnlFcstFiles(arg):
     fileName = fpname + hr if not '.' in fpname else fpname
     
     fname = os.path.join(_inDataPath_, fileName)        
-    
+    inDataPathHour = _inDataPath_.split('/')[-1]  
     # call definition to get variable indices
     varNamesSTASH, fcstHours, doMultiHourlyMean, infile = getVarInOutFilesDetails(_inDataPath_,
                                                                                fileName, hr)
@@ -1431,7 +1431,8 @@ def regridAnlFcstFiles(arg):
             if __LPRINT__: print varConstraint, STASHConstraint, fhr,
             if __LPRINT__: print fcstRefTimeConstraint, latConstraint, lonConstraint
             
-            if __anl_step_hour__ == 3 and fhr == 0 and fpname.startswith('umglca_pe'):
+            if __anl_step_hour__ == 3 and inDataPathHour == '00' and fhr == 0 \
+                                            and fpname.startswith('umglca_pe'):
                 if (varName, varSTASH) in [('air_pressure_at_sea_level', 'm01s16i222'), 
                             ('surface_air_pressure', 'm01s00i409'),]:
                     # these vars taken already from qwqg00.pp0 file. 
