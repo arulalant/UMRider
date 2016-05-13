@@ -131,6 +131,7 @@ _inDataPath_ = None
 _opPath_ = None
 _doRegrid_ = False
 _targetGrid_ = None
+_targetGridFile_ = ''
 _targetGridRes_ = None
 _reverseLatitude_ = False
 _requiredLat_ = None
@@ -142,6 +143,8 @@ _createGrib1CtlIdxFiles_ = False
 _convertGrib2FilestoGrib1Files_ = False
 __setGrib2TableParameters__ = None
 __wgrib2Arguments__ = None
+_extraPolateMethod_ = 'auto'
+__UMtype__ = 'global'
 # By default __soilFirstSecondFixedSurfaceUnit__ takes as 'cm', suggested for
 # WRF-Noah model. 
 __soilFirstSecondFixedSurfaceUnit__ = 'cm'
@@ -298,12 +301,13 @@ _ncmrGrib2LocalTableVars_ = ['fog_area_fraction',
 ## model itself producing mask over ocean. but when we are doing regrid it 
 ## couldnt retain the mask ! dont know why ! So using land_binary_mask 
 ## variable, we are resetting mask over ocean for the following vars.
-_maskOverOceanVars_ = ['volumetric_moisture_of_soil_layer', 
+_maskOverOceanVars_ = ['moisture_content_of_soil_layer', 
+        'soil_moisture_content', 'volumetric_moisture_of_soil_layer', 
         # 'moisture_content_of_soil_layer' and 'soil_moisture_content' are 
         # renamed as  'volumetric_moisture_of_soil_layer', 
         # but same STASH m01s08i223 and m01s08i208 code.
                  'soil_temperature']
-
+ 
 ## Define dust aerosol optical thickness of model pseudo level with its 
 ## corresponding micron / micro wavelength. We need to tweak with following 
 ## information before writing into final grib2 file.
@@ -986,6 +990,207 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
             doMultiHourlyMean = True    
         
     ##### FORECAST FILE END
+    
+    ##### REGIONAL FORECAST FILE BEGIN
+    elif fname.startswith('xbiwba_pb'):              # umglaa_pb
+        varNamesSTASH = [('land_binary_mask', 'm01s00i030'),
+                    ('fog_area_fraction', 'm01s03i248'),
+                    ('dew_point_temperature', 'm01s03i250'),
+                    ('atmosphere_boundary_layer_thickness', 'm01s00i025'),
+                    ('atmosphere_cloud_liquid_water_content', 'm01s30i405'),
+                    ('atmosphere_cloud_ice_content', 'm01s30i406'),
+                    ('atmosphere_mass_content_of_water', 'm01s30i404'),
+                    ('atmosphere_mass_content_of_dust_dry_aerosol_particles', 'm01s30i403'),                    
+                    ('surface_temperature', 'm01s00i024'),
+                    ('relative_humidity', 'm01s03i245'),
+                    ('visibility_in_air', 'm01s03i247'),
+                    ('tropopause_altitude', 'm01s30i453'),
+                    ('tropopause_air_temperature', 'm01s30i452'),
+                    ('tropopause_air_pressure', 'm01s30i451'),
+                    ('sea_ice_area_fraction', 'm01s00i031'),
+                    ('sea_ice_thickness', 'm01s00i032'),
+#                    ('soil_moisture_content', 'm01s08i208'),  # production has -ve values, (WRONG values)
+                    # the snowfall_amount need to be changed as 
+                    # liquid_water_content_of_surface_snow by convert it into
+                    # water equivalent of snow amount.
+                    ('snowfall_amount', 'm01s00i023')] 
+        # the cube contains Instantaneous data at every 3-hours.
+        if __fcst_step_hour__ == 1:
+            # applicable only for 3 hour average or accumutated.
+            fcstHours = numpy.array([1, 2, 3, 4, 5, 6]) + hr
+            # model itself produced 3 hourly average or accumutated. So we 
+            # no need to do average/accumulation explicitly.
+        elif __fcst_step_hour__ == 3:
+            # applicable only for 3 hour instantaneous/intervals
+            fcstHours = numpy.array([3, 6, 9, 12, 15, 18, 21, 24]) + hr
+        elif __fcst_step_hour__ == 6:
+            # applicable only for 6 hour instantaneous/intervals
+            fcstHours = numpy.array([6, 12, 18, 24]) + hr
+        elif __fcst_step_hour__ == 24:
+            # applicable only for 24 hour instantaneous/intervals
+            fcstHours = numpy.array([24]) + hr
+        # we are extracting at particular instantaneous value, so no need to 
+        # do hourly mean.
+        doMultiHourlyMean = False
+        
+    elif fname.startswith('xbiwba_pd'):            # umglaa_pd
+        # consider variable
+        varNamesSTASH = [('geopotential_height', 'm01s16i202'),
+                    ('air_temperature', 'm01s16i203'),  
+                    ('specific_humidity', 'm01s30i205'),                    
+                    ('relative_humidity', 'm01s16i256'),                    
+                    ('x_wind', 'm01s15i201'),
+                    ('y_wind', 'm01s15i202'),
+                    ('upward_air_velocity', 'm01s15i242')]
+        # the cube contains Instantaneous data at every 3-hours.
+        if __fcst_step_hour__ == 1:
+            # applicable only for 3 hour average or accumutated.
+            fcstHours = numpy.array([1, 2, 3, 4, 5, 6]) + hr            
+        elif __fcst_step_hour__ == 3:
+            # applicable only for 3 hour instantaneous/intervals
+            fcstHours = numpy.array([3, 6, 9, 12, 15, 18, 21, 24]) + hr
+        elif __fcst_step_hour__ == 6:
+            # applicable only for 6 hour instantaneous/intervals
+            fcstHours = numpy.array([6, 12, 18, 24]) + hr
+        elif __fcst_step_hour__ == 24:
+            # applicable only for 24 hour instantaneous/intervals
+            fcstHours = numpy.array([24]) + hr      
+        # we are extracting at particular instantaneous value, so no need to 
+        # do hourly mean.      
+        doMultiHourlyMean = False
+        
+    elif fname.startswith('xbiwba_pe'):            # umglaa_pe
+        varNamesSTASH = [('high_type_cloud_area_fraction', 'm01s09i205'),
+                    ('medium_type_cloud_area_fraction', 'm01s09i204'),
+                    ('low_type_cloud_area_fraction', 'm01s09i203'),                    
+                    ('air_temperature', 'm01s03i236'),
+                    ('air_pressure_at_sea_level', 'm01s16i222'),
+                    ('specific_humidity', 'm01s03i237'),
+                    ('surface_air_pressure', 'm01s00i409'),
+                    ('x_wind', 'm01s03i225'), 
+                    ('y_wind', 'm01s03i226'),
+                    ('atmosphere_convective_available_potential_energy_wrt_surface', 'm01s05i233'), # CAPE
+                    ('atmosphere_convective_inhibition_wrt_surface', 'm01s05i234'), #CIN
+                    ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),
+                    ('cloud_area_fraction_assuming_maximum_random_overlap', 'm01s09i217'),
+                    # The precipitation_amount, *snowfall_amount, and
+                    # *rainfall_amount variable must be at the last
+                    # in this list. we will have to do 6 hourly accumulation
+                    # instead of taking an instantaneous fileds. so we need 
+                    # to change doMultiHourlyMean as True, but rest of the other 
+                    # above variables are instantaneous fileds, so we cant
+                    # simply make doMultiHourlyMean as True. Here we will make 
+                    # doMultiHourlyMean as False, but while extrating the 
+                    # following 5 amount variables we will change option 
+                    # doMultiHourlyMean as True. For this purpose we must keep 
+                    # these 5 variables at the last in the varNamesSTASH!
+                    ('precipitation_amount', 'm01s05i226'),
+                    ('stratiform_snowfall_amount', 'm01s04i202'),
+                    ('convective_snowfall_amount', 'm01s05i202'),
+                    ('stratiform_rainfall_amount', 'm01s04i201'),
+                    ('convective_rainfall_amount', 'm01s05i201'),]
+        # the cube contains Instantaneous data at every 1-hours.
+        if __fcst_step_hour__ == 1:
+            # applicable only for 3 hour average or accumutated.
+            fcstHours = numpy.array([1, 2, 3, 4, 5, 6]) + hr            
+        elif __fcst_step_hour__ == 3:
+            # applicable only for 3 hour instantaneous/intervals
+            fcstHours = numpy.array([3, 6, 9, 12, 15, 18, 21, 24]) + hr
+        elif __fcst_step_hour__ == 6:
+            # applicable only for 6 hour instantaneous/intervals
+            fcstHours = numpy.array([6, 12, 18, 24]) + hr
+        elif __fcst_step_hour__ == 24:
+            # applicable only for 24 hour instantaneous/intervals
+            fcstHours = numpy.array([24]) + hr
+        # we are extracting at particular instantaneous value, so no need to 
+        # do hourly mean.
+        doMultiHourlyMean = False
+
+    elif fname.startswith('xbiwba_pf'):             # umglaa_pf        
+        # other vars (these vars will be created as 6-hourly averaged)
+        varNamesSTASH = [('surface_upward_latent_heat_flux', 'm01s03i234'),
+             ('surface_upward_sensible_heat_flux', 'm01s03i217'),
+             ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'),
+             ('surface_downwelling_longwave_flux', 'm01s02i207'),
+             ('surface_net_downward_longwave_flux', 'm01s02i201'),
+             ('surface_net_downward_shortwave_flux', 'm01s01i202'),
+             ('toa_outgoing_longwave_flux', 'm01s02i205'),
+             ('toa_outgoing_longwave_flux_assuming_clear_sky', 'm01s02i206'), 
+             ('toa_incoming_shortwave_flux', 'm01s01i207'), 
+             ('toa_outgoing_shortwave_flux', 'm01s01i205'),
+             ('toa_outgoing_shortwave_flux_assuming_clear_sky', 'm01s01i209'),
+             # rainfall_flux, snowfall_flux, precipitation_flux are not 
+             # accumulated vars, because these are averaged rate (kg m-2 s-1). 
+             ('snowfall_flux', 'm01s05i215'),
+             ('precipitation_flux', 'm01s05i216'),                          
+             ('rainfall_flux', 'm01s05i214'),]
+        # the cube contains data of every 3-hourly average or accumutated.
+        if __fcst_step_hour__ == 1:
+            # applicable only for 3 hour average or accumutated.
+            fcstHours = numpy.array([0.5, 1.5, 2.5, 3.5, 4.5, 5.5]) + hr
+            # model itself produced 3 hourly average or accumutated. So we 
+            # no need to do average/accumulation explicitly.
+            doMultiHourlyMean = False
+        elif __fcst_step_hour__ == 3:
+            # applicable only for 3 hour average or accumutated.
+            fcstHours = numpy.array([1.5, 4.5, 7.5, 10.5, 13.5, 16.5, 19.5, 22.5]) + hr
+            # model itself produced 3 hourly average or accumutated. So we 
+            # no need to do average/accumulation explicitly.
+            doMultiHourlyMean = False
+        elif __fcst_step_hour__ == 6:       
+            # applicable only for 6 hour average or accumutated.
+            fcstHours = numpy.array([(1, 5), (7, 11), (13, 17), (19, 23)]) + hr  
+            # model produced 3 hourly average or accumutated. So we must 
+            # need to do 6 hourly average/accumulation explicitly.
+            doMultiHourlyMean = True  
+        elif __fcst_step_hour__ == 24:
+            # applicable only for 24 hour average or accumutated.
+            fcstHours = numpy.array([(1, 23)]) + hr  
+            # model produced 3 hourly average or accumutated. So we must 
+            # need to do 24 hourly average/accumulation explicitly.
+            doMultiHourlyMean = True    
+        
+    elif fname.startswith('xbiwba_pi'):             # umglaa_pi        
+        # other vars (these vars will be created as 6-hourly averaged)
+        varNamesSTASH = [('atmosphere_optical_thickness_due_to_dust_ambient_aerosol', 'm01s02i422'),
+                         # The below two soil variable must be at the last in 
+                         # this list, why because we are changing the infile
+                         # to those 2 soil vars for 00utc ana. 
+                         ('moisture_content_of_soil_layer', 'm01s08i223'),
+                         ('soil_temperature', 'm01s03i238'),]
+                
+        # the cube contains data of every 3-hourly average or instantaneous.
+        
+        # the dust aod contain 3-hourly averaged data. But soil temperature 
+        # and moisture_content_of_soil_layer are 3-hourly instantaneous data.
+        # though, here we set up fcstHours and doMultiHourlyMean values w.r.t 
+        # dust aod only. For other 2 soil vars, we are fixing the values 
+        # before extract those vars!
+        if __fcst_step_hour__ == 1:
+            # applicable only for 3 hour average or accumutated.
+            fcstHours = numpy.array([1, 2, 3, 4, 5, 6]) + hr            ###### NEED TO FIX 
+            doMultiHourlyMean = False
+        elif __fcst_step_hour__ == 3:
+            # applicable only for 3 hour average or accumutated.
+            fcstHours = numpy.array([1.5, 4.5, 7.5, 10.5, 13.5, 16.5, 19.5, 22.5]) + hr
+            # model itself produced 3 hourly average or accumutated. So we 
+            # no need to do average/accumulation explicitly.
+            doMultiHourlyMean = False
+        elif __fcst_step_hour__ == 6:
+            # applicable only for 6 hour average or accumutated.
+            fcstHours = numpy.array([(1, 5), (7, 11), (13, 17), (19, 23)]) + hr 
+            # model produced 3 hourly average or accumutated. So we must 
+            # need to do 6 hourly average/accumulation explicitly.
+            doMultiHourlyMean = True 
+        elif __fcst_step_hour__ == 24:
+            # applicable only for 24 hour average or accumutated.
+            fcstHours = numpy.array([(1, 23)]) + hr     
+            # model produced 3 hourly average or accumutated. So we must 
+            # need to do 24 hourly average/accumulation explicitly.
+            doMultiHourlyMean = True    
+        
+    ##### REGIONAL FORECAST FILE END
+    
     else:
         raise ValueError("Filename not implemented yet!")
     # end if-loop
@@ -1220,21 +1425,30 @@ def regridAnlFcstFiles(arg):
            _inDataPath_, _opPath_, _preExtension_, _accumulationVars_, _ncfilesVars_, \
            _convertVars_, _requiredLat_, _requiredLon_, _doRegrid_, __utc__, \
            __anlFileNameStructure__, __fcstFileNameStructure__, __LPRINT__, \
-           __fcst_step_hour__, __anl_step_hour__, \
+           __fcst_step_hour__, __anl_step_hour__, _targetGridFile_, __UMtype__, \
            _precipVars_, _requiredPressureLevels_, __anl_aavars_reference_time__, \
-           __anl_aavars_time_bounds__ 
+           __anl_aavars_time_bounds__, _extraPolateMethod_, _maskOverOceanVars_ 
    
     fpname, hr = arg 
     
-    ### if fileName has some extension, then do not add hr to it.
-    fileName = fpname + hr if not '.' in fpname else fpname
+    if  __UMtype__ == 'global':
+        ### if fileName has some extension, then do not add hr to it.
+        fileName = fpname + hr if not '.' in fpname else fpname
+    elif  __UMtype__ == 'regional':
+        if '.' in fpname:
+            fileName = fpname 
+        else:
+            # generate filenames like 'xbiwba_pb0000', 'xbiwba_pb0601', 
+            # 'xbiwba_pb1201', 'xbiwba_pb1801', etc.,
+            fileName = fpname + hr + '01' if int(hr) > 0 else fpname + hr + '00'
+        # end of if '.' in pfname:
+    # end of if  __UMtype__ == 'global':
     
     fname = os.path.join(_inDataPath_, fileName)        
     inDataPathHour = _inDataPath_.split('/')[-1]  
     # call definition to get variable indices
     varNamesSTASH, fcstHours, doMultiHourlyMean, infile = getVarInOutFilesDetails(_inDataPath_,
                                                                                fileName, hr)
-   
     if not os.path.isfile(fname): 
         print "The file doesn't exists: %s.. \n" %fname
         return  
@@ -1264,7 +1478,7 @@ def regridAnlFcstFiles(arg):
     if __LPRINT__: print "simulated_hr = ", simulated_hr
     print "simulated_hr = ", simulated_hr
     
-    if fpname.startswith('umglaa'):
+    if fpname.startswith(('umglaa', 'xbiwba')):
         dtype = 'fcst'         
         outFileNameStructure = __fcstFileNameStructure__
         start_step_fcst_hour = __fcst_step_hour__
@@ -1511,9 +1725,7 @@ def regridAnlFcstFiles(arg):
             # interpolate it as per targetGridResolution deg resolution by 
             # setting up sample points based on coord            
             if _doRegrid_:
-                print "\n Regridding data to %sx%s degree spatial resolution \n" % (_targetGridRes_, _targetGridRes_)
-                if __LPRINT__: print "From shape", tmpCube.shape
-                
+                if __LPRINT__: print "From shape", tmpCube.shape                    
                 if (varName, varSTASH) in _precipVars_:
                     # DO NOT APPLY iris.analysis.Linear(extrapolation_mode='mask'), 
                     # which writes nan every where for the snowfall_flux,  
@@ -1523,16 +1735,32 @@ def regridAnlFcstFiles(arg):
                     # In general all the other variables should not be 
                     # extrapolated over masked grid points.
                     exmode = 'mask'
-                try:
-                    # This lienar interpolate will do extra polate over ocean even 
-                    # though original data doesnt have values over ocean and wise versa.
-                    # So lets be aware of this.                    
-                    regdCube = tmpCube.interpolate(_targetGrid_, iris.analysis.Linear(extrapolation_mode=exmode))
-                except Exception as e:
-                    print "ALERT !!! Error while regridding!! %s" % str(e)
-                    print " So skipping this without saving data"
-                    continue
-                # end of try:      
+                # end of if (...):
+                # However, if user specified custom method do that!                
+                exmode = _extraPolateMethod_ if _extraPolateMethod_ != 'auto' else exmode
+                # but make sure that soil variables (or whichever variables do not have values over ocean)
+                # do not extrapolate over ocean/masked regions. Otherwise, it will write only nan.
+                exmode = 'mask' if varName in _maskOverOceanVars_ else exmode
+                    
+                if os.path.isfile(_targetGridFile_):
+                    print "\n Regridding data to %s degree spatial resolution based on file %s\n" % (_targetGrid_.shape, _targetGridFile_) 
+                    # Do regrid based on user specfied target grid file.
+                    scheme = iris.analysis.Linear(extrapolation_mode=exmode)
+                    regdCube = tmpCube.regrid(_targetGrid_, scheme)
+                    print "regrid data shape", regdCube.shape 
+                else:           
+                    # Do regrid based on user specfied target grid resolution number.
+                    print "\n Regridding data to %sx%s degree spatial resolution \n" % (_targetGridRes_, _targetGridRes_)                    
+                    try:
+                        # This lienar interpolate will do extra polate over ocean even 
+                        # though original data doesnt have values over ocean and wise versa.
+                        # So lets be aware of this.                    
+                        regdCube = tmpCube.interpolate(_targetGrid_, iris.analysis.Linear(extrapolation_mode=exmode))
+                    except Exception as e:
+                        print "ALERT !!! Error while regridding!! %s" % str(e)
+                        print " So skipping this without saving data"
+                        continue
+                    # end of try:      
             else:
                 # do not apply regrid. this is temporary fix. 
                 regdCube = tmpCube
@@ -1559,7 +1787,7 @@ def regridAnlFcstFiles(arg):
             if (varName, varSTASH) in [('land_binary_mask', 'm01s00i030')]:
                 regdCube.data[regdCube.data > 0] = 1
                 # trying to keep values either 0 or 1. Not fraction!
-                regdCube.data = numpy.ma.array(regdCube.data, dtype=numpy.int)
+                regdCube.data = numpy.ma.array(regdCube.data, dtype=numpy.int)            
             # end of if (varName, varSTASH) in [('land_binary_mask', 'm01s00i030')]:
             
             if exmode == 'mask':
@@ -1567,19 +1795,18 @@ def regridAnlFcstFiles(arg):
                 # masked array. Otherwise its full data goes as nan.                
                 # convert data into masked array
                 regdCube.data = numpy.ma.masked_array(regdCube.data, 
-                                    dtype=numpy.float64, fill_value=9.999e+20)
-                                                
+                                    dtype=numpy.float64, fill_value=9.999e+20) 
+                
                 if (varName, varSTASH) in [('moisture_content_of_soil_layer', 'm01s08i223'),
                                            ('sea_ice_area_fraction', 'm01s00i031'),
                                            ('sea_ice_thickness', 'm01s00i032'),]:
-                    # We should assign 0 instead 1e-15 only for this var!
-                    regdCube.data[regdCube.data <= 1e-15] = 0.0
+                        # We should assign 0 instead 1e-15 only for this var!
+                        regdCube.data[regdCube.data <= 1e-15] = 0.0
                 elif (varName, varSTASH) == ('soil_temperature', 'm01s03i238'):
                     # We should assign min instead 1e-15 only for this var!
                     # because 0 will not make sense when temperature unit is Kelvin
                     nmin = numpy.ma.masked_less_equal(regdCube.data, 1e-15).min()
                     regdCube.data[regdCube.data <= 1e-15] = nmin
-                # end of if ...:         
                 # http://www.cpc.ncep.noaa.gov/products/wesley/g2grb.html
                 # Says that 9.999e+20 value indicates as missingValue in grib2
                 # by default g2ctl.pl generate "undefr 9.999e+20", so we must 
@@ -2380,18 +2607,25 @@ def doFcstConvert(fname):
     :param fname: Name of the FF filename in question as a "string"
     :return: Nothing! TANGIBLE!
     """
-    global __start_long_fcst_hour__, __end_long_fcst_hour__
+    global __start_long_fcst_hour__, __end_long_fcst_hour__, __UMtype__
     
-    # calculate start hour of long fcst in multiples of 24. Why?
-    # 00 hr contains from 06 to 24 hours data.
-    # 24 hr contains from 24 to 48 hours data, and so on.
-    start_fcst_hour = (__start_long_fcst_hour__ / 24) * 24
+    
+    if __UMtype__ == 'global':
+        # calculate start hour of long fcst in multiples of 24. Why?
+        # 00 hr contains from 06 to 24 hours data.
+        # 24 hr contains from 24 to 48 hours data, and so on.
+        start_fcst_hour = (__start_long_fcst_hour__ / 24) * 24
+            
+        # here max fcst hours goes upto 240 only, not 241. why ??
+        # because 216 long fcst hours contains upto 240th hour fcst.
+        # and 240th long fcst contains upto 264th hour fcst.
+        # so here no need to add +1 to __end_long_fcst_hour__.
+        fcst_times = [str(hr).zfill(3) for hr in range(start_fcst_hour, __end_long_fcst_hour__, 24)]
         
-    # here max fcst hours goes upto 240 only, not 241. why ??
-    # because 216 long fcst hours contains upto 240th hour fcst.
-    # and 240th long fcst contains upto 264th hour fcst.
-    # so here no need to add +1 to __end_long_fcst_hour__.
-    fcst_times = [str(hr).zfill(3) for hr in range(start_fcst_hour, __end_long_fcst_hour__, 24)]
+    elif __UMtype__ == 'regional':
+        fcst_times = [str(hr).zfill(2) for hr in range(0, __end_long_fcst_hour__, 6)]
+    # end of if __UMtype__ == 'global':
+    
     fcst_filenames = [(fname, hr) for hr in fcst_times]
     nchild = len(fcst_times)
     # create the no of child parallel processes
@@ -2459,28 +2693,43 @@ def convertFilesInParallel(fnames, ftype):
 
 def _checkInFilesStatus(path, ftype, pfnames):
     
-    global __start_long_fcst_hour__, __end_long_fcst_hour__
+    global __start_long_fcst_hour__, __end_long_fcst_hour__, __UMtype__
     
     if ftype in ['ana', 'anl']:
         fhrs = ['000'] 
     elif ftype in ['fcst', 'prg']:
-        # calculate start hour of long fcst in multiples of 24. Why?
-        # 00 hr contains from 06 to 24 hours data.
-        # 24 hr contains from 24 to 48 hours data, and so on.
-        start_fcst_hour = (__start_long_fcst_hour__ / 24) * 24
+        if __UMtype__ == 'global':
+            # calculate start hour of long fcst in multiples of 24. Why?
+            # 00 hr contains from 06 to 24 hours data.
+            # 24 hr contains from 24 to 48 hours data, and so on.
+            start_fcst_hour = (__start_long_fcst_hour__ / 24) * 24
 
-        # here max fcst hours goes upto 240 only, not 241. why ??
-        # because 216 long fcst hours contains upto 240th hour fcst.
-        # and 240th long fcst contains upto 264th hour fcst.
-        # so here no need to add +1 to __end_long_fcst_hour__.
-        fhrs = [str(hr).zfill(3) for hr in range(start_fcst_hour, __end_long_fcst_hour__, 24)]
+            # here max fcst hours goes upto 240 only, not 241. why ??
+            # because 216 long fcst hours contains upto 240th hour fcst.
+            # and 240th long fcst contains upto 264th hour fcst.
+            # so here no need to add +1 to __end_long_fcst_hour__.
+            fhrs = [str(hr).zfill(3) for hr in range(start_fcst_hour, __end_long_fcst_hour__, 24)]
+        elif __UMtype__ == 'regional':
+            fhrs = [str(hr).zfill(2) for hr in range(6, __end_long_fcst_hour__, 6)]
+        # end of if __UMtype__ == 'global':
+    # end of if ftype in ['ana', 'anl']:
     
     fileNotExistList = []
     for pfname in pfnames:
         for fhr in fhrs:
             # constrct the correct fileName from partial fileName and hours
             # add hour only if doenst have any extension on partial filename.
-            fname = pfname if '.' in pfname else pfname + fhr
+            if __UMtype__ == 'global':
+                fname = pfname if '.' in pfname else pfname + fhr
+            elif __UMtype__ == 'regional':
+                if '.' in pfname:
+                    fname = pfname 
+                else:
+                    # generate filenames like 'xbiwba_pb0000', 'xbiwba_pb0601', 
+                    # 'xbiwba_pb1201', 'xbiwba_pb1801', etc.,
+                    fname = pfname + fhr + '01' if int(fhr) > 0 else pfname + fhr + '00'
+                # end of if '.' in pfname:
+            # end of if __UMtype__ == 'global':
             fpath = os.path.join(path, fname)
             if not os.path.isfile(fpath): fileNotExistList.append(fpath)
     # end of for pfname in pfnames:
@@ -2572,11 +2821,13 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
        __end_long_fcst_hour__, __outFileType__, __grib1FilesNameSuffix__, \
        __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, \
        _removeVars_, _requiredPressureLevels_, __setGrib2TableParameters__, \
-       __wgrib2Arguments__, __soilFirstSecondFixedSurfaceUnit__, \
-       __start_long_fcst_hour__
+       __wgrib2Arguments__, __soilFirstSecondFixedSurfaceUnit__,  __UMtype__, \
+       __start_long_fcst_hour__, _extraPolateMethod_, _targetGridFile_
      
     # load key word arguments
+    UMtype = kwarg.get('UMtype', 'global')
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
+    targetGridFile = kwarg.get('targetGridFile', '')
     date = kwarg.get('date', time.strftime('%Y%m%d'))
     utc = kwarg.get('utc', '00')
     overwrite = kwarg.get('overwrite', False)
@@ -2585,6 +2836,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     latitude = kwarg.get('latitude', None)
     longitude = kwarg.get('longitude', None)
     pressureLevels = kwarg.get('pressureLevels', None)
+    extraPolateMethod = kwarg.get('extraPolateMethod', 'auto')
     soilFirstSecondFixedSurfaceUnit = kwarg.get('soilFirstSecondFixedSurfaceUnit', 'cm')
     fcst_step_hour = kwarg.get('fcst_step_hour', 6)
     start_long_fcst_hour = kwarg.get('start_long_fcst_hour', 6)
@@ -2609,13 +2861,16 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     # set print variables details options
     __LPRINT__ = lprint    
     # update global variables
+    __UMtype__ = UMtype
     __utc__ = utc
     __fcst_step_hour__ = fcst_step_hour
     __start_long_fcst_hour__ = start_long_fcst_hour
     __end_long_fcst_hour__ = end_long_fcst_hour
     __removeGrib2FilesAfterGrib1FilesCreated__ = removeGrib2FilesAfterGrib1FilesCreated
     __grib1FilesNameSuffix__ = grib1FilesNameSuffix
-    _targetGridRes_ = str(targetGridResolution)    
+    _targetGridRes_ = str(targetGridResolution)
+    _targetGridFile_ = targetGridFile
+    _extraPolateMethod_ = extraPolateMethod      
     _requiredPressureLevels_ = pressureLevels    
     __soilFirstSecondFixedSurfaceUnit__ = soilFirstSecondFixedSurfaceUnit
     _createGrib2CtlIdxFiles_ = createGrib2CtlIdxFiles
@@ -2624,8 +2879,12 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     __setGrib2TableParameters__ = setGrib2TableParameters
     __wgrib2Arguments__ = wgrib2Arguments
     # forecast filenames partial name
-    fcst_fnames = ['umglaa_pb','umglaa_pd', 'umglaa_pe', 'umglaa_pf', 'umglaa_pi']    
-        
+    if __UMtype__ == 'global':
+        fcst_fnames = ['umglaa_pb','umglaa_pd', 'umglaa_pe', 'umglaa_pf', 'umglaa_pi']    
+    elif __UMtype__ == 'regional':
+        fcst_fnames = ['xbiwba_pb','xbiwba_pd', 'xbiwba_pe', 'xbiwba_pf', 'xbiwba_pi']   
+    # end of if __UMtype__ == 'global':
+     
     # get the current date in YYYYMMDD format
     _tmpDir_ = tmpPath
     _current_date_ = date
@@ -2697,7 +2956,11 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
         _requiredLat_ = (slat, elat)
     # end of if latitude: 
     
-    if targetGridResolution is None:
+    if os.path.isfile(_targetGridFile_):
+        # load target grid from user specfied file and make it as target grid.
+        _targetGrid_ = iris.load(_targetGridFile_)[0]
+        _doRegrid_ = True   
+    elif targetGridResolution is None:
         _doRegrid_ = False
         if longitude: (slon, elon) = longitude
         # reduce one step if user passed / default lon is 360. If we write 
@@ -2721,7 +2984,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
                         ('longitude', numpy.arange(slon, 
                           elon+targetGridResolution, targetGridResolution))]
         _doRegrid_ = True        
-    # end of if targetGridResolution is None:
+    # end of iif os.path.isfile(_targetGridFile_):
     
     # check either files are exists or not. delete the existing files in case
     # of overwrite option is True, else return without re-converting files.
@@ -2764,10 +3027,13 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
        _removeVars_, __anl_step_hour__, _requiredPressureLevels_, \
        __setGrib2TableParameters__, __anl_aavars_reference_time__, \
        __anl_aavars_time_bounds__, _reverseLatitude_, __wgrib2Arguments__, \
-       __soilFirstSecondFixedSurfaceUnit__  
+       __soilFirstSecondFixedSurfaceUnit__, _extraPolateMethod_, _targetGridFile_, \
+       __UMtype__  
            
     # load key word arguments
+    UMtype = kwarg.get('UMtype', 'global')
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
+    targetGridFile = kwarg.get('targetGridFile', '')
     date = kwarg.get('date', time.strftime('%Y%m%d'))
     utc = kwarg.get('utc', '00')
     overwrite = kwarg.get('overwrite', False)
@@ -2776,6 +3042,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     latitude = kwarg.get('latitude', None)
     longitude = kwarg.get('longitude', None)
     pressureLevels = kwarg.get('pressureLevels', None)
+    extraPolateMethod = kwarg.get('extraPolateMethod', 'auto')
     soilFirstSecondFixedSurfaceUnit = kwarg.get('soilFirstSecondFixedSurfaceUnit', 'cm')
     anl_step_hour = kwarg.get('anl_step_hour', 6)
     anl_aavars_reference_time = kwarg.get('anl_aavars_reference_time', 'shortforecast')
@@ -2799,13 +3066,16 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     # set print variables details options
     __LPRINT__ = lprint
     # update global variables
+    __UMtype__ = UMtype
     __utc__ = utc
     __anl_step_hour__ = anl_step_hour
     __anl_aavars_reference_time__ = anl_aavars_reference_time
     __anl_aavars_time_bounds__ = anl_aavars_time_bounds
     __removeGrib2FilesAfterGrib1FilesCreated__ = removeGrib2FilesAfterGrib1FilesCreated
     __grib1FilesNameSuffix__ = grib1FilesNameSuffix
-    _targetGridRes_ = str(targetGridResolution)    
+    _targetGridRes_ = str(targetGridResolution)
+    _targetGridFile_ = targetGridFile
+    _extraPolateMethod_ = extraPolateMethod  
     _requiredPressureLevels_ = pressureLevels    
     __soilFirstSecondFixedSurfaceUnit__ = soilFirstSecondFixedSurfaceUnit
     _createGrib2CtlIdxFiles_ = createGrib2CtlIdxFiles
@@ -2814,8 +3084,9 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     __setGrib2TableParameters__ = setGrib2TableParameters
     __wgrib2Arguments__ = wgrib2Arguments
     # analysis filenames partial name
-    anl_fnames = ['umglca_pb', 'umglca_pd', 'umglca_pe', 'umglca_pf', 'umglca_pi']  
-    if utc == '00': anl_fnames.insert(0, 'qwqg00.pp0')
+    if __UMtype__ == 'global':
+        anl_fnames = ['umglca_pb', 'umglca_pd', 'umglca_pe', 'umglca_pf', 'umglca_pi']  
+        if utc == '00': anl_fnames.insert(0, 'qwqg00.pp0')
     
     # get the current date in YYYYMMDD format
     _tmpDir_ = tmpPath
@@ -2887,7 +3158,11 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
         _requiredLat_ = (slat, elat)
     # end of if latitude: 
     
-    if targetGridResolution is None:
+    if os.path.isfile(_targetGridFile_):
+        # load target grid from user specfied file and make it as target grid.
+        _targetGrid_ = iris.load(_targetGridFile_)[0]
+        _doRegrid_ = True
+    elif targetGridResolution is None:
         _doRegrid_ = False  
         if longitude: (slon, elon) = longitude
         # reduce one step if user passed / default lon is 360. If we write 
@@ -2911,7 +3186,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
                         ('longitude', numpy.arange(slon, 
                           elon+targetGridResolution, targetGridResolution))]
         _doRegrid_ = True  
-    # end of if targetGridResolution is None:
+    # end of if os.path.isfile(_targetGridFile_):
     print "_reverseLatitude_ =", _reverseLatitude_ 
     # check either files are exists or not. delete the existing files in case
     # of overwrite option is True, else return without re-converting files.

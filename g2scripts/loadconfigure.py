@@ -51,14 +51,18 @@ inPath = cdic.get('inPath', None)
 outPath = cdic.get('outPath', None)
 tmpPath = cdic.get('tmpPath', None)
 
+UMtype = cdic.get('UMtype', 'global')
 startdate = cdic.get('startdate', 'YYYYMMDD')
 enddate = cdic.get('enddate', None)
 loadg2utils = cdic.get('loadg2utils', 'system')
+extraPolateMethod = cdic.get('extraPolateMethod', 'auto')
 overwriteFiles = eval(cdic.get('overwriteFiles', 'True'))
 debug = eval(cdic.get('debug', 'False'))
 requiredLat = eval(cdic.get('latitude', 'None'))
 requiredLon = eval(cdic.get('longitude', 'None'))
 targetGridResolution = eval(cdic.get('targetGridResolution', 'None'))
+targetGridFile = cdic.get('targetGridFile', '')
+targetGridFile = '' if targetGridFile in ['None', ''] else targetGridFile
 pressureLevels = eval(cdic.get('pressureLevels', 'None'))
 soilFirstSecondFixedSurfaceUnit = cdic.get('soilFirstSecondFixedSurfaceUnit', 'cm')
 anl_step_hour = eval(cdic.get('anl_step_hour', '6'))
@@ -129,10 +133,19 @@ for name, path in [('inPath', inPath), ('outPath', outPath), ('tmpPath', tmpPath
     print name, " = ", path
 # end of for name, path in [...]:
 
+if targetGridFile:
+    if not os.path.isfile(targetGridFile):
+        raise ValueError("In configure file, targetGridFile = %s' path does not exists" % targetGridFile)
+    targetGridFile = os.path.abspath(targetGridFile)
+        
 if callBackScript is not None:
     if not os.path.exists(callBackScript):
         raise ValueError("In configure file, callBackScript = %s' path does not exists" % callBackScript)
+    callBackScript = os.path.abspath(callBackScript)
 # end of if callBackScript is not None:
+
+if start_long_fcst_hour % fcst_step_hour:
+    raise ValueError("In configure file, start_long_fcst_hour is not multiples of fcst_step_hour")
 
 if os.environ.has_key('UMRIDER_STARTDATE'):
     startdate = os.environ.get('UMRIDER_STARTDATE')
@@ -181,14 +194,17 @@ if not neededVars:
 neededVars = uniquifyListInOrder(neededVars)
 
 print "*" * 80
+print "UMtype = ", UMtype
 print "date = ", date
-print "targetGridResolution = ", targetGridResolution
+if targetGridFile: print "targetGridFile = ", targetGridFile
+if not targetGridFile: print "targetGridResolution = ", targetGridResolution
 print "loadg2utils = ", loadg2utils
 print "overwriteFiles = ", overwriteFiles
 print "debug = ", debug
 print "latitude = ", requiredLat
 print "longitude = ", requiredLon
 print "pressureLevels = ", pressureLevels
+print "extraPolateMethod = ", extraPolateMethod
 print "soilFirstSecondFixedSurfaceUnit = ", soilFirstSecondFixedSurfaceUnit
 print "anl_step_hour = ", anl_step_hour
 print "anl_aavars_reference_time = ", anl_aavars_reference_time
