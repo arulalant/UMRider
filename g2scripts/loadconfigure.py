@@ -51,22 +51,27 @@ inPath = cdic.get('inPath', None)
 outPath = cdic.get('outPath', None)
 tmpPath = cdic.get('tmpPath', None)
 
+UMtype = cdic.get('UMtype', 'global')
 startdate = cdic.get('startdate', 'YYYYMMDD')
 enddate = cdic.get('enddate', None)
 loadg2utils = cdic.get('loadg2utils', 'system')
+extraPolateMethod = cdic.get('extraPolateMethod', 'auto')
 overwriteFiles = eval(cdic.get('overwriteFiles', 'True'))
 debug = eval(cdic.get('debug', 'False'))
 requiredLat = eval(cdic.get('latitude', 'None'))
 requiredLon = eval(cdic.get('longitude', 'None'))
 targetGridResolution = eval(cdic.get('targetGridResolution', 'None'))
+targetGridFile = cdic.get('targetGridFile', '')
+targetGridFile = '' if targetGridFile in ['None', ''] else targetGridFile
 pressureLevels = eval(cdic.get('pressureLevels', 'None'))
 soilFirstSecondFixedSurfaceUnit = cdic.get('soilFirstSecondFixedSurfaceUnit', 'cm')
 anl_step_hour = eval(cdic.get('anl_step_hour', '6'))
 anl_aavars_reference_time = cdic.get('anl_aavars_reference_time', 'shortforecast')
 anl_aavars_time_bounds = eval(cdic.get('anl_aavars_time_bounds', 'True'))
-start_step_long_fcst_hour = eval(cdic.get('start_step_long_fcst_hour', '6'))
-max_long_fcst_hours_at_00z = eval(cdic.get('max_long_fcst_hours_at_00z', '240'))
-max_long_fcst_hours_at_12z = eval(cdic.get('max_long_fcst_hours_at_12z', '120'))
+fcst_step_hour = eval(cdic.get('fcst_step_hour', '6'))
+start_long_fcst_hour = eval(cdic.get('start_long_fcst_hour', '6'))
+end_long_fcst_hour_at_00z = eval(cdic.get('end_long_fcst_hour_at_00z', '240'))
+end_long_fcst_hour_at_12z = eval(cdic.get('end_long_fcst_hour_at_12z', '120'))
 anlOutGrib2FilesNameStructure = eval(cdic.get('anlOutGrib2FilesNameStructure', 'None'))
 fcstOutGrib2FilesNameStructure = eval(cdic.get('fcstOutGrib2FilesNameStructure','None'))
 createGrib2CtlIdxFiles = eval(cdic.get('createGrib2CtlIdxFiles', 'True'))
@@ -94,11 +99,11 @@ if fcstOutGrib2FilesNameStructure:
 if createGrib1CtlIdxFiles and not convertGrib2FilestoGrib1Files:
     raise ValueError("Enabled createGrib1CtlIdxFiles option, but not enabled convertGrib2FilestoGrib1Files option")
 
-if not isinstance(max_long_fcst_hours_at_00z, int):
-    raise ValueError('max_long_fcst_hours_at_00z must be an integer')
+if not isinstance(end_long_fcst_hour_at_00z, int):
+    raise ValueError('end_long_fcst_hour_at_00z must be an integer')
 
-if not isinstance(max_long_fcst_hours_at_12z, int):
-    raise ValueError('max_long_fcst_hours_at_12z must be an integer')
+if not isinstance(end_long_fcst_hour_at_12z, int):
+    raise ValueError('end_long_fcst_hour_at_12z must be an integer')
 
 if requiredLat:
     if not isinstance(requiredLat, (tuple, list)):
@@ -128,10 +133,19 @@ for name, path in [('inPath', inPath), ('outPath', outPath), ('tmpPath', tmpPath
     print name, " = ", path
 # end of for name, path in [...]:
 
+if targetGridFile:
+    if not os.path.isfile(targetGridFile):
+        raise ValueError("In configure file, targetGridFile = %s' path does not exists" % targetGridFile)
+    targetGridFile = os.path.abspath(targetGridFile)
+        
 if callBackScript is not None:
     if not os.path.exists(callBackScript):
         raise ValueError("In configure file, callBackScript = %s' path does not exists" % callBackScript)
+    callBackScript = os.path.abspath(callBackScript)
 # end of if callBackScript is not None:
+
+if start_long_fcst_hour % fcst_step_hour:
+    raise ValueError("In configure file, start_long_fcst_hour is not multiples of fcst_step_hour")
 
 if os.environ.has_key('UMRIDER_STARTDATE'):
     startdate = os.environ.get('UMRIDER_STARTDATE')
@@ -180,21 +194,25 @@ if not neededVars:
 neededVars = uniquifyListInOrder(neededVars)
 
 print "*" * 80
+print "UMtype = ", UMtype
 print "date = ", date
-print "targetGridResolution = ", targetGridResolution
+if targetGridFile: print "targetGridFile = ", targetGridFile
+if not targetGridFile: print "targetGridResolution = ", targetGridResolution
 print "loadg2utils = ", loadg2utils
 print "overwriteFiles = ", overwriteFiles
 print "debug = ", debug
 print "latitude = ", requiredLat
 print "longitude = ", requiredLon
 print "pressureLevels = ", pressureLevels
+print "extraPolateMethod = ", extraPolateMethod
 print "soilFirstSecondFixedSurfaceUnit = ", soilFirstSecondFixedSurfaceUnit
 print "anl_step_hour = ", anl_step_hour
 print "anl_aavars_reference_time = ", anl_aavars_reference_time
 print "anl_aavars_time_bounds = ", anl_aavars_time_bounds
-print "start_step_long_fcst_hour = ", start_step_long_fcst_hour
-print "max_long_fcst_hours_at_00z = ", max_long_fcst_hours_at_00z
-print "max_long_fcst_hours_at_12z = ", max_long_fcst_hours_at_12z
+print "start_long_fcst_hour = ", start_long_fcst_hour
+print "fcst_step_hour = ", fcst_step_hour
+print "end_long_fcst_hour_at_00z = ", end_long_fcst_hour_at_00z
+print "end_long_fcst_hour_at_12z = ", end_long_fcst_hour_at_12z
 if anlOutGrib2FilesNameStructure: print "anlOutGrib2FilesNameStructure = ", anlOutGrib2FilesNameStructure
 if fcstOutGrib2FilesNameStructure: print "fcstOutGrib2FilesNameStructure = ", fcstOutGrib2FilesNameStructure
 print "createGrib2CtlIdxFiles = ", createGrib2CtlIdxFiles

@@ -5,17 +5,29 @@ Authour : Arulalan.T <arulalan@ncmrwf.gov.in>
 '''
 from cf_units import Unit
 from iris.fileformats.grib import GribWrapper
+from iris.coords import DimCoord, AuxCoord
+import iris.analysis.cartography as icart
+import cartopy.crs as ccrs
+from numpy import meshgrid, array
+
+regular2DLatitude, regular2DLongitude = None, None
+warning = False
+windCount = 0
 
 ncumSTASH_Vs_cf = {
-'m01s01i202': ('surface_net_downward_shortwave_flux', None, 'W m-2'),
-'m01s01i216': ('surface_diffuse_downwelling_shortwave_flux_in_air', None, 'W m-2'),
-'m01s03i229': ('water_evaporation_flux_from_soil', None, 'kg m-2'),
-'m01s30i403': ('atmosphere_mass_content_of_dust_dry_aerosol_particles', None, 'kg m-2'),
+'m01s01i202': ('surface_net_downward_shortwave_flux', None, 'W m-2', None),
+'m01s01i216': ('surface_diffuse_downwelling_shortwave_flux_in_air', None, 'W m-2', None),
+'m01s03i229': ('water_evaporation_flux_from_soil', None, 'kg m-2', None),
+'m01s30i403': ('atmosphere_mass_content_of_dust_dry_aerosol_particles', None, 'kg m-2', None),
 # though m01s05i233 already standard_name exist, but wrongly assinged as 
 # mass_fraction_of_convective_cloud_liquid_water_in_air in um_cf_map.py. So 
 # in the below we are correcting the cf_standard_name of m01s05i233.
-'m01s05i233': ('atmosphere_convective_available_potential_energy_wrt_surface', None, 'J kg-1'),
-'m01s05i234': ('atmosphere_convective_inhibition_wrt_surface', None, 'J kg-1'),
+'m01s05i233': ('atmosphere_convective_available_potential_energy_wrt_surface', None, 'J kg-1', None),
+'m01s05i234': ('atmosphere_convective_inhibition_wrt_surface', None, 'J kg-1', None),
+# 50meter B-Grid U component wind 
+'m01s15i212': ('x_wind', None, 'm s-1', 50),
+# 50meter B-Grid V component wind   
+'m01s15i213': ('y_wind', None, 'm s-1', 50),
 }
 
 G2Param_vs_cf = {
@@ -62,11 +74,15 @@ def update_cf_standard_name(cube, field, filename):
         varSTASH = str(cube.attributes['STASH'])
         if varSTASH in ncumSTASH_Vs_cf:
             # get correct standard_name and units
-            sname, lname, unit = ncumSTASH_Vs_cf[varSTASH]
+            sname, lname, unit, height = ncumSTASH_Vs_cf[varSTASH]
             # update cube's standard_name and its units
             cube.standard_name = sname
             cube.long_name = lname
             cube.units = Unit(unit)
+            if height:
+                heightAx = DimCoord(array([float(height)]), standard_name='height',
+                             units=Unit('m'), attributes={'positive': 'up'})
+                cube.add_aux_coord(heightAx) 
         # end of if varSTASH in ncumSTASH_Vs_cf:
     elif isinstance(field, GribWrapper):
         # loading from grib file
@@ -93,3 +109,35 @@ def update_cf_standard_name(cube, field, filename):
                 cube.units = Unit(unit)
             # end of if G2ParamKey in G2Param_vs_cf:
 # end of def update_cf_standard_name_if_not_exists(cube, field, filename):
+
+def setCubeRegularLatLon(cube, field, filename):
+        
+    # https://github.com/SciTools/iris/issues/448
+    glon = cube.coord('grid_longitude')
+    rotated_lons = glon.points
+    glat = cube.coord('grid_latitude')
+    rotated_lats = glat.points
+    pole_lat = glat.coord_system.grid_north_pole_latitude
+    pole_lon = glat.coord_system.grid_north_pole_longitude
+
+    rotated_lats, rotated_lons = meshgrid(rotated_lons, rotated_lats)
+
+    lons, lats = icart.unrotate_pole(rotated_lons, rotated_lats, pole_lon, pole_lat)
+
+    ## the below lat is 2D array
+    regular2DLatitude = AuxCoord(lons, standard_name='longitude', units='degree_north')
+    ## the below lon is 2D array
+    regular2DLongitude = AuxCoord(lats, standard_name='latitude', units='degree_east')
+    
+    cube.remove_coord('grid_latitude')
+    cube.remove_coord('grid_longitude')
+    
+    cube.add_aux_coord(regular2DLatitude, [0, 1])
+    cube.add_aux_coord(regular2DLongitude, [0, 1])
+    ## https://groups.google.com/forum/#!searchin/scitools-iris/unrotate/scitools-iris/m5B2752zRjQ/Xmcp5yaqAQAJ
+    ## Andrew Dawson's reply : If you really want the data on a Plate Carree projection with 1D dimension coordinates (lat/lon) then you will need to regrid/reproject to move the actual data points onto a regular grid in lat/lon space.
+    
+    ## So after this, if we regrid to our regular lat, lon then regridded cube lat, lon will become two 1D array.
+    ## Hopefully !!!!
+        
+# end of def setCubeRegularLatLon(cube, field, filename):
