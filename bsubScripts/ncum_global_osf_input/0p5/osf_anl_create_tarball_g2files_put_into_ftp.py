@@ -33,6 +33,8 @@ def createTarBalls(path, oftype, today, utc, stephr=6):
         yDay = (tDay - lag1).strftime('%Y%m%d')
         lag4 = datetime.timedelta(days=4)
         y4Day = (tDay - lag4).strftime('%Y%m%d')
+        # get past 11th day timestamp
+        y11Day = (tDay - datetime.timedelta(days=11)).strftime('%Y%m%d')
         # get yesterday's analysis files from 06hr onwards
         yanal = [anal_ftemp % (str(hr).zfill(2), yDay) for hr in range(6, 24, stephr)]
         # get today's analysis 00 and 03 hr
@@ -76,6 +78,21 @@ def createTarBalls(path, oftype, today, utc, stephr=6):
         cmd = 'ssh ncmlogin3 "scp -p %s/anal_glb_%s.tar.gz  %s:NCUM/osf/0.5/"' % (tarpath, today, nkn_server)
         print cmd
         subprocess.call(cmd, shell=True)
+        
+        # remove past 11th day tar ball from ftp_server 
+        cmd = 'ssh ncmlogin3 "ssh %s rm -rf /data/ftp/pub/outgoing/NCUM_OSF/0.5/*%s*tar.gz"' % (ftp_server, y11Day)
+        print cmd
+        try:
+            subprocess.call(cmd, shell=True)
+        except Exception as e:
+            print "past 11th day tar ball has been removed from ftp_server, already", e
+        # remove past 11th day tar ball from nkn_server 
+        cmd = 'ssh ncmlogin3 "ssh %s rm -rf /home/incois/NCUM/osf/0.5/*%s*tar.gz"' % (nkn_server, y11Day)
+        print cmd
+        try:
+            subprocess.call(cmd, shell=True)
+        except Exception as e:
+            print "past 11th day tar ball has been removed from nkn_server, already", e
         
     elif oftype == 'forecast':    
         # create forecast files tar file in parallel  # -m500 need to be include for pbzip2

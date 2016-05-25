@@ -55,11 +55,11 @@ def createTarBalls(path, today, utc, stephr=3):
     #
     # create analysis files tar file in parallel # -m500 need to be include for pbzip2
     anal_files = '  '.join(['./'+af for af in yanal_files + tanal_files])  
-    cmd = "tar -c  %s | %s -v  -c -f -p32 -m500 > %s/anal_glb_0.25_%s.tar.gz" % (anal_files, pigz, '../TarFiles', today)
+    cmd = "tar -c  %s | %s -v  -c -f -p32 > %s/anal_glb_0.25_%s.tar.gz" % (anal_files, pigz, '../TarFiles', today)
     print cmd
     subprocess.call(cmd, shell=True)
     # create forecast files tar file in parallel # -m500 need to be include for pbzip2
-    cmd = "tar -c ./fcst*%s*.grb2 | %s  -v  -c -f -p32 -m500 > %s/fcst_glb_0.25_%s.tar.gz" % (today, pigz, '../TarFiles', today)
+    cmd = "tar -c ./fcst*%s*.grb2 | %s  -v  -c -f -p32 > %s/fcst_glb_0.25_%s.tar.gz" % (today, pigz, '../TarFiles', today)
     print cmd
     subprocess.call(cmd, shell=True)
     

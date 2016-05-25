@@ -14,12 +14,13 @@ import os, sys, datetime
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                    debug, targetGridResolution, overwriteFiles, neededVars, \
-                   requiredLat, requiredLon, max_long_fcst_hours_at_12z, \
+                   requiredLat, requiredLon, end_long_fcst_hour_at_12z, \
                    fcstOutGrib2FilesNameStructure, createGrib2CtlIdxFiles, \
                    createGrib1CtlIdxFiles, convertGrib2FilestoGrib1Files, \
-                   start_step_long_fcst_hour, grib1FilesNameSuffix, \
+                   start_long_fcst_hour, fcst_step_hour, grib1FilesNameSuffix, \
                    removeGrib2FilesAfterGrib1FilesCreated, pressureLevels, \
-                   callBackScript, setGrib2TableParameters, wgrib2Arguments
+                   callBackScript, setGrib2TableParameters, wgrib2Arguments, \
+                   soilFirstSecondFixedSurfaceUnit, UMtype, targetGridFile
 
 if loadg2utils == 'system':
     # Load g2utils from system python which has installed through setup.py
@@ -56,18 +57,21 @@ while sDay <= eDay:
     # call forecast conversion function w.r.t data assimilated 
     # during long forecast hour - 12UTC.
     convertFcstFiles(inPath, outPath, tmpPath, 
+                 UMtype=UMtype, targetGridFile=targetGridFile,    
                     targetGridResolution=targetGridResolution, 
              date=startdate, utc='12', convertVars=neededVars,
                   latitude=requiredLat, longitude=requiredLon, 
                                 pressureLevels=pressureLevels,
+soilFirstSecondFixedSurfaceUnit=soilFirstSecondFixedSurfaceUnit,
          fcstFileNameStructure=fcstOutGrib2FilesNameStructure, 
                 createGrib2CtlIdxFiles=createGrib2CtlIdxFiles,
                 createGrib1CtlIdxFiles=createGrib1CtlIdxFiles,
   convertGrib2FilestoGrib1Files=convertGrib2FilestoGrib1Files,
                     grib1FilesNameSuffix=grib1FilesNameSuffix,          
   removeGrib2FilesAfterGrib1FilesCreated=removeGrib2FilesAfterGrib1FilesCreated, 
-          start_step_long_fcst_hour=start_step_long_fcst_hour,
-               max_long_fcst_hours=max_long_fcst_hours_at_12z,
+                    start_long_fcst_hour=start_long_fcst_hour,
+                 end_long_fcst_hour=end_long_fcst_hour_at_12z,
+                                fcst_step_hour=fcst_step_hour,
                        overwrite=overwriteFiles, lprint=debug,
               setGrib2TableParameters=setGrib2TableParameters,
                               wgrib2Arguments=wgrib2Arguments,

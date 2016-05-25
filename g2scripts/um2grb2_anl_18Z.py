@@ -20,7 +20,8 @@ from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                     removeGrib2FilesAfterGrib1FilesCreated, \
                     anl_step_hour, pressureLevels, callBackScript, \
                     setGrib2TableParameters, anl_aavars_reference_time, \
-                    anl_aavars_time_bounds, wgrib2Arguments
+                    anl_aavars_time_bounds, wgrib2Arguments, \
+                    soilFirstSecondFixedSurfaceUnit, UMtype, targetGridFile
 
 if loadg2utils == 'system':
     # Load g2utils from system python which has installed through setup.py
@@ -57,10 +58,12 @@ while sDay <= eDay:
     # call analysis conversion function w.r.t data assimilated 
     # during short forecast hour - 18UTC.
     convertAnlFiles(inPath, outPath, tmpPath, 
+                 UMtype=UMtype, targetGridFile=targetGridFile,    
                     targetGridResolution=targetGridResolution, 
              date=startdate, utc='18', convertVars=neededVars, 
                   latitude=requiredLat, longitude=requiredLon,
                                 pressureLevels=pressureLevels,
+soilFirstSecondFixedSurfaceUnit=soilFirstSecondFixedSurfaceUnit,                                
            anlFileNameStructure=anlOutGrib2FilesNameStructure, 
                 createGrib2CtlIdxFiles=createGrib2CtlIdxFiles,
                 createGrib1CtlIdxFiles=createGrib1CtlIdxFiles,
