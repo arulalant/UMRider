@@ -1,5 +1,17 @@
 # Change Log
 
+## [v1.0.2g](https://github.com/NCMRWF/UMRider/tree/v1.0.2g) (2016-05-25)
+[Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.2b...v1.0.2g)
+
+**Implemented enhancements:**
+
+- Need to support Cyclone Tracker   [\#91](https://github.com/NCMRWF/UMRider/issues/91)
+- support for tc tracker input and more [\#102](https://github.com/NCMRWF/UMRider/pull/102) ([arulalant](https://github.com/arulalant))
+
+**Fixed bugs:**
+
+- Slicing lat, lon is not happening when regrid is set to None [\#99](https://github.com/NCMRWF/UMRider/issues/99)
+
 ## [v1.0.2b](https://github.com/NCMRWF/UMRider/tree/v1.0.2b) (2016-04-27)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.2a...v1.0.2b)
 
