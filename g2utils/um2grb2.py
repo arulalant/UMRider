@@ -179,7 +179,9 @@ _orderedVars_ = {'PressureLevel': [
 ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),
 ('cloud_area_fraction_assuming_maximum_random_overlap', 'm01s09i217'),
 ('x_wind', 'm01s03i225'), 
-('y_wind', 'm01s03i226'),    
+('y_wind', 'm01s03i226'), 
+('x_wind', 'm01s15i212'),  # 50meter B-Grid U component wind 
+('y_wind', 'm01s15i213'),  # 50meter B-Grid V component wind     
 ('visibility_in_air', 'm01s03i247'),
 ('precipitation_amount', 'm01s05i226'),
 ('stratiform_snowfall_amount', 'm01s04i202'),
@@ -1004,6 +1006,8 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('surface_temperature', 'm01s00i024'),
                     ('relative_humidity', 'm01s03i245'),
                     ('visibility_in_air', 'm01s03i247'),
+                    ('x_wind', 'm01s15i212'),  # 50meter B-Grid U component wind 
+                    ('y_wind', 'm01s15i213'),  # 50meter B-Grid V component wind  
                     ('tropopause_altitude', 'm01s30i453'),
                     ('tropopause_air_temperature', 'm01s30i452'),
                     ('tropopause_air_pressure', 'm01s30i451'),
@@ -1067,8 +1071,11 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('air_pressure_at_sea_level', 'm01s16i222'),
                     ('specific_humidity', 'm01s03i237'),
                     ('surface_air_pressure', 'm01s00i409'),
-                    ('x_wind', 'm01s03i225'), 
-                    ('y_wind', 'm01s03i226'),
+                    ('x_wind', 'm01s03i225'), # 10 meter U wind 
+                    ('y_wind', 'm01s03i226'), # 10 meter V wind 
+                    ('x_wind', 'm01s15i201'), # 7 pressure levels
+                    ('y_wind', 'm01s15i202'), # 7 pressure levels
+                    ('geopotential_height', 'm01s16i202'), # 7 pressure levels
                     ('atmosphere_convective_available_potential_energy_wrt_surface', 'm01s05i233'), # CAPE
                     ('atmosphere_convective_inhibition_wrt_surface', 'm01s05i234'), #CIN
                     ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),
@@ -2280,6 +2287,7 @@ def doShuffleVarsInOrder(fpath):
                     # (0-sea, 1-land) and set it to the required variables. 
                     var.data = numpy.ma.masked_where(land_binary_mask, var.data)
                 # end of if lsh != vsh:
+                
                 print "updated ocean masked vars",var.data.min(), var.data.max()
         # end of for vidx, var in enumerate(orderedVars):
     # end of if _maskOverOceanVars_ and ...:
