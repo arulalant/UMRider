@@ -1,6 +1,6 @@
 # Change Log
 
-## [v1.0.2b](https://github.com/NCMRWF/UMRider/tree/v1.0.2b) (2016-04-25)
+## [v1.0.2b](https://github.com/NCMRWF/UMRider/tree/v1.0.2b) (2016-04-27)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.2a...v1.0.2b)
 
 **Implemented enhancements:**
@@ -18,6 +18,7 @@
 
 **Merged pull requests:**
 
+- soilFirstSecondFixedSurfaceUnit option [\#98](https://github.com/NCMRWF/UMRider/pull/98) ([arulalant](https://github.com/arulalant))
 -  support for wgrib2Arguments option [\#95](https://github.com/NCMRWF/UMRider/pull/95) ([arulalant](https://github.com/arulalant))
 - ftp path out update [\#93](https://github.com/NCMRWF/UMRider/pull/93) ([arulalant](https://github.com/arulalant))
 - update bsub scripts osf log path [\#92](https://github.com/NCMRWF/UMRider/pull/92) ([arulalant](https://github.com/arulalant))
