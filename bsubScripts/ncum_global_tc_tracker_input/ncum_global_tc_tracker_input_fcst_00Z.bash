@@ -1,10 +1,10 @@
 #!/bin/bash
 #
 #BSUB -a poe                  # set parallel operating environment
-#BSUB -J u2g2tct              # job name
+#BSUB -J u2g2tcF              # job name; forecast must have different job name
 #BSUB -W 06:00                # wall-clock time (hrs:mins)
 #BSUB -n 16                   # number of tasks in job (max task in one node)
-#BSUB -x                      # exclusive mode
+#BSUB -x                      # exclusive mode 
 #BSUB -R span[ptile=16]       # task per node 
 #BSUB -R rusage[mem=61440]    # RAM memeory per node   
 #BSUB -q ultra                # queue

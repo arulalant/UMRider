@@ -38,7 +38,7 @@ def createTarBalls(path, today, utc, stephr=3):
     # where as in parallel bz2, "$ tar -c *fcst*grb2 | pbzip2 -v -c -f -p32 -m500 > fcst_20160223_parallel.tar.bz2" cmd takes only just 23 seconds alone, with 32 processors and 500MB RAM memory.
     #    
     # create forecast files tar file in parallel # -m500 need to be include for pbzip2
-    cmd = "tar -c ./ncum_reg_fcst*%s*.grb2 | %s  -v  -c -f -p32 -m500 > %s/WindEnergy_India_0.04_%s%s.tar.gz" % (today, pigz, '../TarFiles', today, utc)
+    cmd = "tar -c ./ncum_reg_fcst*%s*.grb2 | %s  -v  -c -f -p32 > %s/WindEnergy.India.0.04.%s%s.tar.gz" % (today, pigz, '../TarFiles', today, utc)
     print cmd
     subprocess.call(cmd, shell=True)
     
@@ -58,7 +58,7 @@ def createTarBalls(path, today, utc, stephr=3):
         
     tarpath = os.path.abspath('../TarFiles')
     # do scp the tar files to ftp_server and nkn_server
-    cmd = 'ssh ncmlogin3 "scp -p %s/WindEnergy_India_0.04_%s%s.tar.gz  %s:/data/MPL/4km/"' % (tarpath, today, utc, ftp_server)
+    cmd = 'ssh ncmlogin3 "scp -p %s/WindEnergy.India.0.04.%s%s.tar.gz  %s:/data/MPL/4km/"' % (tarpath, today, utc, ftp_server)
     print cmd
     subprocess.call(cmd, shell=True)
     
@@ -74,7 +74,10 @@ def createTarBalls(path, today, utc, stephr=3):
 
 if __name__ == '__main__':
 
-    ftp_server="MPL@ftp"
+    # The ftp user must be prod for MPL user's directory in ftp.
+    # Because MPL user doesnt have write permission, only prod user has write 
+    # permission to /data/MPL directory
+    ftp_server="prod@ftp"
     date = None
     outpath = None
     oftype = None
