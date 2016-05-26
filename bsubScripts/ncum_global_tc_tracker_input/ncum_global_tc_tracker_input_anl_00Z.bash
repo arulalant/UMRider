@@ -1,14 +1,14 @@
 #!/bin/bash
 #
 #BSUB -a poe                  # set parallel operating environment
-#BSUB -J u2g2tct              # job name
+#BSUB -J u2g2tcA              # job name, analysis must have different job name 
 #BSUB -W 06:00                # wall-clock time (hrs:mins)
 #BSUB -n 6                    # number of tasks in job 
-#BSUB -x                      # exclusive mode
 #BSUB -q ultra                # queue
 #BSUB -e /gpfs3/home/umfcst/UMRiderLogs/tctrack/bsub/um2grb2.anl.00hr.err.%J.hybrid     # error file name in which %J is replaced by the job ID
 #BSUB -o /gpfs3/home/umfcst/UMRiderLogs/tctrack/bsub/um2grb2.anl.00hr.out.%J.hybrid     # output file name in which %J is replaced by the job ID
 
+####BSUB -x                      # exclusive mode
 # find out the directory of this bash script after submitted to bsub
 DIR="$( cd "$( dirname "${BASH_SOURCE[1]}" )" && pwd )"
 
