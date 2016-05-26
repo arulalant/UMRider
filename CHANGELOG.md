@@ -1,6 +1,6 @@
 # Change Log
 
-## [v1.0.2g](https://github.com/NCMRWF/UMRider/tree/v1.0.2g) (2016-05-25)
+## [v1.0.2g](https://github.com/NCMRWF/UMRider/tree/v1.0.2g) (2016-05-26)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.2b...v1.0.2g)
 
 **Implemented enhancements:**
@@ -11,6 +11,15 @@
 **Fixed bugs:**
 
 - Slicing lat, lon is not happening when regrid is set to None [\#99](https://github.com/NCMRWF/UMRider/issues/99)
+
+**Closed issues:**
+
+- Need to support for UM REG model for Wind Energy Input [\#100](https://github.com/NCMRWF/UMRider/issues/100)
+
+**Merged pull requests:**
+
+- production support of Wind Energry and TC-Tracker Input [\#104](https://github.com/NCMRWF/UMRider/pull/104) ([arulalant](https://github.com/arulalant))
+- support for regional Wind Energy Input [\#103](https://github.com/NCMRWF/UMRider/pull/103) ([arulalant](https://github.com/arulalant))
 
 ## [v1.0.2b](https://github.com/NCMRWF/UMRider/tree/v1.0.2b) (2016-04-27)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.2a...v1.0.2b)
