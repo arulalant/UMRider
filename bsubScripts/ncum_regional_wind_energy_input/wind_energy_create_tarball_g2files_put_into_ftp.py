@@ -2,17 +2,16 @@
 
 ## This is call back script which will be executed after created the grib2 files.
 ## 
-## Hycom Model Input requires analysis of 06, 09, 12, 15, 18, 21-hours from 
-## yesterday and 00 & 03-hours from today date. All 3-hourly forecasts from
-## today date.
-## 
+## Wind Energy Input requires UM regional model grib2 files at every one-hour 
+## forecast files.
+##
 ## While creating tar ball, all files must be in present directory, so that
 ## when user extract it, will produce only files instead of entire paths!
 ##
 ## And finally putting into their ftp server.
 ##
 ## Arulalan.T
-## 04-Mar-2016.
+## 26-May-2016.
 
 import os, subprocess, datetime, getopt, sys, glob
 
@@ -23,7 +22,7 @@ def createTarBalls(path, today, utc, stephr=3):
 
     cdir = os.getcwd()
     os.chdir(path)
-    anal_ftemp = 'anal*%s*%s*.grb2'
+    
     tDay = datetime.datetime.strptime(today, "%Y%m%d")
     lag1 = datetime.timedelta(days=1)
     yDay = (tDay - lag1).strftime('%Y%m%d')
@@ -31,47 +30,21 @@ def createTarBalls(path, today, utc, stephr=3):
     y4Day = (tDay - lag4).strftime('%Y%m%d')
     # get past 11th day timestamp
     y11Day = (tDay - datetime.timedelta(days=11)).strftime('%Y%m%d')
-    # get yesterday's analysis files from 06hr onwards
-    yanal = [anal_ftemp % (str(hr).zfill(2), yDay) for hr in range(6, 24, stephr)]
-    # get today's analysis 00 and 03 hr
-    tanal_files = [anal_ftemp % (str(hr).zfill(2), today) for hr in range(0, 6, stephr)]
-    # store available yesterday anal_files
-    yanal_files = []
-    for yf in yanal:
-        # copy yesterday's analysis files to today's directory
-        wildcard_anlfile = '../%s/%s' % (yDay, yf)
-        print "wildcard_anlfile = ", wildcard_anlfile
-        if not glob.glob(wildcard_anlfile): continue
-        cmd = 'cp %s .' % wildcard_anlfile
-        print cmd
-        subprocess.call(cmd, shell=True)
-        yanal_files.append(yf)
-    # end of for yf in yanal:
+
     if not os.path.exists('../TarFiles'): os.makedirs('../TarFiles')
     print "currnet path : ", os.getcwd()
     # normal "$ tar cvjf fcst_20160223.tar.bz2 *fcst*grb2" cmd takes 6 minutes 43 seconds.
     #
     # where as in parallel bz2, "$ tar -c *fcst*grb2 | pbzip2 -v -c -f -p32 -m500 > fcst_20160223_parallel.tar.bz2" cmd takes only just 23 seconds alone, with 32 processors and 500MB RAM memory.
-    #
-    # create analysis files tar file in parallel # -m500 need to be include for pbzip2
-    anal_files = '  '.join(['./'+af for af in yanal_files + tanal_files])  
-    cmd = "tar -c  %s | %s -v  -c -f -p32 > %s/anal_glb_0.25_%s.tar.gz" % (anal_files, pigz, '../TarFiles', today)
-    print cmd
-    subprocess.call(cmd, shell=True)
+    #    
     # create forecast files tar file in parallel # -m500 need to be include for pbzip2
-    cmd = "tar -c ./fcst*%s*.grb2 | %s  -v  -c -f -p32 > %s/fcst_glb_0.25_%s.tar.gz" % (today, pigz, '../TarFiles', today)
+    cmd = "tar -c ./ncum_reg_fcst*%s*.grb2 | %s  -v  -c -f -p32 -m500 > %s/WindEnergy_India_0.04_%s%s.tar.gz" % (today, pigz, '../TarFiles', today, utc)
     print cmd
     subprocess.call(cmd, shell=True)
     
-    if yanal_files:
-        # delete yesterday analysis files copy from today directory
-        yesterday_anal_files = '  '.join(['./'+af for af in yanal_files])  
-        cmd = "rm -rf %s" % yesterday_anal_files
-        print cmd
-        subprocess.call(cmd, shell=True)
-    # end of if yanal_files:
+    
     # delete today's forecasts files, after tar ball has been created!    
-    cmd = "rm -rf fcst*%s*.grb2" % today
+    cmd = "rm -rf ncum_reg_fcst*%s*.grb2" % today
     print cmd
     subprocess.call(cmd, shell=True)
     
@@ -85,47 +58,28 @@ def createTarBalls(path, today, utc, stephr=3):
         
     tarpath = os.path.abspath('../TarFiles')
     # do scp the tar files to ftp_server and nkn_server
-    cmd = 'ssh ncmlogin3 "scp -p %s/anal_glb_0.25_%s.tar.gz  %s:/data/ftp/pub/outgoing/NCUM_HYCOM/0.25/"' % (tarpath, today, ftp_server)
-    print cmd
-    subprocess.call(cmd, shell=True)
-    cmd = 'ssh ncmlogin3 "scp -p %s/anal_glb_0.25_%s.tar.gz  %s:NCUM/hycom/0.25/"' % (tarpath, today, nkn_server)
+    cmd = 'ssh ncmlogin3 "scp -p %s/WindEnergy_India_0.04_%s%s.tar.gz  %s:/data/MPL/4km/"' % (tarpath, today, utc, ftp_server)
     print cmd
     subprocess.call(cmd, shell=True)
     
-    cmd = 'ssh ncmlogin3 "scp -p %s/fcst_glb_0.25_%s.tar.gz  %s:/data/ftp/pub/outgoing/NCUM_HYCOM/0.25/"' % (tarpath, today, ftp_server)
-    print cmd
-    subprocess.call(cmd, shell=True)
-    cmd = 'ssh ncmlogin3 "scp -p %s/fcst_glb_0.25_%s.tar.gz  %s:NCUM/hycom/0.25/"' % (tarpath, today, nkn_server)
-    print cmd
-    subprocess.call(cmd, shell=True)
     # remove past 11th day tar ball from ftp_server 
-    cmd = 'ssh ncmlogin3 "ssh %s rm -rf /data/ftp/pub/outgoing/NCUM_HYCOM/0.25/*%s*tar.gz"' % (ftp_server, y11Day)
+    cmd = 'ssh ncmlogin3 "ssh %s rm -rf /data/MPL/4km/*%s*tar.gz"' % (ftp_server, y11Day)
     print cmd
     try:
         subprocess.call(cmd, shell=True)
     except Exception as e:
-        print "past 11th day tar ball has been removed from ftp_server, already", e
-    # remove past 11th day tar ball from nkn_server 
-    cmd = 'ssh ncmlogin3 "ssh %s rm -rf /home/incois/NCUM/hycom/0.25/*%s*tar.gz"' % (nkn_server, y11Day)
-    print cmd
-    try:
-        subprocess.call(cmd, shell=True)
-    except Exception as e:
-        print "past 11th day tar ball has been removed from nkn_server, already", e
-        
-        
+        print "past 11th day tar ball has been removed from ftp_server, already", e    
     os.chdir(cdir)  
 # end of def createTarBalls(path, today, ...):
 
 if __name__ == '__main__':
 
-    nkn_server="incois@nkn"
-    ftp_server="prod@ftp"
+    ftp_server="MPL@ftp"
     date = None
     outpath = None
     oftype = None
     utc = None
-    helpmsg = 'hycom_create_tarball_g2files_put_into_ftp.py --date=20160302 --outpath=path --oftype=analysis --utc=00'
+    helpmsg = 'wind_energy_create_tarball_g2files_put_into_ftp --date=20160302 --outpath=path --oftype=analysis --utc=00'
     try:
         opts, args = getopt.getopt(sys.argv[1:], "d:o:t:z:", ["date=","outpath=", "oftype=", "utc="])
     except getopt.GetoptError:
