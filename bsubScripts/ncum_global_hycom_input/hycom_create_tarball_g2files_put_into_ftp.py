@@ -99,14 +99,14 @@ def createTarBalls(path, today, utc, stephr=3):
     print cmd
     subprocess.call(cmd, shell=True)
     # remove past 11th day tar ball from ftp_server 
-    cmd = 'ssh ncmlogin3 "ssh %s rm -rf /data/ftp/pub/outgoing/NCUM_HYCOM/0.25/*%s*tar.bz2"' % (ftp_server, y11Day)
+    cmd = 'ssh ncmlogin3 "ssh %s rm -rf /data/ftp/pub/outgoing/NCUM_HYCOM/0.25/*%s*tar.gz"' % (ftp_server, y11Day)
     print cmd
     try:
         subprocess.call(cmd, shell=True)
     except Exception as e:
         print "past 11th day tar ball has been removed from ftp_server, already", e
     # remove past 11th day tar ball from nkn_server 
-    cmd = 'ssh ncmlogin3 "ssh %s rm -rf /home/incois/NCUM/hycom/0.25/*%s*tar.bz2"' % (nkn_server, y11Day)
+    cmd = 'ssh ncmlogin3 "ssh %s rm -rf /home/incois/NCUM/hycom/0.25/*%s*tar.gz"' % (nkn_server, y11Day)
     print cmd
     try:
         subprocess.call(cmd, shell=True)
