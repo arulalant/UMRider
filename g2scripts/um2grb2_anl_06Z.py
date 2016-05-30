@@ -58,8 +58,9 @@ while sDay <= eDay:
     print "Going to start progress on", startdate
     # call analysis conversion function w.r.t data assimilated 
     # during short forecast hour - 06UTC.
-    convertAnlFiles(inPath, outPath, tmpPath, 
-                 UMtype=UMtype, targetGridFile=targetGridFile,    
+    convertAnlFiles(inPath, outPath, tmpPath, UMtype=UMtype,
+                        UMInShortFcstFiles=UMInShortFcstFiles,
+                                targetGridFile=targetGridFile,
                     targetGridResolution=targetGridResolution, 
              date=startdate, utc='06', convertVars=neededVars, 
                   latitude=requiredLat, longitude=requiredLon,

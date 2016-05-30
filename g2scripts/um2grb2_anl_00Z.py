@@ -57,7 +57,9 @@ while sDay <= eDay:
     # call analysis conversion function w.r.t data assimilated 
     # during short forecast hour - 00UTC.
     convertAnlFiles(inPath, outPath, tmpPath, 
-                 UMtype=UMtype, targetGridFile=targetGridFile,
+                     UMtype=UMtype, UMInAnlFiles=UMInAnlFiles,
+                        UMInShortFcstFiles=UMInShortFcstFiles,
+                                targetGridFile=targetGridFile,
                     targetGridResolution=targetGridResolution, 
              date=startdate, utc='00', convertVars=neededVars, 
                   latitude=requiredLat, longitude=requiredLon,

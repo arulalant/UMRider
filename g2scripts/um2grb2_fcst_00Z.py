@@ -56,8 +56,9 @@ while sDay <= eDay:
     print "Going to start progress on", startdate
     # call forecast conversion function w.r.t data assimilated 
     # during long forecast hour - 00UTC.        
-    convertFcstFiles(inPath, outPath, tmpPath, 
-                 UMtype=UMtype, targetGridFile=targetGridFile,    
+    convertFcstFiles(inPath, outPath, tmpPath, UMtype=UMtype,
+                          UMInLongFcstFiles=UMInLongFcstFiles,
+                                targetGridFile=targetGridFile,
                     targetGridResolution=targetGridResolution, 
              date=startdate, utc='00', convertVars=neededVars, 
                   latitude=requiredLat, longitude=requiredLon,
