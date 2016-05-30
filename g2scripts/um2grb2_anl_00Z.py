@@ -20,7 +20,8 @@ from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                 anl_step_hour, pressureLevels, callBackScript, \
                 setGrib2TableParameters, anl_aavars_reference_time, \
                 anl_aavars_time_bounds, wgrib2Arguments, \
-                soilFirstSecondFixedSurfaceUnit, UMtype, targetGridFile
+                soilFirstSecondFixedSurfaceUnit, UMtype, targetGridFile, \
+                UMInAnlFiles, UMInShortFcstFiles
 
 if loadg2utils == 'system':
     # Load g2utils from system python which has installed through setup.py

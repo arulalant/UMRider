@@ -20,7 +20,7 @@ from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                     removeGrib2FilesAfterGrib1FilesCreated, \
                     anl_step_hour, pressureLevels, callBackScript, \
                     setGrib2TableParameters, anl_aavars_reference_time, \
-                    anl_aavars_time_bounds, wgrib2Arguments, \
+                    anl_aavars_time_bounds, wgrib2Arguments, UMInShortFcstFiles, \
                     soilFirstSecondFixedSurfaceUnit, UMtype, targetGridFile
 
 if loadg2utils == 'system':
