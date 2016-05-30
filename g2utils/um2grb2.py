@@ -716,7 +716,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # the cube contains Instantaneous data at every 3-hours.
         if __fcst_step_hour__ == 1:
             # applicable only for 1 hour instantaneous/intervals
-            fcstHours = numpy.array([1, 2, 3, 4, 5, 6]) + hr       
+            fcstHours = numpy.array([0]) + hr       
         elif __anl_step_hour__ == 3:
             # applicable only for 3 hour instantaneous/intervals
             fcstHours = numpy.array([0, 3,]) # yes, it must have both '0' & '3'
