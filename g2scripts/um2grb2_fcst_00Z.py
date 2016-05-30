@@ -20,7 +20,8 @@ from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                  start_long_fcst_hour, fcst_step_hour, grib1FilesNameSuffix, \
                  removeGrib2FilesAfterGrib1FilesCreated, pressureLevels, \
                  callBackScript, setGrib2TableParameters, wgrib2Arguments, \
-                 soilFirstSecondFixedSurfaceUnit, UMtype, targetGridFile
+                 soilFirstSecondFixedSurfaceUnit, UMtype, targetGridFile, \
+                 UMInLongFcstFiles
 
 if loadg2utils == 'system':
     # Load g2utils from system python which has installed through setup.py
@@ -56,8 +57,9 @@ while sDay <= eDay:
     print "Going to start progress on", startdate
     # call forecast conversion function w.r.t data assimilated 
     # during long forecast hour - 00UTC.        
-    convertFcstFiles(inPath, outPath, tmpPath, 
-                 UMtype=UMtype, targetGridFile=targetGridFile,    
+    convertFcstFiles(inPath, outPath, tmpPath, UMtype=UMtype,
+                          UMInLongFcstFiles=UMInLongFcstFiles,
+                                targetGridFile=targetGridFile,
                     targetGridResolution=targetGridResolution, 
              date=startdate, utc='00', convertVars=neededVars, 
                   latitude=requiredLat, longitude=requiredLon,

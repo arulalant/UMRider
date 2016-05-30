@@ -679,6 +679,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                         ('surface_air_pressure', 'm01s00i409'),
                         ('x_wind', 'm01s03i225'), 
                         ('y_wind', 'm01s03i226'),
+                        ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'), # hourly average of shortwave flux
                         ('atmosphere_convective_available_potential_energy_wrt_surface', 'm01s05i233'), # CAPE
                         ('atmosphere_convective_inhibition_wrt_surface', 'm01s05i234'), #CIN
                         ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),
@@ -713,7 +714,10 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # all vars 
         varNamesSTASH = varNamesSTASH1 + varNamesSTASH2
         # the cube contains Instantaneous data at every 3-hours.
-        if __anl_step_hour__ == 3:
+        if __fcst_step_hour__ == 1:
+            # applicable only for 1 hour instantaneous/intervals
+            fcstHours = numpy.array([0]) + hr       
+        elif __anl_step_hour__ == 3:
             # applicable only for 3 hour instantaneous/intervals
             fcstHours = numpy.array([0, 3,]) # yes, it must have both '0' & '3'
             # to get both 0 & 3 rd hour instantaneous data.
@@ -884,6 +888,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('surface_air_pressure', 'm01s00i409'),
                     ('x_wind', 'm01s03i225'), 
                     ('y_wind', 'm01s03i226'),
+                    ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'), # hourly average of shortwave flux 
                     ('atmosphere_convective_available_potential_energy_wrt_surface', 'm01s05i233'), # CAPE
                     ('atmosphere_convective_inhibition_wrt_surface', 'm01s05i234'), #CIN
                     ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),
@@ -905,7 +910,10 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('stratiform_rainfall_amount', 'm01s04i201'),
                     ('convective_rainfall_amount', 'm01s05i201'),]
         # the cube contains Instantaneous data at every 1-hours.
-        if __fcst_step_hour__ == 3:
+        if __fcst_step_hour__ == 1:
+            # applicable only for 1 hour instantaneous/intervals
+            fcstHours = numpy.arange(1, 25, 1) + hr       
+        elif __fcst_step_hour__ == 3:
             # applicable only for 3 hour instantaneous/intervals
             fcstHours = numpy.array([3, 6, 9, 12, 15, 18, 21, 24]) + hr
         elif __fcst_step_hour__ == 6:
@@ -1006,8 +1014,6 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('surface_temperature', 'm01s00i024'),
                     ('relative_humidity', 'm01s03i245'),
                     ('visibility_in_air', 'm01s03i247'),
-                    ('x_wind', 'm01s15i212'),  # 50meter B-Grid U component wind 
-                    ('y_wind', 'm01s15i213'),  # 50meter B-Grid V component wind  
                     ('tropopause_altitude', 'm01s30i453'),
                     ('tropopause_air_temperature', 'm01s30i452'),
                     ('tropopause_air_pressure', 'm01s30i451'),
@@ -1020,9 +1026,9 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('snowfall_amount', 'm01s00i023')] 
         # the cube contains Instantaneous data at every 3-hours.
         if __fcst_step_hour__ == 1:
-            # applicable only for 3 hour average or accumutated.
+            # applicable only for 1 hour average or accumutated.
             fcstHours = numpy.array([1, 2, 3, 4, 5, 6]) + hr
-            # model itself produced 3 hourly average or accumutated. So we 
+            # model itself produced 1 hourly average or accumutated. So we 
             # no need to do average/accumulation explicitly.
         elif __fcst_step_hour__ == 3:
             # applicable only for 3 hour instantaneous/intervals
@@ -1048,7 +1054,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('upward_air_velocity', 'm01s15i242')]
         # the cube contains Instantaneous data at every 3-hours.
         if __fcst_step_hour__ == 1:
-            # applicable only for 3 hour average or accumutated.
+            # applicable only for 1 hour average or accumutated.
             fcstHours = numpy.array([1, 2, 3, 4, 5, 6]) + hr            
         elif __fcst_step_hour__ == 3:
             # applicable only for 3 hour instantaneous/intervals
@@ -1071,6 +1077,8 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('air_pressure_at_sea_level', 'm01s16i222'),
                     ('specific_humidity', 'm01s03i237'),
                     ('surface_air_pressure', 'm01s00i409'),
+                    ('x_wind', 'm01s15i212'), # 50meter B-Grid U component wind 
+                    ('y_wind', 'm01s15i213'), # 50meter B-Grid V component wind  
                     ('x_wind', 'm01s03i225'), # 10 meter U wind 
                     ('y_wind', 'm01s03i226'), # 10 meter V wind 
                     ('x_wind', 'm01s15i201'), # 7 pressure levels
@@ -1098,7 +1106,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('convective_rainfall_amount', 'm01s05i201'),]
         # the cube contains Instantaneous data at every 1-hours.
         if __fcst_step_hour__ == 1:
-            # applicable only for 3 hour average or accumutated.
+            # applicable only for 1 hour average or accumutated.
             fcstHours = numpy.array([1, 2, 3, 4, 5, 6]) + hr            
         elif __fcst_step_hour__ == 3:
             # applicable only for 3 hour instantaneous/intervals
@@ -1133,7 +1141,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
              ('rainfall_flux', 'm01s05i214'),]
         # the cube contains data of every 3-hourly average or accumutated.
         if __fcst_step_hour__ == 1:
-            # applicable only for 3 hour average or accumutated.
+            # applicable only for 1 hour average or accumutated.
             fcstHours = numpy.array([0.5, 1.5, 2.5, 3.5, 4.5, 5.5]) + hr
             # model itself produced 3 hourly average or accumutated. So we 
             # no need to do average/accumulation explicitly.
@@ -1174,7 +1182,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # dust aod only. For other 2 soil vars, we are fixing the values 
         # before extract those vars!
         if __fcst_step_hour__ == 1:
-            # applicable only for 3 hour average or accumutated.
+            # applicable only for 1 hour average or accumutated.
             fcstHours = numpy.array([1, 2, 3, 4, 5, 6]) + hr            ###### NEED TO FIX 
             doMultiHourlyMean = False
         elif __fcst_step_hour__ == 3:
@@ -2833,7 +2841,8 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
        __start_long_fcst_hour__, _extraPolateMethod_, _targetGridFile_
      
     # load key word arguments
-    UMtype = kwarg.get('UMtype', 'global')
+    UMtype = kwarg.get('UMtype', 'global')    
+    UMInLongFcstFiles = kwarg.get('UMInLongFcstFiles', None)
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
     targetGridFile = kwarg.get('targetGridFile', '')
     date = kwarg.get('date', time.strftime('%Y%m%d'))
@@ -2888,11 +2897,13 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     __wgrib2Arguments__ = wgrib2Arguments
     # forecast filenames partial name
     if __UMtype__ == 'global':
-        fcst_fnames = ['umglaa_pb','umglaa_pd', 'umglaa_pe', 'umglaa_pf', 'umglaa_pi']    
+        # pass user passed long forecast global model infiles otherwise pass proper infiles.
+        fcst_fnames = UMInLongFcstFiles if UMInLongFcstFiles else ['umglaa_pb','umglaa_pd', 'umglaa_pe', 'umglaa_pf', 'umglaa_pi']
     elif __UMtype__ == 'regional':
-        fcst_fnames = ['xbiwba_pb','xbiwba_pd', 'xbiwba_pe', 'xbiwba_pf', 'xbiwba_pi']   
+        # pass user passed long forecast regional model infiles otherwise pass proper infiles.
+        fcst_fnames = UMInLongFcstFiles if UMInLongFcstFiles else ['xbiwba_pb','xbiwba_pd', 'xbiwba_pe', 'xbiwba_pf', 'xbiwba_pi']
     # end of if __UMtype__ == 'global':
-     
+    
     # get the current date in YYYYMMDD format
     _tmpDir_ = tmpPath
     _current_date_ = date
@@ -3040,6 +3051,8 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
            
     # load key word arguments
     UMtype = kwarg.get('UMtype', 'global')
+    UMInAnlFiles = kwarg.get('UMInAnlFiles', None)
+    UMInShortFcstFiles = kwarg.get('UMInShortFcstFiles', None)
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
     targetGridFile = kwarg.get('targetGridFile', '')
     date = kwarg.get('date', time.strftime('%Y%m%d'))
@@ -3093,8 +3106,12 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     __wgrib2Arguments__ = wgrib2Arguments
     # analysis filenames partial name
     if __UMtype__ == 'global':
-        anl_fnames = ['umglca_pb', 'umglca_pd', 'umglca_pe', 'umglca_pf', 'umglca_pi']  
-        if utc == '00': anl_fnames.insert(0, 'qwqg00.pp0')
+        # pass user passed short forecast in files otherwise pass proper infiles.
+        anl_fnames = UMInShortFcstFiles if UMInShortFcstFiles else ['umglca_pb', 'umglca_pd', 'umglca_pe', 'umglca_pf', 'umglca_pi']
+        if utc == '00':
+            # pass user passed analysis in files valid for 00UTC otherwise pass proper infile.
+            anl_fnames = UMInAnlFiles + anl_fnames if UMInAnlFiles else anl_fnames.insert(0, 'qwqg00.pp0')
+    # end of if __UMtype__ == 'global':
     
     # get the current date in YYYYMMDD format
     _tmpDir_ = tmpPath

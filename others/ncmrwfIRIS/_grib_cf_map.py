@@ -303,8 +303,8 @@ CF_TO_GRIB2 = {
     CFName('surface_upwelling_longwave_flux_in_air', None, 'W m-2'): G2Param(2, 0, 5, 4),    
     CFName('surface_roughness_length', None, 'm'): G2Param(2, 2, 0, 1),
     CFName('surface_runoff_flux', None, 'kg m-2 s-1'): G2Param(2, 2, 0, 34),
-#    CFName('surface_temperature', None, 'K'): G2Param(2, 0, 0, 17),
-    CFName('surface_temperature', None, 'K'): G2Param(2, 0, 0, 0), 
+#    CFName('surface_temperature', None, 'K'): G2Param(2, 0, 0, 17),  #WRF-Noah requirments
+    CFName('surface_temperature', None, 'K'): G2Param(2, 0, 0, 0),    #INCOIS-OSF, HYCOM requirements
     # OSF required it should be just TMP in grib2 file. So lets write as temperature itself.
     CFName('surface_upward_latent_heat_flux', None, 'W m-2'): G2Param(2, 0, 0, 10),
     CFName('surface_upward_sensible_heat_flux', None, 'W m-2'): G2Param(2, 0, 0, 11),

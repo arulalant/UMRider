@@ -52,6 +52,9 @@ outPath = cdic.get('outPath', None)
 tmpPath = cdic.get('tmpPath', None)
 
 UMtype = cdic.get('UMtype', 'global')
+UMInAnlFiles = eval(cdic.get('UMInAnlFiles', 'None'))
+UMInShortFcstFiles = eval(cdic.get('UMInShortFcstFiles', 'None'))
+UMInLongFcstFiles = eval(cdic.get('UMInLongFcstFiles', 'None'))
 startdate = cdic.get('startdate', 'YYYYMMDD')
 enddate = cdic.get('enddate', None)
 loadg2utils = cdic.get('loadg2utils', 'system')
@@ -195,6 +198,9 @@ neededVars = uniquifyListInOrder(neededVars)
 
 print "*" * 80
 print "UMtype = ", UMtype
+print "UMInAnlFiles = ", UMInAnlFiles
+print "UMInShortFcstFiles", UMInShortFcstFiles
+print "UMInLongFcstFiles", UMInLongFcstFiles
 print "date = ", date
 if targetGridFile: print "targetGridFile = ", targetGridFile
 if not targetGridFile: print "targetGridResolution = ", targetGridResolution
