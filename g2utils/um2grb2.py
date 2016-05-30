@@ -1006,8 +1006,6 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('surface_temperature', 'm01s00i024'),
                     ('relative_humidity', 'm01s03i245'),
                     ('visibility_in_air', 'm01s03i247'),
-                    ('x_wind', 'm01s15i212'),  # 50meter B-Grid U component wind 
-                    ('y_wind', 'm01s15i213'),  # 50meter B-Grid V component wind  
                     ('tropopause_altitude', 'm01s30i453'),
                     ('tropopause_air_temperature', 'm01s30i452'),
                     ('tropopause_air_pressure', 'm01s30i451'),
@@ -1071,6 +1069,8 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('air_pressure_at_sea_level', 'm01s16i222'),
                     ('specific_humidity', 'm01s03i237'),
                     ('surface_air_pressure', 'm01s00i409'),
+                    ('x_wind', 'm01s15i212'), # 50meter B-Grid U component wind 
+                    ('y_wind', 'm01s15i213'), # 50meter B-Grid V component wind  
                     ('x_wind', 'm01s03i225'), # 10 meter U wind 
                     ('y_wind', 'm01s03i226'), # 10 meter V wind 
                     ('x_wind', 'm01s15i201'), # 7 pressure levels
