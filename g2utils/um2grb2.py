@@ -678,8 +678,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                         ('specific_humidity', 'm01s03i237'),
                         ('surface_air_pressure', 'm01s00i409'),
                         ('x_wind', 'm01s03i225'), 
-                        ('y_wind', 'm01s03i226'),
-                        ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'), # hourly average of shortwave flux
+                        ('y_wind', 'm01s03i226'),                        
                         ('atmosphere_convective_available_potential_energy_wrt_surface', 'm01s05i233'), # CAPE
                         ('atmosphere_convective_inhibition_wrt_surface', 'm01s05i234'), #CIN
                         ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),
@@ -697,6 +696,13 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                 varNamesSTASH1.remove(varST)         
         # end of if inDataPathHour == '00' and ...:
         
+        if __anl_step_hour__ == 1:
+            # The following variable already available in pf file, but in 3-hour intervals.
+            # Here in pe file its available in 1-hour intervals.
+            varNamesSTASH1.append(('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'))
+            # hourly average of shortwave flux
+        # end of if __anl_step_hour__ == 1:
+        
         # The precipitation_amount, *snowfall_amount, and *rainfall_amount 
         # variable must be at the last in this list. we will have to do 
         # 6 hourly accumulation instead of taking an instantaneous fileds. 
@@ -713,11 +719,8 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                           ('convective_rainfall_amount', 'm01s05i201'),]
         # all vars 
         varNamesSTASH = varNamesSTASH1 + varNamesSTASH2
-        # the cube contains Instantaneous data at every 3-hours.
-        if __fcst_step_hour__ == 1:
-            # applicable only for 1 hour instantaneous/intervals
-            fcstHours = numpy.array([0]) + hr       
-        elif __anl_step_hour__ == 3:
+        # the cube contains Instantaneous data at every 3-hours.     
+        if __anl_step_hour__ == 3:
             # applicable only for 3 hour instantaneous/intervals
             fcstHours = numpy.array([0, 3,]) # yes, it must have both '0' & '3'
             # to get both 0 & 3 rd hour instantaneous data.
@@ -748,7 +751,14 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                 ('precipitation_flux', 'm01s05i216'),                          
                 ('rainfall_flux', 'm01s05i214'),]
             
-        # the cube contains data of every 3-hourly average or accumutated.        
+        # the cube contains data of every 3-hourly average or accumutated.  
+        if __anl_step_hour__ == 1:
+            # The following variable already taken from pe file which has 1-hourly intervals.
+            # But in pf file it has 3-hourly intervals. So remove from pf file.
+            varNamesSTASH1.remove(('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'))
+            # hourly average of shortwave flux
+        # end of if __anl_step_hour__ == 1:
+              
         if __anl_step_hour__ == 3:
             # applicable only for 3 hour average or accumutated.
             fcstHours = numpy.array([4.5, 1.5])     
@@ -888,7 +898,6 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('surface_air_pressure', 'm01s00i409'),
                     ('x_wind', 'm01s03i225'), 
                     ('y_wind', 'm01s03i226'),
-                    ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'), # hourly average of shortwave flux 
                     ('atmosphere_convective_available_potential_energy_wrt_surface', 'm01s05i233'), # CAPE
                     ('atmosphere_convective_inhibition_wrt_surface', 'm01s05i234'), #CIN
                     ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),
@@ -911,8 +920,12 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('convective_rainfall_amount', 'm01s05i201'),]
         # the cube contains Instantaneous data at every 1-hours.
         if __fcst_step_hour__ == 1:
+            # The following variable already available in pf file, but in 3-hour intervals.
+            # Here in pe file its available in 1-hour intervals.
+            varNamesSTASH.append(('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'))
+            # hourly average of shortwave flux
             # applicable only for 1 hour instantaneous/intervals
-            fcstHours = numpy.arange(1, 25, 1) + hr       
+            fcstHours = numpy.arange(1, 25, 1) + hr                           
         elif __fcst_step_hour__ == 3:
             # applicable only for 3 hour instantaneous/intervals
             fcstHours = numpy.array([3, 6, 9, 12, 15, 18, 21, 24]) + hr
@@ -945,7 +958,12 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
              ('precipitation_flux', 'm01s05i216'),                          
              ('rainfall_flux', 'm01s05i214'),]
         # the cube contains data of every 3-hourly average or accumutated.
-        if __fcst_step_hour__ == 3:
+        if __fcst_step_hour__ == 1:
+            # The following variable already taken from pe file which has 1-hourly intervals.
+            # But in pf file it has 3-hourly intervals. So remove from pf file.
+            varNamesSTASH.remove(('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'))
+            # hourly average of shortwave flux
+        elif __fcst_step_hour__ == 3:
             # applicable only for 3 hour average or accumutated.
             fcstHours = numpy.array([1.5, 4.5, 7.5, 10.5, 13.5, 16.5, 19.5, 22.5]) + hr
             # model itself produced 3 hourly average or accumutated. So we 
@@ -2091,8 +2109,8 @@ def doShuffleVarsInOrder(fpath):
            _maskOverOceanVars_, _aod_pseudo_level_var_, _createGrib2CtlIdxFiles_, \
            _createGrib1CtlIdxFiles_, _convertGrib2FilestoGrib1Files_, \
            _requiredLat_, _convertVars_, __outFileType__, __grib1FilesNameSuffix__, \
-           __removeGrib2FilesAfterGrib1FilesCreated__, _removeVars_, \
-           __fcst_step_hour__, g2ctl, grib2ctl, gribmap, cnvgrib, \
+           __removeGrib2FilesAfterGrib1FilesCreated__, _removeVars_, cnvgrib, \
+           __fcst_step_hour__, __anl_step_hour__, g2ctl, grib2ctl, gribmap, \
            __anl_aavars_reference_time__, _reverseLatitude_, __wgrib2Arguments__
     
     print "doShuffleVarsInOrder Begins"
@@ -2498,11 +2516,13 @@ def doShuffleVarsInOrder(fpath):
             ctlfile = open(g1filepath+'.ctl', 'w')
             if __outFileType__ in ['ana', 'anl']:
                 # create ctl & idx files for analysis file 
-                subprocess.call([grib2ctl, '-ts6hr', g1filepath], stdout=ctlfile)
-                subprocess.call([gribmap, '-ts6hr', '-0', '-i', g1filepath+'.ctl'])
+                tsahr = '-ts%dhr' %  int(__anl_step_hour__)
+                subprocess.call([grib2ctl, tsahr, g1filepath], stdout=ctlfile)
+                subprocess.call([gribmap, tsahr, '-0', '-i', g1filepath+'.ctl'])
             elif __outFileType__ in ['prg', 'fcst']:
                 # create ctl & idx files for forecast file
-                subprocess.call([grib2ctl, '-ts6hr', '-verf', g1filepath], stdout=ctlfile)
+                tsfhr = '-ts%dhr' %  int(__fcst_step_hour__)
+                subprocess.call([grib2ctl, tsfhr, '-verf', g1filepath], stdout=ctlfile)
                 subprocess.call([gribmap, '-i', g1filepath+'.ctl'])
             else:
                 raise ValueError("unknown file type while executing grib2ctl.pl!!")
@@ -2529,11 +2549,13 @@ def doShuffleVarsInOrder(fpath):
         # create ctl & idx files for forecast file        
         if __outFileType__ in ['ana', 'anl'] and __anl_aavars_reference_time__ == 'analysis':
             # -0 will set the base reference time as analysis utc time. 
-            subprocess.call([g2ctl, '-ts6hr', '-0', g2filepath], stdout=ctlfile)
+            tsahr = '-ts%dhr' %  int(__anl_step_hour__)
+            subprocess.call([g2ctl, tsahr, '-0', g2filepath], stdout=ctlfile)
             subprocess.call([gribmap, '-0', '-i', g2filepath+'.ctl'])   
         else:
             # by default -verf as passed which takes end time of fcst bounds to set as base time.
-            subprocess.call([g2ctl, '-ts6hr', '-verf', g2filepath], stdout=ctlfile)
+            tsfhr = '-ts%dhr' %  int(__fcst_step_hour__)
+            subprocess.call([g2ctl, tsfhr, '-verf', g2filepath], stdout=ctlfile)
             subprocess.call([gribmap, '-i', g2filepath+'.ctl'])                
         print "Successfully created control and index file using g2ctl !", g2filepath+'.ctl'
     # end of if __removeGrib2FilesAfterGrib1FilesCreated__:    
@@ -2604,7 +2626,6 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
         # closing and joining master pools
         pool.close()     
         pool.join()
-        
         # parallel end - 3        
     # end of if ftype in ['fcst', 'forecast']: 
     print "Total time taken to convert and re-order all files was: %8.5f seconds \n" % (time.time()-_startT_)
