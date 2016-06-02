@@ -88,7 +88,7 @@ g2ctl = "/gpfs2/home/umtid/Softwares/grib2ctl/g2ctl.pl"
 grib2ctl = "/gpfs2/home/umtid/Softwares/grib2ctl/grib2ctl.pl"
 gribmap = "/gpfs1/home/Libs/GNU/GRADS/grads-2.0.2.oga.1/Contents/gribmap"
 cnvgrib = "/gpfs1/home/Libs/INTEL/CNVGRIB/CNVGRIB-1.4.1/cnvgrib-1.4.1/cnvgrib"
-wgrib2 = "/gpfs1/home/Libs/GNU/WGRIB2/v2.0.1/wgrib2"
+wgrib2 = "/gpfs1/home/Libs/GNU/WGRIB2/v2.0.4/wgrib2/wgrib2"
 
 # other global variables
 __LPRINT__ = False
@@ -110,6 +110,8 @@ __anl_aavars_time_bounds__ = True
 __grib1FilesNameSuffix__ = '.grib1'
 # flag for removing grib2 files after grib1 has been converted 
 __removeGrib2FilesAfterGrib1FilesCreated__ = False
+# fill fully masked vars with this value.
+__fillFullyMaskedVars__ = None
 
 # Defining default out grib2 file name structure for analysis 
 __anlFileNameStructure__ = ('um_ana', '_', '*HHH*', 'hr', '_', 
@@ -1460,7 +1462,8 @@ def regridAnlFcstFiles(arg):
            __anlFileNameStructure__, __fcstFileNameStructure__, __LPRINT__, \
            __fcst_step_hour__, __anl_step_hour__, _targetGridFile_, __UMtype__, \
            _precipVars_, _requiredPressureLevels_, __anl_aavars_reference_time__, \
-           __anl_aavars_time_bounds__, _extraPolateMethod_, _maskOverOceanVars_ 
+           __anl_aavars_time_bounds__, _extraPolateMethod_, _maskOverOceanVars_, \
+           __fillFullyMaskedVars__ 
    
     fpname, hr = arg 
     
@@ -1846,6 +1849,24 @@ def regridAnlFcstFiles(arg):
                 # keep the fill_value / missingValue as 9.999e+20 only.
                 numpy.ma.set_fill_value(regdCube.data, 9.999e+20)    
             # end of if exmode == 'mask':
+                        
+            if __fillFullyMaskedVars__ is not None and isinstance(regdCube.data, numpy.ma.masked_array):
+                # yes, it is ma array
+                if regdCube.data.mask.all():
+                    # Now data is fully masked. So lets fill with user passed value.
+                    # And still create ma array
+                    regdCube.data = regdCube.data.filled(__fillFullyMaskedVars__)
+                    print "filled masked vars", regdCube.data
+                    regdCube.data = numpy.ma.masked_array(regdCube.data.filled(__fillFullyMaskedVars__),
+                                                         fill_value=9.999e+20) 
+                elif regdCube.data.min() == regdCube.data.max():
+                    # Both min and max are same value. But its mask is not fully True.
+                    # So previous condition not executed, anyhow lets set 
+                    # fully the value of fillFullyMaskedVars.
+                    print "Both min and max are same. So lets fillFullyMaskedVars as", __fillFullyMaskedVars__ 
+                    regdCube.data = numpy.ma.masked_array(regdCube.data.filled(__fillFullyMaskedVars__), 
+                                                        fill_value=9.999e+20)
+            # end of if __fillFullyMaskedVars__ and ...:
             
             print "regrid done"
             print "after regrid", varName, regdCube.data.min(), regdCube.data.max() 
@@ -1977,7 +1998,7 @@ def regridAnlFcstFiles(arg):
                 print " So skipping this without saving data"
                 continue
             # end of try:
-            print "saved"
+            print "saved"            
             # make memory free 
             del regdCube, tmpCube
         # end of for fhr in fcstHours:
@@ -2859,7 +2880,8 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
        __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, \
        _removeVars_, _requiredPressureLevels_, __setGrib2TableParameters__, \
        __wgrib2Arguments__, __soilFirstSecondFixedSurfaceUnit__,  __UMtype__, \
-       __start_long_fcst_hour__, _extraPolateMethod_, _targetGridFile_
+       __start_long_fcst_hour__, _extraPolateMethod_, _targetGridFile_, \
+       __fillFullyMaskedVars__
      
     # load key word arguments
     UMtype = kwarg.get('UMtype', 'global')    
@@ -2874,6 +2896,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     latitude = kwarg.get('latitude', None)
     longitude = kwarg.get('longitude', None)
     pressureLevels = kwarg.get('pressureLevels', None)
+    fillFullyMaskedVars = kwarg.get('fillFullyMaskedVars', None)
     extraPolateMethod = kwarg.get('extraPolateMethod', 'auto')
     soilFirstSecondFixedSurfaceUnit = kwarg.get('soilFirstSecondFixedSurfaceUnit', 'cm')
     fcst_step_hour = kwarg.get('fcst_step_hour', 6)
@@ -2910,6 +2933,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     _targetGridFile_ = targetGridFile
     _extraPolateMethod_ = extraPolateMethod      
     _requiredPressureLevels_ = pressureLevels    
+    __fillFullyMaskedVars__ = fillFullyMaskedVars
     __soilFirstSecondFixedSurfaceUnit__ = soilFirstSecondFixedSurfaceUnit
     _createGrib2CtlIdxFiles_ = createGrib2CtlIdxFiles
     _createGrib1CtlIdxFiles_ = createGrib1CtlIdxFiles
@@ -3068,7 +3092,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
        __setGrib2TableParameters__, __anl_aavars_reference_time__, \
        __anl_aavars_time_bounds__, _reverseLatitude_, __wgrib2Arguments__, \
        __soilFirstSecondFixedSurfaceUnit__, _extraPolateMethod_, _targetGridFile_, \
-       __UMtype__  
+       __UMtype__, __fillFullyMaskedVars__  
            
     # load key word arguments
     UMtype = kwarg.get('UMtype', 'global')
@@ -3084,6 +3108,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     latitude = kwarg.get('latitude', None)
     longitude = kwarg.get('longitude', None)
     pressureLevels = kwarg.get('pressureLevels', None)
+    fillFullyMaskedVars = kwarg.get('fillFullyMaskedVars', None)
     extraPolateMethod = kwarg.get('extraPolateMethod', 'auto')
     soilFirstSecondFixedSurfaceUnit = kwarg.get('soilFirstSecondFixedSurfaceUnit', 'cm')
     anl_step_hour = kwarg.get('anl_step_hour', 6)
@@ -3119,6 +3144,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     _targetGridFile_ = targetGridFile
     _extraPolateMethod_ = extraPolateMethod  
     _requiredPressureLevels_ = pressureLevels    
+    __fillFullyMaskedVars__ = fillFullyMaskedVars
     __soilFirstSecondFixedSurfaceUnit__ = soilFirstSecondFixedSurfaceUnit
     _createGrib2CtlIdxFiles_ = createGrib2CtlIdxFiles
     _createGrib1CtlIdxFiles_ = createGrib1CtlIdxFiles

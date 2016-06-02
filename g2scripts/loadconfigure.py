@@ -75,6 +75,7 @@ fcst_step_hour = eval(cdic.get('fcst_step_hour', '6'))
 start_long_fcst_hour = eval(cdic.get('start_long_fcst_hour', '6'))
 end_long_fcst_hour_at_00z = eval(cdic.get('end_long_fcst_hour_at_00z', '240'))
 end_long_fcst_hour_at_12z = eval(cdic.get('end_long_fcst_hour_at_12z', '120'))
+fillFullyMaskedVars = eval(cdic.get('fillFullyMaskedVars', 'None'))
 anlOutGrib2FilesNameStructure = eval(cdic.get('anlOutGrib2FilesNameStructure', 'None'))
 fcstOutGrib2FilesNameStructure = eval(cdic.get('fcstOutGrib2FilesNameStructure','None'))
 createGrib2CtlIdxFiles = eval(cdic.get('createGrib2CtlIdxFiles', 'True'))
@@ -126,6 +127,10 @@ if requiredLon:
 else:
     print "Will be loaded full model global longitudes"
 # end of if requiredLon:
+
+if fillFullyMaskedVars:
+    if not isinstance(fillFullyMaskedVars, (int, float)):
+        raise ValueError("fillFullyMaskedVars must be either interger or float")
 
 # check the variable's path 
 for name, path in [('inPath', inPath), ('outPath', outPath), ('tmpPath', tmpPath)]:
@@ -219,6 +224,7 @@ print "start_long_fcst_hour = ", start_long_fcst_hour
 print "fcst_step_hour = ", fcst_step_hour
 print "end_long_fcst_hour_at_00z = ", end_long_fcst_hour_at_00z
 print "end_long_fcst_hour_at_12z = ", end_long_fcst_hour_at_12z
+print "fillFullyMaskedVars = ", fillFullyMaskedVars
 if anlOutGrib2FilesNameStructure: print "anlOutGrib2FilesNameStructure = ", anlOutGrib2FilesNameStructure
 if fcstOutGrib2FilesNameStructure: print "fcstOutGrib2FilesNameStructure = ", fcstOutGrib2FilesNameStructure
 print "createGrib2CtlIdxFiles = ", createGrib2CtlIdxFiles

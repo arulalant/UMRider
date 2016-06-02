@@ -21,7 +21,7 @@ from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                    removeGrib2FilesAfterGrib1FilesCreated, pressureLevels, \
                    callBackScript, setGrib2TableParameters, wgrib2Arguments, \
                    soilFirstSecondFixedSurfaceUnit, UMtype, targetGridFile, \
-                   UMInLongFcstFiles
+                   UMInLongFcstFiles, fillFullyMaskedVars
 
 if loadg2utils == 'system':
     # Load g2utils from system python which has installed through setup.py
@@ -64,6 +64,7 @@ while sDay <= eDay:
              date=startdate, utc='12', convertVars=neededVars,
                   latitude=requiredLat, longitude=requiredLon, 
                                 pressureLevels=pressureLevels,
+                      fillFullyMaskedVars=fillFullyMaskedVars,                                
 soilFirstSecondFixedSurfaceUnit=soilFirstSecondFixedSurfaceUnit,
          fcstFileNameStructure=fcstOutGrib2FilesNameStructure, 
                 createGrib2CtlIdxFiles=createGrib2CtlIdxFiles,
