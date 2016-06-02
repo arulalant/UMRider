@@ -1,23 +1,31 @@
 # Change Log
 
-## [v1.0.2g](https://github.com/NCMRWF/UMRider/tree/v1.0.2g) (2016-05-26)
+## [v1.0.2g](https://github.com/NCMRWF/UMRider/tree/v1.0.2g) (2016-06-02)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.2b...v1.0.2g)
 
 **Implemented enhancements:**
 
+- Need option to pass UMInAnlFiles, UMInShortFcstFiles & UMInLongFcstFiles [\#105](https://github.com/NCMRWF/UMRider/issues/105)
 - Need to support Cyclone Tracker   [\#91](https://github.com/NCMRWF/UMRider/issues/91)
+- support for Solar Energy Input [\#108](https://github.com/NCMRWF/UMRider/pull/108) ([arulalant](https://github.com/arulalant))
 - support for tc tracker input and more [\#102](https://github.com/NCMRWF/UMRider/pull/102) ([arulalant](https://github.com/arulalant))
 
 **Fixed bugs:**
 
 - Slicing lat, lon is not happening when regrid is set to None [\#99](https://github.com/NCMRWF/UMRider/issues/99)
+- support for Solar Energy Input [\#108](https://github.com/NCMRWF/UMRider/pull/108) ([arulalant](https://github.com/arulalant))
 
 **Closed issues:**
 
+- Fill missing values if fully masked  [\#110](https://github.com/NCMRWF/UMRider/issues/110)
+- Need to support for UM Global model for Solar Energy Input [\#101](https://github.com/NCMRWF/UMRider/issues/101)
 - Need to support for UM REG model for Wind Energy Input [\#100](https://github.com/NCMRWF/UMRider/issues/100)
 
 **Merged pull requests:**
 
+- support for fillFullyMaskedVars option [\#111](https://github.com/NCMRWF/UMRider/pull/111) ([arulalant](https://github.com/arulalant))
+- fixed range of file in bash listing [\#109](https://github.com/NCMRWF/UMRider/pull/109) ([arulalant](https://github.com/arulalant))
+- 	support for UMInAnlFiles; UMInShortFcstFiles; UMInLongFcstFiles options [\#106](https://github.com/NCMRWF/UMRider/pull/106) ([arulalant](https://github.com/arulalant))
 - production support of Wind Energry and TC-Tracker Input [\#104](https://github.com/NCMRWF/UMRider/pull/104) ([arulalant](https://github.com/arulalant))
 - support for regional Wind Energy Input [\#103](https://github.com/NCMRWF/UMRider/pull/103) ([arulalant](https://github.com/arulalant))
 
