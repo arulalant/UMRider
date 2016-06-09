@@ -30,6 +30,14 @@ ncumSTASH_Vs_cf = {
 'm01s15i213': ('y_wind', None, 'm s-1', 50),
 }
 
+duplicateSTASH_vs_cf = {
+# duplicate STASH but cell_methods are different, variables comes here.
+# STASH : {cell_method1 : (standard_name, long_name, unit, height),
+#          cell_method2 : (standard_name, long_name, unit, height)}
+'m01s03i236': {'maximum': (None, 'air_temperature_maximum', 'K', None),
+               'minimum': (None, 'air_temperature_minimum', 'K', None)}
+}
+
 G2Param_vs_cf = {
 # whose  surface level type as top of atmosphere (8)
 # grib version, discipline, parameter category, parameter no, typeOfFirstFixedSurface
@@ -83,6 +91,22 @@ def update_cf_standard_name(cube, field, filename):
                 heightAx = DimCoord(array([float(height)]), standard_name='height',
                              units=Unit('m'), attributes={'positive': 'up'})
                 cube.add_aux_coord(heightAx) 
+        elif varSTASH in duplicateSTASH_vs_cf:
+            ccm = cube.cell_methods
+            if ccm:
+                ccmm = ccm[0].method 
+                if ccmm in duplicateSTASH_vs_cf[varSTASH]:
+                    # get correct standard_name, units and height 
+                    sname, lname, unit, height = duplicateSTASH_vs_cf[varSTASH][ccmm]
+                    # update cube's standard_name and its units
+                    cube.standard_name = sname
+                    cube.long_name = lname
+                    cube.units = Unit(unit)
+                    if height:
+                        heightAx = DimCoord(array([float(height)]), standard_name='height',
+                                     units=Unit('m'), attributes={'positive': 'up'})
+                        cube.add_aux_coord(heightAx)                        
+            # end of if ccm:
         # end of if varSTASH in ncumSTASH_Vs_cf:
     elif isinstance(field, GribWrapper):
         # loading from grib file
