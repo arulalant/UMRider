@@ -73,6 +73,8 @@ __end_long_fcst_hour__ = 240
 __grib1FilesNameSuffix__ = '.grib1'
 # flag for removing grib2 files after grib1 has been converted 
 __removeGrib2FilesAfterGrib1FilesCreated__ = False
+# fill fully masked vars with this value.
+__fillFullyMaskedVars__ = None
 
 # Defining default out grib2 file name structure for analysis 
 __anlFileNameStructure__ = ('um_ana', '_', '*HHH*', 'hr', '_', 
@@ -95,6 +97,8 @@ _opPath_ = None
 _doRegrid_ = False
 _targetGrid_ = None
 _targetGridRes_ = None
+_targetGridFile_ = ''
+_reverseLatitude_ = False
 _requiredLat_ = None
 _requiredLon_ = None
 _requiredPressureLevels_ = None
@@ -104,6 +108,7 @@ _createGrib1CtlIdxFiles_ = False
 _convertGrib2FilestoGrib1Files_ = False
 __setGrib2TableParameters__ = None
 __wgrib2Arguments__ = None
+_extraPolateMethod_ = 'auto'
 _ensemble_count_ = 44
 __UMtype__ = 'ensemble'
 # store out grib2 files name for the purpose of creat ctl files in parallel
@@ -186,6 +191,12 @@ _orderedVars_ = {'PressureLevel': [
 # The following variables cell_methods should show accumulated/sum, but 
 # UM pp code doesnt support for accumulation. So lets fix it here ! 
 _accumulationVars_ = [('precipitation_amount', 'm01s05i226'),]                      
+
+#Define _precipVars_
+# The following vars should contains only precipitation, rainfall, snow 
+# variables, those whose regrid extrapolate should be only in 'linear' mode
+# and not in 'mask' mode, and should not have -ve values.
+_precipVars_ = [('precipitation_amount', 'm01s05i226'),]
 
 ## Define _ncfilesVars_
 ## the following variables need to be written into nc file, initially for 
@@ -320,7 +331,9 @@ def packEnsembles(arg):
     global _targetGrid_, _targetGridRes_,  _startT_, _inDataPath_, _opPath_, \
             _preExtension_, _ncfilesVars_, _requiredLat_, _requiredLon_, \
             _doRegrid_, __utc__, _requiredPressureLevels_, __LPRINT__, \
-            __outg2files__, _lock_, _accumulationVars_, __fcst_step_hour__
+            __outg2files__, _lock_, _accumulationVars_, __fcst_step_hour__, \
+            _targetGridFile_, _extraPolateMethod_, _extraPolateMethod_, \
+             _reverseLatitude_, _precipVars_, _maskOverOceanVars_
            
     infiles, varNamesSTASHFcstHour = arg
     varName, varSTASH, fhr = varNamesSTASHFcstHour
@@ -379,32 +392,123 @@ def packEnsembles(arg):
             ## instead of 6 pseudo_level data.
             print "- min", ensCube.data.min(), "max", ensCube.data.max(),
             print "has_lazy_data =", ensCube.has_lazy_data()
-        # end of if ensCube.has_lazy_data():
-
+        # end of if ensCube.has_lazy_data():        
+        exmode = None # required, when user didnt do any regrid
         # interpolate it as per targetGridResolution deg resolution by 
-        # setting up sample points based on coord        
+        # setting up sample points based on coord 
         if _doRegrid_:
-            print "\n Regridding data to %sx%s degree spatial resolution \n" % (_targetGridRes_, _targetGridRes_)
-            if __LPRINT__: print "From shape", ensCube.shape 
-            try:
-                # This lienar interpolate will do extra polate over ocean even 
-                # though original data doesnt have values over ocean and wise versa.
-                # So lets be aware of this.
+            if __LPRINT__: print "From shape", ensCube.shape                    
+            if (varName, varSTASH) in _precipVars_:
                 # DO NOT APPLY iris.analysis.Linear(extrapolation_mode='mask'), 
                 # which writes nan every where for the snowfall_flux,  
-                # rainfall_flux, precipitation_flux. So donot apply that.               
-                ensCube = ensCube.interpolate(_targetGrid_, iris.analysis.Linear())
-            except Exception as e:
-                print "ALERT !!! Error while regridding!! %s" % str(e)
-                print " So skipping this without saving data"
-                continue
-            # end of try:              
-        # end of if _doRegrid_:
+                # rainfall_flux, precipitation_flux. So donot apply that.         
+                exmode = 'linear'
+            else:
+                # In general all the other variables should not be 
+                # extrapolated over masked grid points.
+                exmode = 'mask'
+            # end of if (...):
+            # However, if user specified custom method do that!                
+            exmode = _extraPolateMethod_ if _extraPolateMethod_ != 'auto' else exmode
+            # but make sure that soil variables (or whichever variables do not have values over ocean)
+            # do not extrapolate over ocean/masked regions. Otherwise, it will write only nan.
+            exmode = 'mask' if varName in _maskOverOceanVars_ else exmode
                 
+            if os.path.isfile(_targetGridFile_):
+                print "\n Regridding data to %s degree spatial resolution based on file %s\n" % (_targetGrid_.shape, _targetGridFile_) 
+                # Do regrid based on user specfied target grid file.
+                scheme = iris.analysis.Linear(extrapolation_mode=exmode)
+                regdCube = ensCube.regrid(_targetGrid_, scheme)
+                print "regrid data shape", regdCube.shape 
+            else:           
+                # Do regrid based on user specfied target grid resolution number.
+                print "\n Regridding data to %sx%s degree spatial resolution \n" % (_targetGridRes_, _targetGridRes_)                    
+                try:
+                    # This lienar interpolate will do extra polate over ocean even 
+                    # though original data doesnt have values over ocean and wise versa.
+                    # So lets be aware of this.                    
+                    regdCube = ensCube.interpolate(_targetGrid_, iris.analysis.Linear(extrapolation_mode=exmode))
+                except Exception as e:
+                    print "ALERT !!! Error while regridding!! %s" % str(e)
+                    print " So skipping this without saving data"
+                    continue
+                # end of try:      
+        else:
+            # do not apply regrid. this is temporary fix. 
+            regdCube = ensCube
+        # end of if _doRegrid_:
+
+        if _reverseLatitude_:
+            # Need to reverse latitude from SN to NS
+            rcsh = len(regdCube.data.shape)
+            if rcsh == 3:
+                regdCube.data = regdCube.data[:,::-1,:]
+            elif rcsh == 2:
+                regdCube.data = regdCube.data[::-1,:]
+            lat = regdCube.coords('latitude')[0]
+            lat.points = lat.points[::-1]
+        # end of if _reverseLatitude_:
+        
+        if (varName, varSTASH) in _precipVars_:
+            # Since we are not using 'mask' option for extrapolate while 
+            # doing linear regrid, which bring -ve values after regrid in 
+            # extrapolated grids. So lets make it as 0 as minimum value.
+            regdCube.data[regdCube.data < 0.0] = 0.0
+        # end of if (varName, varSTASH) in _precipVars_:
+        
+        if (varName, varSTASH) in [('land_binary_mask', 'm01s00i030')]:
+            regdCube.data[regdCube.data > 0] = 1
+            # trying to keep values either 0 or 1. Not fraction!
+            regdCube.data = numpy.ma.array(regdCube.data, dtype=numpy.int)            
+        # end of if (varName, varSTASH) in [('land_binary_mask', 'm01s00i030')]:
+        
+        if exmode == 'mask':
+            # For the above set of variables we shouldnot convert into 
+            # masked array. Otherwise its full data goes as nan.                
+            # convert data into masked array
+            regdCube.data = numpy.ma.masked_array(regdCube.data, 
+                                dtype=numpy.float64, fill_value=9.999e+20) 
+            
+            if (varName, varSTASH) in [('moisture_content_of_soil_layer', 'm01s08i223'),
+                                       ('sea_ice_area_fraction', 'm01s00i031'),
+                                       ('sea_ice_thickness', 'm01s00i032'),]:
+                    # We should assign 0 instead 1e-15 only for this var!
+                    regdCube.data[regdCube.data <= 1e-15] = 0.0
+            elif (varName, varSTASH) == ('soil_temperature', 'm01s03i238'):
+                # We should assign min instead 1e-15 only for this var!
+                # because 0 will not make sense when temperature unit is Kelvin
+                nmin = numpy.ma.masked_less_equal(regdCube.data, 1e-15).min()
+                regdCube.data[regdCube.data <= 1e-15] = nmin
+            # http://www.cpc.ncep.noaa.gov/products/wesley/g2grb.html
+            # Says that 9.999e+20 value indicates as missingValue in grib2
+            # by default g2ctl.pl generate "undefr 9.999e+20", so we must 
+            # keep the fill_value / missingValue as 9.999e+20 only.
+            numpy.ma.set_fill_value(regdCube.data, 9.999e+20)    
+        # end of if exmode == 'mask':
+                    
+        if __fillFullyMaskedVars__ is not None and isinstance(regdCube.data, numpy.ma.masked_array):
+            # yes, it is ma array
+            if regdCube.data.mask.all():
+                # Now data is fully masked. So lets fill with user passed value.
+                # And still create ma array
+                regdCube.data = regdCube.data.filled(__fillFullyMaskedVars__)
+                print "filled masked vars", regdCube.data
+                regdCube.data = numpy.ma.masked_array(regdCube.data.filled(__fillFullyMaskedVars__),
+                                                     fill_value=9.999e+20) 
+            elif regdCube.data.min() == regdCube.data.max():
+                # Both min and max are same value. But its mask is not fully True.
+                # So previous condition not executed, anyhow lets set 
+                # fully the value of fillFullyMaskedVars.
+                print "Both min and max are same. So lets fillFullyMaskedVars as", __fillFullyMaskedVars__ 
+                regdCube.data = numpy.ma.masked_array(regdCube.data.filled(__fillFullyMaskedVars__), 
+                                                    fill_value=9.999e+20)
+        # end of if __fillFullyMaskedVars__ and ...:            
+        print "regrid done"        
+
         # introduce ensemble dimension at first axis 
-        dshape = list(ensCube.data.shape)
+        dshape = list(regdCube.data.shape)
         dshape.insert(0, 1)    
-        ensembleData = ensCube.data.reshape(dshape)
+        ensembleData = regdCube.data.reshape(dshape)
             
         print "taken into memory of all ensembles", ensembleData.shape 
         # convert data into masked array
@@ -431,22 +535,22 @@ def packEnsembles(arg):
                                                     long_name='ensemble_member')
                                                                                                 
         # get list of dimension coordinates
-        dim_coords = list(ensCube.dim_coords)
+        dim_coords = list(regdCube.dim_coords)
         # insert ensemble dimension at first axis 
         dim_coords.insert(0, enscoord)
         # generate list of tuples contain index and coordinate
         dim_coords = [(coord, i) for i,coord in enumerate(dim_coords)]
         # get all other dimensions
-        aux_coords = list(ensCube.aux_coords)
-        aux_factories = ensCube.aux_factories
-        t = ensCube.coords('time')[0]
-        fp = ensCube.coords('forecast_period')[0]
-        ft = ensCube.coords('forecast_reference_time')[0]
+        aux_coords = list(regdCube.aux_coords)
+        aux_factories = regdCube.aux_factories
+        t = regdCube.coords('time')[0]
+        fp = regdCube.coords('forecast_period')[0]
+        ft = regdCube.coords('forecast_reference_time')[0]
         # create ensemble packed cubes 
-        ensembleData = iris.cube.Cube(ensembleData, ensCube.standard_name, 
-                                 ensCube.long_name, ensCube.var_name,
-                                   ensCube.units, ensCube.attributes, 
-                                       ensCube.cell_methods, dim_coords)
+        ensembleData = iris.cube.Cube(ensembleData, regdCube.standard_name, 
+                                 regdCube.long_name, regdCube.var_name,
+                                   regdCube.units, regdCube.attributes, 
+                                       regdCube.cell_methods, dim_coords)
         # add all time coordinates
         print "setting aux_coords to", ensembleData.shape, varName, fhr 
         ensembleData.add_aux_coord(fp)
@@ -456,7 +560,7 @@ def packEnsembles(arg):
         cm = iris.coords.CellMethod('realization', ('realization',), 
                                intervals=('1',), comments=(' ENS',))
         # add cell_methods to the ensembleData                        
-        if ensCube.cell_methods:
+        if regdCube.cell_methods:
             if (varName, varSTASH) in _accumulationVars_:
                 # The following variables cell_methods should show accumulated/sum, but 
                 # UM pp code doesnt support for accumulation. So lets fix it here ! 
@@ -464,12 +568,12 @@ def packEnsembles(arg):
                                intervals=('1 hour',), comments=('6 hour accumulation',))
                 ensembleData.cell_methods = (cm, cm1)
             else:             
-                ensembleData.cell_methods = (cm, ensCube.cell_methods[0])
+                ensembleData.cell_methods = (cm, regdCube.cell_methods[0])
         else:
             ensembleData.cell_methods = (cm,)
         print ensembleData
         # make memory free 
-        del ensCube  
+        del regdCube  
     
         print "To ensembleData shape", ensembleData.shape  
 
@@ -964,11 +1068,13 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
        __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, \
        _removeVars_, _requiredPressureLevels_, __setGrib2TableParameters__, \
         __outg2files__, __start_long_fcst_hour__, __wgrib2Arguments__, \
-        __UMtype__, _preExtension_
+        __UMtype__, _preExtension_, _extraPolateMethod_, _targetGridFile_, \
+       __fillFullyMaskedVars__, _reverseLatitude_
      
     # load key word arguments
     UMtype = kwarg.get('UMtype', 'ensemble')
-    targetGridResolution = kwarg.get('targetGridResolution', 0.25)
+    targetGridResolution = kwarg.get('targetGridResolution', None)
+    targetGridFile = kwarg.get('targetGridFile', '')
     date = kwarg.get('date', time.strftime('%Y%m%d'))
     utc = kwarg.get('utc', '00')
     overwrite = kwarg.get('overwrite', False)
@@ -977,6 +1083,8 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     latitude = kwarg.get('latitude', None)
     longitude = kwarg.get('longitude', None)
     pressureLevels = kwarg.get('pressureLevels', None)
+    fillFullyMaskedVars = kwarg.get('fillFullyMaskedVars', None)
+    extraPolateMethod = kwarg.get('extraPolateMethod', 'auto')
     fcst_step_hour = kwarg.get('fcst_step_hour', 6)
     start_long_fcst_hour = kwarg.get('start_long_fcst_hour', 6)
     end_long_fcst_hour = kwarg.get('end_long_fcst_hour', 240)
@@ -1007,9 +1115,12 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     __removeGrib2FilesAfterGrib1FilesCreated__ = removeGrib2FilesAfterGrib1FilesCreated
     __grib1FilesNameSuffix__ = grib1FilesNameSuffix
     _targetGridRes_ = str(targetGridResolution)
+    _targetGridFile_ = targetGridFile
     _requiredLat_ = latitude
     _requiredLon_ = longitude
     _requiredPressureLevels_ = pressureLevels    
+    _extraPolateMethod_ = extraPolateMethod
+    __fillFullyMaskedVars__ = fillFullyMaskedVars
     _createGrib2CtlIdxFiles_ = createGrib2CtlIdxFiles
     _createGrib1CtlIdxFiles_ = createGrib1CtlIdxFiles
     _convertGrib2FilestoGrib1Files_ = convertGrib2FilestoGrib1Files
@@ -1084,26 +1195,55 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     _opPath_ = os.path.join(outPath, _current_date_)
     createDirWhileParallelRacing(_opPath_) 
         
-    if targetGridResolution is None:
-        _doRegrid_ = False  
+    # define default global lat start, lon end points
+    slat, elat = (-90., 90.)
+    # define default global lon start, lon end points 
+    slon, elon = (0., 360.)
+    # define user defined custom lat & lon start and end points
+    if latitude: 
+        (slat, elat) = latitude        
+        if slat > elat:
+            # just make sure while extracting south to north
+            slat, elat = elat, slat            
+            # and reverse while saving into grib2 file.
+            _reverseLatitude_ = True
+        # end of if slat > elat:
+        _requiredLat_ = (slat, elat)
+    # end of if latitude: 
+    
+    if os.path.isfile(_targetGridFile_):
+        # load target grid from user specfied file and make it as target grid.
+        _targetGrid_ = iris.load(_targetGridFile_)[0]
+        _doRegrid_ = True   
+    elif targetGridResolution is None:
+        _doRegrid_ = False
+        if longitude: (slon, elon) = longitude
+        # reduce one step if user passed / default lon is 360. If we write 
+        # longitude from 0 upto 360, wgrib2 reads it as 0 to 0. To avoid it, 
+        # just reduct one small step in longitude only incase of 360.
+        if int(elon) == 360: elon -= 0.0001
+        if longitude: _requiredLon_ = (slon, elon)
     else:
         if not isinstance(targetGridResolution, (int, float)):
-            raise ValueError("targetGridResolution must be either int or float")
-        # define default global lat start, lon end points
-        slat, elat = (-90., 90.)
-        # define default global lon start, lon end points 
-        slon, elon = (0., 360.)
-        # define user defined custom lat & lon start and end points
-        if latitude: (slat, elat) = latitude
+            raise ValueError("targetGridResolution must be either int or float")        
         if longitude: (slon, elon) = longitude
+        # reduce one step if user passed / default lon is 360. If we write 
+        # longitude from 0 upto 360, wgrib2 reads it as 0 to 0. To avoid it, 
+        # just reduct one step in longitude only incase of 360.
+        if int(elon) == 360: elon -= targetGridResolution 
+        if longitude: _requiredLon_ = (slon, elon)
         # target grid as 0.25 deg (default) resolution by setting up sample points 
-        # based on coord    
-        _targetGrid_ = [('latitude', numpy.arange(slat, 
-                          elat+targetGridResolution, targetGridResolution)),
-                        ('longitude', numpy.arange(slon, 
-                          elon+targetGridResolution, targetGridResolution))]
-        _doRegrid_ = True  
-    # end of if targetGridResolution is None:
+        # based on coord
+        # generate lat, lon values
+        latpoints = numpy.arange(slat, elat+targetGridResolution, targetGridResolution)
+        lonpoints = numpy.arange(slon, elon+targetGridResolution, targetGridResolution)
+        # correct lat, lon end points 
+        if latpoints[-1] > elat: latpoints = latpoints[:-1]
+        if lonpoints[-1] > elon: lonpoints = lonpoints[:-1]
+        # set target grid lat, lon values pair                   
+        _targetGrid_ = [('latitude', latpoints), ('longitude', lonpoints)]
+        _doRegrid_ = True        
+    # end of iif os.path.isfile(_targetGridFile_):
     
     # check either files are exists or not. delete the existing files in case
     # of overwrite option is True, else return without re-converting files.
@@ -1122,8 +1262,8 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
         outg2files = [inf for inf in os.listdir(_opPath_) if 'hr' in inf if _preExtension_ in inf]
         listOfInOutFiles = []
         for fname in outg2files:
-            outFn = os.path.join(_opPath_, fname.replace(_preExtension_, ''))
             inFn = os.path.join(_opPath_, fname)
+            outFn = os.path.join(_opPath_, fname.replace(_preExtension_, ''))
             listOfInOutFiles.append((inFn, outFn))
         # end of for fname in outg2files:
         
@@ -1191,7 +1331,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
         if not os.path.exists(callBackScript): 
             print "callBackScript '%s' doenst exist" % callBackScript
             return 
-        kwargs = ' --date=%s --outpath=%s --oftype=forecast --utc=%s' % (_current_date_, _opPath_, utc)
+        kwargs = ' --date=%s --outpath=%s --oftype=forecast --utc=%s --start_long_fcst_hour=%d --end_long_fcst_hour=%d' % (_current_date_, _opPath_, utc, start_long_fcst_hour, end_long_fcst_hour)
         scriptExecuteCmd = callBackScript + ' ' + kwargs
         # execute user defined call back script with keyword arguments
         subprocess.call(scriptExecuteCmd, shell=True)
