@@ -1246,6 +1246,7 @@ def getCubeAttr(tmpCube):
     Original by MNRS
     """
     stdNm = tmpCube.standard_name
+    stdNm = stdNm if stdNm else tmpCube.long_name
     stash = str(tmpCube.attributes['STASH'])
     fcstTm = tmpCube.coord('forecast_period')
     refTm = tmpCube.coord('forecast_reference_time')
@@ -1463,7 +1464,7 @@ def regridAnlFcstFiles(arg):
            __fcst_step_hour__, __anl_step_hour__, _targetGridFile_, __UMtype__, \
            _precipVars_, _requiredPressureLevels_, __anl_aavars_reference_time__, \
            __anl_aavars_time_bounds__, _extraPolateMethod_, _maskOverOceanVars_, \
-           __fillFullyMaskedVars__ 
+           __fillFullyMaskedVars__,  _reverseLatitude_ 
    
     fpname, hr = arg 
     
@@ -3042,11 +3043,15 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
         if int(elon) == 360: elon -= targetGridResolution 
         if longitude: _requiredLon_ = (slon, elon)
         # target grid as 0.25 deg (default) resolution by setting up sample points 
-        # based on coord    
-        _targetGrid_ = [('latitude', numpy.arange(slat, 
-                          elat+targetGridResolution, targetGridResolution)),
-                        ('longitude', numpy.arange(slon, 
-                          elon+targetGridResolution, targetGridResolution))]
+        # based on coord
+        # generate lat, lon values
+        latpoints = numpy.arange(slat, elat+targetGridResolution, targetGridResolution)
+        lonpoints = numpy.arange(slon, elon+targetGridResolution, targetGridResolution)
+        # correct lat, lon end points 
+        if latpoints[-1] > elat: latpoints = latpoints[:-1]
+        if lonpoints[-1] > elon: lonpoints = lonpoints[:-1]
+        # set target grid lat, lon values pair                   
+        _targetGrid_ = [('latitude', latpoints), ('longitude', lonpoints)]
         _doRegrid_ = True        
     # end of iif os.path.isfile(_targetGridFile_):
     
@@ -3253,10 +3258,14 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
         if longitude: _requiredLon_ = (slon, elon)
         # target grid as 0.25 deg (default) resolution by setting up sample points 
         # based on coord    
-        _targetGrid_ = [('latitude', numpy.arange(slat, 
-                          elat+targetGridResolution, targetGridResolution)),
-                        ('longitude', numpy.arange(slon, 
-                          elon+targetGridResolution, targetGridResolution))]
+        # generate lat, lon values
+        latpoints = numpy.arange(slat, elat+targetGridResolution, targetGridResolution)
+        lonpoints = numpy.arange(slon, elon+targetGridResolution, targetGridResolution)
+        # correct lat, lon end points 
+        if latpoints[-1] > elat: latpoints = latpoints[:-1]
+        if lonpoints[-1] > elon: lonpoints = lonpoints[:-1]
+        # set target grid lat, lon values pair                   
+        _targetGrid_ = [('latitude', latpoints), ('longitude', lonpoints)]
         _doRegrid_ = True  
     # end of if os.path.isfile(_targetGridFile_):
     print "_reverseLatitude_ =", _reverseLatitude_ 
