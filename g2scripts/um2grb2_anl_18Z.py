@@ -22,7 +22,7 @@ from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                     setGrib2TableParameters, anl_aavars_reference_time, \
                     anl_aavars_time_bounds, wgrib2Arguments, UMInShortFcstFiles, \
                     soilFirstSecondFixedSurfaceUnit, UMtype, targetGridFile, \
-                    fillFullyMaskedVars
+                    fillFullyMaskedVars, extraPolateMethod
 
 if loadg2utils == 'system':
     # Load g2utils from system python which has installed through setup.py
@@ -65,7 +65,8 @@ while sDay <= eDay:
              date=startdate, utc='18', convertVars=neededVars, 
                   latitude=requiredLat, longitude=requiredLon,
                                 pressureLevels=pressureLevels,
-                      fillFullyMaskedVars=fillFullyMaskedVars,                                
+                      fillFullyMaskedVars=fillFullyMaskedVars,
+                          extraPolateMethod=extraPolateMethod,                                                   
 soilFirstSecondFixedSurfaceUnit=soilFirstSecondFixedSurfaceUnit,                                
            anlFileNameStructure=anlOutGrib2FilesNameStructure, 
                 createGrib2CtlIdxFiles=createGrib2CtlIdxFiles,

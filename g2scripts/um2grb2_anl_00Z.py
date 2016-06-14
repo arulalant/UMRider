@@ -19,7 +19,7 @@ from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                 removeGrib2FilesAfterGrib1FilesCreated, \
                 anl_step_hour, pressureLevels, callBackScript, \
                 setGrib2TableParameters, anl_aavars_reference_time, \
-                anl_aavars_time_bounds, wgrib2Arguments, \
+                anl_aavars_time_bounds, wgrib2Arguments, extraPolateMethod, \
                 soilFirstSecondFixedSurfaceUnit, UMtype, targetGridFile, \
                 UMInAnlFiles, UMInShortFcstFiles, fillFullyMaskedVars
 
@@ -64,7 +64,8 @@ while sDay <= eDay:
                     targetGridResolution=targetGridResolution, 
              date=startdate, utc='00', convertVars=neededVars, 
                   latitude=requiredLat, longitude=requiredLon,
-                                pressureLevels=pressureLevels, 
+                                pressureLevels=pressureLevels,
+                          extraPolateMethod=extraPolateMethod,
                        fillFullyMaskedVars=fillFullyMaskedVars,
 soilFirstSecondFixedSurfaceUnit=soilFirstSecondFixedSurfaceUnit,
             anlFileNameStructure=anlOutGrib2FilesNameStructure, 
