@@ -1,12 +1,31 @@
 # Change Log
 
+## [v1.0.2](https://github.com/NCMRWF/UMRider/tree/v1.0.2) (2016-06-14)
+[Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.2g...v1.0.2)
+
+**Implemented enhancements:**
+
+- Need wgrib2 commands argument in setup.cfg [\#94](https://github.com/NCMRWF/UMRider/issues/94)
+- Need to support Cyclone Tracker   [\#91](https://github.com/NCMRWF/UMRider/issues/91)
+- Support for latitude reverse NS instead of SN [\#87](https://github.com/NCMRWF/UMRider/issues/87)
+- Need to support ensemble pack in grib2 [\#25](https://github.com/NCMRWF/UMRider/issues/25)
+
+**Closed issues:**
+
+- Need to support for Global at 2.5 x 2.5 [\#84](https://github.com/NCMRWF/UMRider/issues/84)
+- U & V winds STASH Changed to Arakawa B Grids [\#81](https://github.com/NCMRWF/UMRider/issues/81)
+- Need support for NCUM Ensembles  [\#21](https://github.com/NCMRWF/UMRider/issues/21)
+
+**Merged pull requests:**
+
+- support of UM EPS Ensembles Packing Grib2 [\#112](https://github.com/NCMRWF/UMRider/pull/112) ([arulalant](https://github.com/arulalant))
+
 ## [v1.0.2g](https://github.com/NCMRWF/UMRider/tree/v1.0.2g) (2016-06-02)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.2b...v1.0.2g)
 
 **Implemented enhancements:**
 
 - Need option to pass UMInAnlFiles, UMInShortFcstFiles & UMInLongFcstFiles [\#105](https://github.com/NCMRWF/UMRider/issues/105)
-- Need to support Cyclone Tracker   [\#91](https://github.com/NCMRWF/UMRider/issues/91)
 - support for Solar Energy Input [\#108](https://github.com/NCMRWF/UMRider/pull/108) ([arulalant](https://github.com/arulalant))
 - support for tc tracker input and more [\#102](https://github.com/NCMRWF/UMRider/pull/102) ([arulalant](https://github.com/arulalant))
 
@@ -34,16 +53,9 @@
 
 **Implemented enhancements:**
 
-- Need wgrib2 commands argument in setup.cfg [\#94](https://github.com/NCMRWF/UMRider/issues/94)
-- Support for latitude reverse NS instead of SN [\#87](https://github.com/NCMRWF/UMRider/issues/87)
 - Create flux files separately for OSF [\#86](https://github.com/NCMRWF/UMRider/issues/86)
-- Need to support ensemble pack in grib2 [\#25](https://github.com/NCMRWF/UMRider/issues/25)
 - 	support for PWAT \(Precipitable Water\) variable [\#90](https://github.com/NCMRWF/UMRider/pull/90) ([arulalant](https://github.com/arulalant))
 - Support for OSF 0.25 \(grib2\) & 0.5 \(grib1\) resolutions [\#89](https://github.com/NCMRWF/UMRider/pull/89) ([arulalant](https://github.com/arulalant))
-
-**Closed issues:**
-
-- Need to support for Global at 2.5 x 2.5 [\#84](https://github.com/NCMRWF/UMRider/issues/84)
 
 **Merged pull requests:**
 
@@ -56,58 +68,54 @@
 ## [v1.0.2a](https://github.com/NCMRWF/UMRider/tree/v1.0.2a) (2016-03-29)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.1...v1.0.2a)
 
-**Closed issues:**
-
-- U & V winds STASH Changed to Arakawa B Grids [\#81](https://github.com/NCMRWF/UMRider/issues/81)
-
-**Merged pull requests:**
-
-- initial code draft for ncum eps ensembles [\#83](https://github.com/NCMRWF/UMRider/pull/83) ([arulalant](https://github.com/arulalant))
-- updated U & V winds STASH changes wrt operational change \#81 [\#82](https://github.com/NCMRWF/UMRider/pull/82) ([arulalant](https://github.com/arulalant))
-
-## [v1.0.1](https://github.com/NCMRWF/UMRider/tree/v1.0.1) (2016-03-28)
-[Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.0...v1.0.1)
-
 **Implemented enhancements:**
 
+- Need to support for custom grib2 table parameter options [\#69](https://github.com/NCMRWF/UMRider/issues/69)
+- Make startdate, enddate as environmental variable  [\#63](https://github.com/NCMRWF/UMRider/issues/63)
+- Need to support for IMD MFI Input [\#54](https://github.com/NCMRWF/UMRider/issues/54)
+- support for call back script [\#53](https://github.com/NCMRWF/UMRider/issues/53)
 - Set Centre Code from user defined config file [\#46](https://github.com/NCMRWF/UMRider/issues/46)
+- support for tar ball  [\#41](https://github.com/NCMRWF/UMRider/issues/41)
+- Fix g2ctl.pl option & forecast reference, bounds time for analysis files [\#39](https://github.com/NCMRWF/UMRider/issues/39)
 - Need to create date timestamp directories for loggin [\#35](https://github.com/NCMRWF/UMRider/issues/35)
 - Fix unknown standard variable names in iris load [\#26](https://github.com/NCMRWF/UMRider/issues/26)
 - we should include horizontal resolution in grib2 file name [\#24](https://github.com/NCMRWF/UMRider/issues/24)
 - In out file name should give option for ensemble  [\#22](https://github.com/NCMRWF/UMRider/issues/22)
 - Calculate surface upward longwave & softwave radiation flux [\#18](https://github.com/NCMRWF/UMRider/issues/18)
 - Need to support for HYCOM  [\#17](https://github.com/NCMRWF/UMRider/issues/17)
+- Need to extract 3 hourly data and write into 3 hourly files [\#16](https://github.com/NCMRWF/UMRider/issues/16)
 - user specified ordered vars [\#15](https://github.com/NCMRWF/UMRider/issues/15)
 - Need to support for IND REGION [\#14](https://github.com/NCMRWF/UMRider/issues/14)
 - Need to support for OSF  [\#13](https://github.com/NCMRWF/UMRider/issues/13)
 - Need to support for VSDB Input [\#12](https://github.com/NCMRWF/UMRider/issues/12)
-- Need to support for custom grib2 table parameter options [\#69](https://github.com/NCMRWF/UMRider/issues/69)
-- Make startdate, enddate as environmental variable  [\#63](https://github.com/NCMRWF/UMRider/issues/63)
-- Need to support for IMD MFI Input [\#54](https://github.com/NCMRWF/UMRider/issues/54)
-- support for call back script [\#53](https://github.com/NCMRWF/UMRider/issues/53)
-- support for tar ball  [\#41](https://github.com/NCMRWF/UMRider/issues/41)
-- Fix g2ctl.pl option & forecast reference, bounds time for analysis files [\#39](https://github.com/NCMRWF/UMRider/issues/39)
-- Need to extract 3 hourly data and write into 3 hourly files [\#16](https://github.com/NCMRWF/UMRider/issues/16)
 - create tar.bz2 in parallel using pbzip2 [\#61](https://github.com/NCMRWF/UMRider/pull/61) ([arulalant](https://github.com/arulalant))
 
 **Fixed bugs:**
 
-- sea ice concentration has full of zero [\#33](https://github.com/NCMRWF/UMRider/issues/33)
 - Soil Moisture Volume min & max value is zero in IndRegion [\#76](https://github.com/NCMRWF/UMRider/issues/76)
 - Fix g2ctl.pl option & forecast reference, bounds time for analysis files [\#39](https://github.com/NCMRWF/UMRider/issues/39)
+- sea ice concentration has full of zero [\#33](https://github.com/NCMRWF/UMRider/issues/33)
 
 **Closed issues:**
 
+- Keep OSF & Hycom archive analysis for 3 days  [\#78](https://github.com/NCMRWF/UMRider/issues/78)
 - custom date formate in outfile name [\#11](https://github.com/NCMRWF/UMRider/issues/11)
 - Grib2 to Grib1 conversion option [\#8](https://github.com/NCMRWF/UMRider/issues/8)
 - support for custom out file names [\#7](https://github.com/NCMRWF/UMRider/issues/7)
-- Keep OSF & Hycom archive analysis for 3 days  [\#78](https://github.com/NCMRWF/UMRider/issues/78)
 
 **Merged pull requests:**
 
+- initial code draft for ncum eps ensembles [\#83](https://github.com/NCMRWF/UMRider/pull/83) ([arulalant](https://github.com/arulalant))
+- updated U & V winds STASH changes wrt operational change \#81 [\#82](https://github.com/NCMRWF/UMRider/pull/82) ([arulalant](https://github.com/arulalant))
 - added anl\_aavars\_time\_bounds option [\#80](https://github.com/NCMRWF/UMRider/pull/80) ([arulalant](https://github.com/arulalant))
 - added anl\_aavars\_reference\_time option [\#79](https://github.com/NCMRWF/UMRider/pull/79) ([arulalant](https://github.com/arulalant))
 - added \_precipVars\_ ; fixed bug \#76 [\#77](https://github.com/NCMRWF/UMRider/pull/77) ([arulalant](https://github.com/arulalant))
+- scp in serial mode for ind reg [\#75](https://github.com/NCMRWF/UMRider/pull/75) ([arulalant](https://github.com/arulalant))
+- added createDirWhileParallelRacing function [\#74](https://github.com/NCMRWF/UMRider/pull/74) ([arulalant](https://github.com/arulalant))
+- fixed bugs in ftp ssh scripts [\#73](https://github.com/NCMRWF/UMRider/pull/73) ([arulalant](https://github.com/arulalant))
+- fixed bugs in callback scripts of osf, hycom [\#72](https://github.com/NCMRWF/UMRider/pull/72) ([arulalant](https://github.com/arulalant))
+- Fixed bugs in bsub scripts [\#71](https://github.com/NCMRWF/UMRider/pull/71) ([arulalant](https://github.com/arulalant))
+- added setGrib2TableParameters option in setup.cfg file [\#70](https://github.com/NCMRWF/UMRider/pull/70) ([arulalant](https://github.com/arulalant))
 - update in docstring [\#67](https://github.com/NCMRWF/UMRider/pull/67) ([arulalant](https://github.com/arulalant))
 - cleanup [\#66](https://github.com/NCMRWF/UMRider/pull/66) ([arulalant](https://github.com/arulalant))
 - 	bug fixes; update python path; update doc [\#65](https://github.com/NCMRWF/UMRider/pull/65) ([arulalant](https://github.com/arulalant))
@@ -136,12 +144,6 @@
 - Supports for VSDB Input and INDIAN REGION [\#19](https://github.com/NCMRWF/UMRider/pull/19) ([arulalant](https://github.com/arulalant))
 - user defined file names; convert to grib1 option; grib2ctl option; g2ctl option [\#9](https://github.com/NCMRWF/UMRider/pull/9) ([arulalant](https://github.com/arulalant))
 - Supports for 12 UTC 5 days long forecast [\#1](https://github.com/NCMRWF/UMRider/pull/1) ([arulalant](https://github.com/arulalant))
-- scp in serial mode for ind reg [\#75](https://github.com/NCMRWF/UMRider/pull/75) ([arulalant](https://github.com/arulalant))
-- added createDirWhileParallelRacing function [\#74](https://github.com/NCMRWF/UMRider/pull/74) ([arulalant](https://github.com/arulalant))
-- fixed bugs in ftp ssh scripts [\#73](https://github.com/NCMRWF/UMRider/pull/73) ([arulalant](https://github.com/arulalant))
-- fixed bugs in callback scripts of osf, hycom [\#72](https://github.com/NCMRWF/UMRider/pull/72) ([arulalant](https://github.com/arulalant))
-- Fixed bugs in bsub scripts [\#71](https://github.com/NCMRWF/UMRider/pull/71) ([arulalant](https://github.com/arulalant))
-- added setGrib2TableParameters option in setup.cfg file [\#70](https://github.com/NCMRWF/UMRider/pull/70) ([arulalant](https://github.com/arulalant))
 
 
 
