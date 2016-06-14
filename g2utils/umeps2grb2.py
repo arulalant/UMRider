@@ -1258,12 +1258,14 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     # do convert for forecast files # fext must be list 
     convertFilesInParallel(fcst_fname, fext, ftype='fcst')    
     
+    pwd = os.getcwd()
+    os.chdir(_opPath_)  # change to our path
     if __fcst_step_hour__ == 6:
         outg2files = [inf for inf in os.listdir(_opPath_) if 'hr' in inf if _preExtension_ in inf]
         listOfInOutFiles = []
         for fname in outg2files:
-            inFn = os.path.join(_opPath_, fname)
-            outFn = os.path.join(_opPath_, fname.replace(_preExtension_, ''))
+            inFn = fname
+            outFn = fname.replace(_preExtension_, '')
             listOfInOutFiles.append((inFn, outFn))
         # end of for fname in outg2files:
         
@@ -1295,7 +1297,8 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
         dy = 'day'+str(int(__start_long_fcst_hour__) / 24).zfill(2)
         outg2files = [inf for inf in os.listdir(_opPath_) if dy in inf if _preExtension_ in inf]
         fname = '_'.join(outg2files[0].split('_')[1:]) # remove STASH alone
-        outFn = os.path.join(_opPath_, fname.replace(_preExtension_, '')) # remove _preExtension_
+        outFn = fname.replace(_preExtension_, '') # remove _preExtension_
+        
         for varName, varSTASH in _convertVars_:
             # make unique file name becase we are running in parallel            
             if varName == 'air_temperature_maximum':
@@ -1307,7 +1310,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
                 inFn = [inf for inf in outg2files if inf.startswith(varSTASH) if not '-' in inf]
             # end of if varName == 'air_temperature_maximum':            
             if not inFn: continue
-            inFn = os.path.join(_opPath_, inFn[0])
+            inFn = inFn[0]
             if __wgrib2Arguments__ is not None:
                 # execute post wgrib2 command in parellel (-ncpu 4 Best speed compare to 32)
                 cmd = "%s %s %s %s" % (wgrib2, inFn, __wgrib2Arguments__, outFn)
@@ -1323,8 +1326,9 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
         # end of for varName, varSTASH in varNamesSTASH:   
 
         # Lets create ctl and idx file. 
-        createGrib2CtlIdxFilesFn(outFn, ftype='fcst')
+        createGrib2CtlIdxFilesFn(outFn, ftype='fcst')       
     # end of if __fcst_step_hour__ == 6:     
+    os.chdir(pwd) # Back to previous directory
     
     if callBackScript:
         callBackScript = os.path.abspath(callBackScript)
