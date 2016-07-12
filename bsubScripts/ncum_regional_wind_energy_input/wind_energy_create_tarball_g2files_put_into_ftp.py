@@ -70,6 +70,15 @@ def createTarBalls(path, today, utc, stephr=3):
     except Exception as e:
         print "past 11th day tar ball has been removed from ftp_server, already", e    
     os.chdir(cdir)  
+    
+    os.chdir('OthersScripts')
+    
+    # Call Sushant's post processing scripts to make csv files at particular grid points 
+    # and zip it. Finally push into ftp_server. Also deletes the past 11th day zip file.
+    cmd = '/bin/bash make_winddata_csv_zip_put_into_ftp.sh %s %s %s' % (today, utc, y11Day)
+    print cmd
+    subprocess.call(cmd, shell=True)
+    
 # end of def createTarBalls(path, today, ...):
 
 if __name__ == '__main__':

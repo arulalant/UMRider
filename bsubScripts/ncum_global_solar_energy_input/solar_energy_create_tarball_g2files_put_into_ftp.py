@@ -38,20 +38,14 @@ def createTarBalls(path, today, utc, stephr=3):
     #
     # where as in parallel bz2, "$ tar -c *fcst*grb2 | pbzip2 -v -c -f -p32 -m500 > fcst_20160223_parallel.tar.bz2" cmd takes only just 23 seconds alone, with 32 processors and 500MB RAM memory.
     #
-    # create forecast files tar file in parallel # -m500 need to be include for pbzip2
-    cmd = "tar -c ./fcst_{01..24}h%s*.grb2 | %s  -v  -c -f -p32 > %s/fcst_day01_solar_ind_0.25_%s.tar.gz" % (today, pigz, '../TarFiles', today)
-    print cmd
-    subprocess.call(cmd, shell=True)
     
-    # create forecast files tar file in parallel # -m500 need to be include for pbzip2
-    cmd = "tar -c ./fcst_{25..48}h%s*.grb2 | %s  -v  -c -f -p32 > %s/fcst_day02_solar_ind_0.25_%s.tar.gz" % (today, pigz, '../TarFiles', today)
-    print cmd
-    subprocess.call(cmd, shell=True)
-    
-    # create forecast files tar file in parallel # -m500 need to be include for pbzip2
-    cmd = "tar -c ./fcst_{49..72}h%s*.grb2 | %s  -v  -c -f -p32 > %s/fcst_day03_solar_ind_0.25_%s.tar.gz" % (today, pigz, '../TarFiles', today)
-    print cmd
-    subprocess.call(cmd, shell=True)
+    # Lets create tar ball for every day individually.
+    for i, hr in enumerate(range(0, 241, 24)):
+        # create forecast files tar file in parallel # -m500 need to be include for pbzip2
+        cmd = "tar -c ./fcst_{%s..%d}h%s*.grb2 | %s  -v  -c -f -p32 > %s/fcst_day%s_solar_ind_0.25_%s.tar.gz" % (str(hr+1).zfill(2), hr+24, today, pigz, '../TarFiles', str(hr).zfill(2), today)
+        print cmd
+        subprocess.call(cmd, shell=True)
+    # end of for i, hr in enumerate(range(0, 241, 24)):
         
     # delete today's forecasts files, after tar ball has been created!    
     cmd = "rm -rf fcst*%s*.grb2" % today
