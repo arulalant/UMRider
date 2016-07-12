@@ -1,6 +1,6 @@
 # Change Log
 
-## [v1.0.2](https://github.com/NCMRWF/UMRider/tree/v1.0.2) (2016-06-14)
+## [v1.0.2](https://github.com/NCMRWF/UMRider/tree/v1.0.2) (2016-07-12)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.2g...v1.0.2)
 
 **Implemented enhancements:**
@@ -18,6 +18,7 @@
 
 **Merged pull requests:**
 
+- 	production update [\#113](https://github.com/NCMRWF/UMRider/pull/113) ([arulalant](https://github.com/arulalant))
 - support of UM EPS Ensembles Packing Grib2 [\#112](https://github.com/NCMRWF/UMRider/pull/112) ([arulalant](https://github.com/arulalant))
 
 ## [v1.0.2g](https://github.com/NCMRWF/UMRider/tree/v1.0.2g) (2016-06-02)
