@@ -3,21 +3,16 @@ set -x
 
 date=$1
 cyc=$2
-
 eleventhDay=$3
 
-
-OUTDIR=/gpfs3/home/umfcst/ShortJobs/NCUMReg_WIND_ENERGY/0.04/CSVFiles/$date
+OUTDIR=/gpfs3/home/umfcst/ShortJobs/NCUMReg_WIND_ENERGY/0.04/CSVFiles
 mkdir -p $OUTDIR
 
-cp /gpfs3/home/umfcst/ShortJobs/NCUMReg_WIND_ENERGY/0.04/TarFiles/WindEnergy.India.0.04.$date$cyc.tar.gz  $OUTDIR/
 cp -r timeseries_reg.gs latlon.csv ${OUTDIR}/
 
 cd $OUTDIR
 
-rm -f *.nc
-rm -f *tar.gz
-rm -f wind*csv
+cp /gpfs3/home/umfcst/ShortJobs/NCUMReg_WIND_ENERGY/0.04/TarFiles/WindEnergy.India.0.04.$date$cyc.tar.gz  .
 
 tar -zxf WindEnergy.India.0.04.$date$cyc.tar.gz
 for tt in {01..72..01} ; do
@@ -31,6 +26,8 @@ OUTFILE=wind50reg${date}${cyc}.zip
 
 zip $OUTFILE wind50*csv
 rm -f wind50*csv
+rm -f *tar.gz
+rm -f *.nc
 rm timeseries_reg.gs
 
 ssh ncmlogin3 "scp -p $OUTDIR/$OUTFILE  prod@ftp:/data/energon/4km/"
