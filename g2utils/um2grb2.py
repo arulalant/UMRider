@@ -2673,7 +2673,9 @@ def doFcstConvert(fname):
         # calculate start hour of long fcst in multiples of 24. Why?
         # 00 hr contains from 06 to 24 hours data.
         # 24 hr contains from 24 to 48 hours data, and so on.
-        start_fcst_hour = (__start_long_fcst_hour__ / 24) * 24
+        start_fcst_hour = ((__start_long_fcst_hour__ / 24) - 1) * 24
+        # Here we are reducing one 24 because, 00 file contains upto 24 hour,
+        # and 24 hour files contains upto 48 hour and so on.
             
         # here max fcst hours goes upto 240 only, not 241. why ??
         # because 216 long fcst hours contains upto 240th hour fcst.
