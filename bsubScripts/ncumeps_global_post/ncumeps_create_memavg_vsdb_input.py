@@ -43,6 +43,7 @@ _targetGrid_ = iris.load(_targetGridFile_)[0]
 
 __grib1FilesNameSuffix__ = None
 __wgrib2Arguments__ = ' -set_bin_prec 12 -set_grib_type complex2 -grib_out '
+__OVERWRITE__ = True
     
 def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_hour, stephr=24):    
 
@@ -59,7 +60,13 @@ def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_ho
     
     opath = os.path.join(outpath, today)
     createDirWhileParallelRacing(opath)        
+    
     g2filepath = os.path.join(opath, 'prg_' + today + pfileday + '.grib2')
+    if __OVERWRITE__ and os.path.isfile(g2filepath): os.remove(g2filepath)
+    
+    wg2filename = 'prg%d%sz%s.grib2' % (day, utc.zfill(2), tvDay)        
+    wg2filepath = os.path.join(opath, wg2filename)
+    if __OVERWRITE__ and os.path.isfile(wg2filepath): os.remove(wg2filepath)
     
     ensfpath = os.path.join(inpath, files[0])
     inf = iris.load(ensfpath)
@@ -120,11 +127,8 @@ def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_ho
         print "Appending %s to grib2 file" % varName
         # make memory free
         del regdCube       
-    # end of for varName, varSTASH  in neededVars:    
-                    
-    wg2filename = 'prg%d%sz%s.grib2' % (day, utc.zfill(2), tvDay)        
-    wg2filepath = os.path.join(opath, wg2filename)
-        
+    # end of for varName, varSTASH  in neededVars:                      
+            
     # execute post wgrib2 command compression algorithm
     cmd = "%s %s %s %s" % (wgrib2, g2filepath, __wgrib2Arguments__, wg2filepath)
     print cmd
