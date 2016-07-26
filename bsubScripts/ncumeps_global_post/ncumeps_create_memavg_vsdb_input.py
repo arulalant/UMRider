@@ -159,7 +159,7 @@ if __name__ == '__main__':
     inpath = None
     oftype = None
     utc = None
-    outpath = '/gpfs4/home/umtid/um2grb2/ArulTest/NCUM_EPS_VSDB'
+    outpath = '/gpfs3/home/umeps/EPS/ShortJobs/NCUM_EPS_VSDB_Input'
     
     helpmsg = './ncumeps_create_memavg_vsdb_input.py --date=20160302 --outpath=path --oftype=forecast --utc=00 --start_long_fcst_hour=24 --end_long_fcst_hour=24 --fcst_step_hour=24'
     try:
@@ -191,6 +191,5 @@ if __name__ == '__main__':
     # create tar balls only if forecast & utc is 00, otherwise skip it!    
     if oftype == 'forecast' and utc == '00' and fcst_step_hour == '24': 
         # pass the arg to function  
-        print "calling functrion"
         createENSavg_VSDB_Grib1Files(inpath, outpath, date, utc, start_long_fcst_hour, stephr=fcst_step_hour)    
     # end of if oftype == 'forecast' and utc == '00': 
