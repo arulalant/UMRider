@@ -42,7 +42,7 @@ def createTarBalls(path, today, utc, stephr=3):
     # Lets create tar ball for every day individually.
     for i, hr in enumerate(range(0, 241, 24)):
         # create forecast files tar file in parallel # -m500 need to be include for pbzip2
-        cmd = "tar -c ./fcst_{%s..%d}h%s*.grb2 | %s  -v  -c -f -p32 > %s/fcst_day%s_solar_ind_0.25_%s.tar.gz" % (str(hr+1).zfill(2), hr+24, today, pigz, '../TarFiles', str(hr).zfill(2), today)
+        cmd = "tar -c ./fcst_{%s..%d}h%s*.grb2 | %s  -v  -c -f -p32 > %s/fcst_day%s_solar_ind_0.25_%s.tar.gz" % (str(hr+1).zfill(2), hr+24, today, pigz, '../TarFiles', str(i+1).zfill(2), today)
         print cmd
         subprocess.call(cmd, shell=True)
     # end of for i, hr in enumerate(range(0, 241, 24)):
