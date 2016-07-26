@@ -12,7 +12,7 @@
 import os, subprocess, datetime, getopt, sys, iris, numpy, time 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../g2utils')))
 from cubeutils import cubeRealizationAverager
-from um2grb2 import tweaked_messages, getCubeData
+from um2grb2 import tweaked_messages, getCubeData, createDirWhileParallelRacing
 
 
 neededVars = [
@@ -58,8 +58,7 @@ def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_ho
     tvDay = tDay.strftime('%d%m%y')
     
     opath = os.path.join(outpath, today)
-    if not os.path.exists(opath): os.makedirs(opath)
-        
+    createDirWhileParallelRacing(opath)        
     g2filepath = os.path.join(opath, 'prg_' + today + pfileday + '.grib2')
     
     ensfpath = os.path.join(inpath, files[0])
