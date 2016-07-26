@@ -1,10 +1,22 @@
 # Change Log
 
+## [v1.0.2.1](https://github.com/NCMRWF/UMRider/tree/v1.0.2.1) (2016-07-26)
+[Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.2...v1.0.2.1)
+
+**Fixed bugs:**
+
+- Bug : 24 hour file is not produced [\#114](https://github.com/NCMRWF/UMRider/issues/114)
+
+**Merged pull requests:**
+
+- Support for EPS Average VSDB Input [\#117](https://github.com/NCMRWF/UMRider/pull/117) ([arulalant](https://github.com/arulalant))
+
 ## [v1.0.2](https://github.com/NCMRWF/UMRider/tree/v1.0.2) (2016-07-12)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.2g...v1.0.2)
 
 **Implemented enhancements:**
 
+- Need to create NCUM EPS analysis \(00th forecast\) file [\#115](https://github.com/NCMRWF/UMRider/issues/115)
 - Need wgrib2 commands argument in setup.cfg [\#94](https://github.com/NCMRWF/UMRider/issues/94)
 - Need to support Cyclone Tracker   [\#91](https://github.com/NCMRWF/UMRider/issues/91)
 - Support for latitude reverse NS instead of SN [\#87](https://github.com/NCMRWF/UMRider/issues/87)
@@ -12,6 +24,7 @@
 
 **Closed issues:**
 
+- Need to support for UM EPS VSDB\_Input [\#96](https://github.com/NCMRWF/UMRider/issues/96)
 - Need to support for Global at 2.5 x 2.5 [\#84](https://github.com/NCMRWF/UMRider/issues/84)
 - U & V winds STASH Changed to Arakawa B Grids [\#81](https://github.com/NCMRWF/UMRider/issues/81)
 - Need support for NCUM Ensembles  [\#21](https://github.com/NCMRWF/UMRider/issues/21)
