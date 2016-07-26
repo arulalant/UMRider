@@ -165,3 +165,79 @@ def cubeSubtractor(cube, otherCube, standard_name=None,
     # return the updated, subtracted cube
     return subtracted
 # end of def cubeSubtractor(...):
+
+def cubeRealizationAverager(tmpCube, action='mean', dr='1 ENS'):
+    """
+    :param tmpCube:     The temporary cube data (in Iris format) with non-singleton time dimension
+    :param action:      mean| sum (accumulated fields are summed and instantaneous are averaged).
+    :param dr:   A standard string representing realization step duration/intervals.
+    
+    :return: meanCube:  An Iris formatted cube date containing the resultant data either as
+                        averaged or summed.
+    Arulalan.T
+    18-July-2016
+    """
+
+    # extract realization points 
+    rpoints = tmpCube.coord('realization').points
+    # get the time coord of first time cube and set to mean
+    timeAxFirst = tmpCube.coords('time')[0]
+    fcstAxFirst = tmpCube.coords('forecast_period')[0]
+    # assign first realization point data to mean data 
+    meanCube = tmpCube.extract(iris.Constraint(realization=rpoints[0]))
+       
+    # loop through remaining realization points 
+    for rp in rpoints[1:]:
+        # extract remaining realization points and add to meanCube
+        lastCube = tmpCube.extract(iris.Constraint(realization=rp))
+        meanCube = iris.analysis.maths.add(meanCube, lastCube) 
+    # end of for rp in rpoints[1:]:
+           
+    if action == 'mean':
+        # to compute mean value of meanCube divide it by length of time
+        # points which we added before 
+        meanCube = iris.analysis.maths.divide(meanCube, float(len(rpoints)))
+        print "Converting cube to realization mean : %s" % (tmpCube.standard_name)
+    elif action == 'sum':
+        # for sum action, we no need to do here anything, because already 
+        # we computed accumulation only!
+        print "Converting cube to realization accumulation : %s" % (tmpCube.standard_name)
+    else:
+        raise ValueError('argument "%s" not support' % action)
+    # end of if not isAccumulation:    
+       
+    if action == 'mean':
+        cm = iris.coords.CellMethod('mean', ('realization',), intervals=(dr,), 
+                                     comments=('mean of (1 control run + %d ensemble members)' % (len(rpoints)-1)))
+    elif action == 'sum':
+        cm = iris.coords.CellMethod('sum', ('realization',), intervals=(dr,), 
+                                     comments=('accumulation of (1 control run + %d ensemble members)' % (len(rpoints)-1)))
+    
+    meanCube = iris.cube.Cube(data=meanCube.data, units=tmpCube.units, 
+                       standard_name=tmpCube.standard_name, 
+                       long_name=tmpCube.long_name, 
+                       attributes=tmpCube.attributes,
+                       cell_methods=(cm,))
+        
+    idx = 0
+    for ax in tmpCube.coords(): 
+        name = ax.standard_name if ax.standard_name else ax.long_name
+        if name == 'realization': continue
+        if isinstance(ax, iris.coords.DimCoord):      
+            print ax
+            if ax.standard_name in ['forecast_period', 'time'] and len(ax.points) == 1:
+                meanCube.add_aux_coord(ax)
+            else:
+                meanCube.add_dim_coord(ax, idx)
+                idx += 1
+        elif isinstance(ax, iris.coords.AuxCoord):
+            meanCube.add_aux_coord(ax)
+    # end of for ax in tmpCube.coords(): 
+    print meanCube    
+    
+    # make memory free
+    del tmpCube
+    
+    # return mean cube 
+    return meanCube
+# end of def cubeRealizationAverager(...):
