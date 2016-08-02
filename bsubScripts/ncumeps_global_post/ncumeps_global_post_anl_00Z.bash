@@ -44,4 +44,7 @@ export SHELL=/bin/bash
 hour=0  # 0 will produce 0th hour prognostic data (equivalent to analysis)
 echo "hour="${hour}
 
+# sourcing umtid_bashrc to load module python-uvcdat-iris!
+source "$DIR/../umtid_bashrc"
+
 python $g2script --start_long_fcst_hour=${hour} --end_long_fcst_hour=${hour}
