@@ -44,6 +44,15 @@ _targetGrid_ = iris.load(_targetGridFile_)[0]
 __grib1FilesNameSuffix__ = None
 __wgrib2Arguments__ = ' -set_bin_prec 12 -set_grib_type complex2 -grib_out '
 __OVERWRITE__ = True
+_preExtension_ = '_unOrdered'
+## unOrdered files used to create EPS MEAN VSDB INPUT. We have to load 
+## this file only in Python-IRIS. Because IRIS able to read it 
+## properly only for the simple compression algorithm not for the 
+## complex2 (wgrib2) algorithm. IRIS read the values wrongly,
+## if grib2 is written in complex2 algorithm. So... theses will 
+## be used to read it to create EPS mean and then will be deleted.
+## Dated : 05-Aug-2016.
+
     
 def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_hour, stephr=24):    
 
@@ -51,9 +60,8 @@ def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_ho
     day = int(start_long_fcst_hour) / int(stephr)
     pfileday = str(day).zfill(2)
     pfilename = 'umeps_prg_1cntl_44ens_24hourly_day' + pfileday
-    needed_fname = pfilename + '_' + today + '_' + utc + 'Z.grib2'
-    files = [f for f in os.listdir(inpath) if f == needed_fname]
-    if not files: return 
+    needed_fname = pfilename + '_' + today + '_' + utc + 'Z' + _preExtension_ + '.grib2'
+    
     
     tDay = datetime.datetime.strptime(today, "%Y%m%d")        
     tvDay = tDay.strftime('%d%m%y')
@@ -67,10 +75,13 @@ def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_ho
     wg2filename = 'prg%d%sz%s.grib2' % (day, utc.zfill(2), tvDay)        
     wg2filepath = os.path.join(opath, wg2filename)
     if __OVERWRITE__ and os.path.isfile(wg2filepath): os.remove(wg2filepath)
-    
-    ensfpath = os.path.join(inpath, files[0])
-    inf = iris.load(ensfpath)
+        
     for varName, varSTASH  in neededVars:
+        varfilename = varSTASH + '_' + needed_fname
+        files = [f for f in os.listdir(inpath) if f == varfilename]
+        if not files: return 
+        ensfpath = os.path.join(inpath, files[0])
+        inf = iris.load(ensfpath)
         # define variable name constraint
         varConstraint = iris.Constraint(name=varName)
         print varName, varSTASH
@@ -126,9 +137,11 @@ def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_ho
         
         print "Appending %s to grib2 file" % varName
         # make memory free
-        del regdCube       
-    # end of for varName, varSTASH  in neededVars:                      
-            
+        del regdCube     
+        time.sleep(15)
+        os.remove(ensfpath)         
+    # end of for varName, varSTASH  in neededVars:
+    time.sleep(15)
     # execute post wgrib2 command compression algorithm
     cmd = "%s %s %s %s" % (wgrib2, g2filepath, __wgrib2Arguments__, wg2filepath)
     print cmd
@@ -152,7 +165,8 @@ def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_ho
     cmd = ['chmod', '644', g1filepath]
     subprocess.call(cmd, shell=False)
     print "Converted grib2 to grib1 file : -", g1filepath
-    os.remove(g2filepath)                                
+    time.sleep(10)
+    os.remove(g2filepath)                         
 # end of def createTarBalls(path, today, ...):
 
 if __name__ == '__main__':
@@ -162,8 +176,8 @@ if __name__ == '__main__':
     inpath = None
     oftype = None
     utc = None
-    outpath = '/gpfs3/home/umeps/EPS/ShortJobs/NCUM_EPS_VSDB_Input'
-    
+#    outpath = '/gpfs3/home/umeps/EPS/ShortJobs/NCUM_EPS_VSDB_Input'
+    outpath = '/gpfs4/home/umtid/um2grb2/ArulTest/NCUM_EPS_VSDB'
     helpmsg = './ncumeps_create_memavg_vsdb_input.py --date=20160302 --outpath=path --oftype=forecast --utc=00 --start_long_fcst_hour=24 --end_long_fcst_hour=24 --fcst_step_hour=24'
     try:
         opts, args = getopt.getopt(sys.argv[1:], "d:o:t:z:s:e:i", ["date=",
