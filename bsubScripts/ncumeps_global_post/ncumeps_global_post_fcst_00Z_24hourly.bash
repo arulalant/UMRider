@@ -6,7 +6,6 @@
 #BSUB -n 16                   # number of tasks in job
 #BSUB -x
 #BSUB -R span[ptile=16]
-#BSUB -R rusage[mem=61440]
 #BSUB -q ensemble             	  # queue
 #BSUB -e /gpfs3/home/umeps/UMRiderLogs/post/bsub/um2grb2.fcst.00hr.err.%J.%I.hybrid     # error file name in which %J is replaced by the job ID
 #BSUB -o /gpfs3/home/umeps/UMRiderLogs/post/bsub/um2grb2.fcst.00hr.out.%J.%I.hybrid     # output file name in which %J is replaced by the job ID
