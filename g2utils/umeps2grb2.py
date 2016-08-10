@@ -235,7 +235,18 @@ _aod_pseudo_level_var_ = {}
 ## B is not. B not necessarily to be written in out file. User may just specify
 ## only A in var.cfg configure file.
 _depedendantVars_ = {}
-                                            
+
+## These are all the variables need to be averaged across all ensembles.
+epsMeanVars = [
+    ## Pressure Level Variable names & STASH codes
+    ('geopotential_height', 'm01s16i202'),      
+    ('x_wind', 'm01s15i243'),
+    ('y_wind', 'm01s15i244'), 
+    ('air_temperature', 'm01s16i203'),
+    ('relative_humidity', 'm01s16i256'),
+    ## Non Pressure Level Variable names & STASH codes
+    ('air_pressure_at_sea_level', 'm01s16i222'),
+    ]                                            
 
 # start definition #2
 def getVarInOutFilesDetails(inDataPath, fname, hr):
@@ -1069,7 +1080,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
        _removeVars_, _requiredPressureLevels_, __setGrib2TableParameters__, \
         __outg2files__, __start_long_fcst_hour__, __wgrib2Arguments__, \
         __UMtype__, _preExtension_, _extraPolateMethod_, _targetGridFile_, \
-       __fillFullyMaskedVars__, _reverseLatitude_
+       __fillFullyMaskedVars__, _reverseLatitude_, epsMeanVars
      
     # load key word arguments
     UMtype = kwarg.get('UMtype', 'ensemble')
@@ -1319,10 +1330,20 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
             else:
                 cubes = iris.load_cubes(inFn)
                 iris.fileformats.grib.save_messages(tweaked_messages(cubes), 
-                                                     outFn, append=True) # save grib2 file                
+                                                 outFn, append=True) # save grib2 file                
             # end of if __wgrib2Arguments__:
             time.sleep(15)
-            os.remove(inFn)
+            if (varName, varSTASH) not in epsMeanVars: os.remove(inFn)
+            ## epsMeanVars will be created through callback script. For that 
+            ## purpose we should not delete those files, because
+            ## it requires to create EPS MEAN VSDB INPUT. We have to load 
+            ## this file only in Python-IRIS. Because IRIS able to read it 
+            ## properly only for the simple compression algorithm not for the 
+            ## complex2 (wgrib2) algorithm. IRIS read the values wrongly,
+            ## if grib2 is written in complex2 algorithm. So... theses will 
+            ## be used to read it to create EPS mean and then will be deleted.
+            ## Dated : 05-Aug-2016.
+              
         # end of for varName, varSTASH in varNamesSTASH:   
 
         # Lets create ctl and idx file. 
