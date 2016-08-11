@@ -185,6 +185,15 @@ def cubeRealizationAverager(tmpCube, action='mean', dr='1 ENS'):
     fcstAxFirst = tmpCube.coords('forecast_period')[0]
     # assign first realization point data to mean data 
     meanCube = tmpCube.extract(iris.Constraint(realization=rpoints[0]))
+    if meanCube.has_lazy_data():
+        print "Loaded", meanCube.standard_name, "into memory",
+        ## By accessing meanCube.data (even for printing), the full 
+        ## data has been loaded into memory instead of being lazy 
+        ## data. Otherwise while making average over realization it gets filled
+        ## with 1e+20. So it is must one.
+        print "- min", meanCube.data.min(), "max", meanCube.data.max(),
+        print "has_lazy_data =", meanCube.has_lazy_data()
+    # end of if tmpCube.has_lazy_data():
 
     # loop through remaining realization points 
     for rp in rpoints[1:]:
@@ -205,17 +214,15 @@ def cubeRealizationAverager(tmpCube, action='mean', dr='1 ENS'):
     else:
         raise ValueError('argument "%s" not support' % action)
     # end of if action == 'mean':
-       
+    
     if action == 'mean':
         cm = iris.coords.CellMethod('mean', ('realization',), intervals=(dr,), 
                                      comments=('mean of (1 control run + %d ensemble members)' % (len(rpoints)-1)))
     elif action == 'sum':
         cm = iris.coords.CellMethod('sum', ('realization',), intervals=(dr,), 
                                      comments=('accumulation of (1 control run + %d ensemble members)' % (len(rpoints)-1)))
-    
-    meanCube = numpy.ma.masked_array(meanCube.data, dtype=numpy.float64)
-    numpy.ma.set_fill_value(meanCube, 9.999e+20)
-    meanCube = iris.cube.Cube(data=meanCube, 
+        
+    meanCube = iris.cube.Cube(data=meanCube.data, 
                        units=tmpCube.units, 
                        standard_name=tmpCube.standard_name, 
                        long_name=tmpCube.long_name, 
