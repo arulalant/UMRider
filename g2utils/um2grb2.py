@@ -1599,6 +1599,10 @@ def regridAnlFcstFiles(arg):
         varConstraint = iris.Constraint(name=varName)
         # define varibale stash code constraint
         STASHConstraint = iris.AttributeConstraint(STASH=varSTASH)
+        
+        if not cubes.extract(varConstraint & STASHConstraint): 
+            raise ValueError("unable to extract variable %s %s" % (varName, varSTASH))
+        
         # get the standard_name of variable 
         stdNm = cubes.extract(varConstraint & STASHConstraint)[0].standard_name
         longNm = cubes.extract(varConstraint & STASHConstraint)[0].long_name
@@ -1701,7 +1705,7 @@ def regridAnlFcstFiles(arg):
                     tmpCube = a3_1p5_cube.extract(varConstraint & 
                                     STASHConstraint & a3_fcstRefTime &
                                     iris.Constraint(forecast_period=fhr) &
-                                    latConstraint & lonConstraint)[0]
+                                    latConstraint & lonConstraint)
                     print "special load of ana_hour 1.5"
                     print varName, "loaded from today infile, ", ana_today_infile
                     print "simulated_hr = ", simulated_hr            
@@ -1710,8 +1714,12 @@ def regridAnlFcstFiles(arg):
                 tmpCube = cubes.extract(varConstraint & STASHConstraint & 
                                     fcstRefTimeConstraint &
                                     iris.Constraint(forecast_period=fhr) &
-                                    latConstraint & lonConstraint)[0]
+                                    latConstraint & lonConstraint)
             # end of if __anl_step_hour__ == 3 and fhr == 1.5:
+            
+            if not tmpCube: raise ValueError("unable to extract variable %s %s %d" % varName, varSTASH, fhr)
+            # Got variable successfully!    
+            tmpCube = tmpCube[0]
             
             # extract pressure levels
             if pressureConstraint and tmpCube.coords('pressure'): 
@@ -2449,13 +2457,13 @@ def doShuffleVarsInOrder(fpath):
                                                              removeSTASH=True)
         # Lets make sure that standard_name is None for this variable.
         atmosphere_precipitable_water_content.standard_name = None
-        # Lets do second subtraction,  out = out - [3],                                                   
+        # Lets do second subtraction,  out = out - [3],     
         atmosphere_precipitable_water_content = cubeSubtractor(atmosphere_precipitable_water_content,               
                                      atmosphere_cloud_liquid_water_content[0],                              
                             long_name='atmosphere_precipitable_water_content',
                                                              removeSTASH=True) 
 
-        # Lets do third / last subtraction,  out = out - [4],                                                   
+        # Lets do third / last subtraction,  out = out - [4],
         atmosphere_precipitable_water_content = cubeSubtractor(atmosphere_precipitable_water_content,               
                                               atmosphere_cloud_ice_content[0],                               
                             long_name='atmosphere_precipitable_water_content', 
@@ -2689,6 +2697,7 @@ def doFcstConvert(fname):
     
     fcst_filenames = [(fname, hr) for hr in fcst_times]
     nchild = len(fcst_times)
+    if not nchild: raise ValueError("Got 0 fcst_times, couldn't make parallel !")
     # create the no of child parallel processes
     inner_pool = mp.Pool(processes=nchild)
     print "Creating %i (daemon) workers and jobs in child." % nchild
@@ -2728,6 +2737,7 @@ def convertFilesInParallel(fnames, ftype):
     
     ## get the no of files and 
     nprocesses = len(fnames)
+    if not nprocesses: raise ValueError("Got 0 fnames, couldn't make parallel !")
     # lets create no of parallel process w.r.t no of files.
 
     # parallel begin - 1 
