@@ -38,21 +38,35 @@ gribmap = "/gpfs1/home/Libs/GNU/GRADS/grads-2.0.2.oga.1/Contents/gribmap"
 cnvgrib = "/gpfs1/home/Libs/INTEL/CNVGRIB/CNVGRIB-1.4.1/cnvgrib-1.4.1/cnvgrib"
 wgrib2 = "/gpfs1/home/Libs/GNU/WGRIB2/v2.0.1/wgrib2"
 
-_targetGridFile_ = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../data/sample_global_2p5X2p5_73X144.grib2'))
-_targetGrid_ = iris.load(_targetGridFile_)[0]
+#_targetGridFile_ = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../data/sample_global_2p5X2p5_73X144.grib2'))
+#_targetGrid_ = iris.load(_targetGridFile_)[0]
 
 __grib1FilesNameSuffix__ = None
 __wgrib2Arguments__ = ' -set_bin_prec 12 -set_grib_type complex2 -grib_out '
 __OVERWRITE__ = True
+_reverseLatitude_ = True
 _preExtension_ = '_unOrdered'
-## unOrdered files used to create EPS MEAN VSDB INPUT. We have to load 
-## this file only in Python-IRIS. Because IRIS able to read it 
-## properly only for the simple compression algorithm not for the 
-## complex2 (wgrib2) algorithm. IRIS read the values wrongly,
-## if grib2 is written in complex2 algorithm. So... theses will 
-## be used to read it to create EPS mean and then will be deleted.
-## Dated : 05-Aug-2016.
 
+
+targetGridResolution = 2.5
+# define default global lat start, lon end points
+slat, elat = (-90., 90.)
+# define default global lon start, lon end points 
+slon, elon = (0., 360.)
+# reduce one step if user passed / default lon is 360. If we write 
+# longitude from 0 upto 360, wgrib2 reads it as 0 to 0. To avoid it, 
+# just reduct one step in longitude only incase of 360.
+if int(elon) == 360: elon -= targetGridResolution 
+# target grid as 0.25 deg (default) resolution by setting up sample points 
+# based on coord
+# generate lat, lon values
+latpoints = numpy.arange(slat, elat+targetGridResolution, targetGridResolution)
+lonpoints = numpy.arange(slon, elon+targetGridResolution, targetGridResolution)
+# correct lat, lon end points 
+if latpoints[-1] > elat: latpoints = latpoints[:-1]
+if lonpoints[-1] > elon: lonpoints = lonpoints[:-1]
+# set target grid lat, lon values pair                   
+_targetGrid_ = [('latitude', latpoints), ('longitude', lonpoints)]
     
 def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_hour, stephr=24):    
 
@@ -75,7 +89,8 @@ def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_ho
     wg2filename = 'prg%d%sz%s.grib2' % (day, utc.zfill(2), tvDay)        
     wg2filepath = os.path.join(opath, wg2filename)
     if __OVERWRITE__ and os.path.isfile(wg2filepath): os.remove(wg2filepath)
-        
+    
+    
     for varName, varSTASH  in neededVars:
         varfilename = varSTASH + '_' + needed_fname
         files = [f for f in os.listdir(inpath) if f == varfilename]
@@ -92,7 +107,7 @@ def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_ho
         ensAvgCube = cubeRealizationAverager(ensCube[0])
         # make memory free
         del ensCube
-        
+       
         if (varName, varSTASH) in _precipVars_:
             # DO NOT APPLY iris.analysis.Linear(extrapolation_mode='mask'), 
             # which writes nan every where for the snowfall_flux,  
@@ -103,13 +118,13 @@ def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_ho
             # extrapolated over masked grid points.
             exmode = 'mask'
         # end of if (...):
-        
         scheme = iris.analysis.Linear(extrapolation_mode=exmode)
+        
         try:
             # This lienar interpolate will do extra polate over ocean even 
             # though original data doesnt have values over ocean and wise versa.
             # So lets be aware of this.            
-            regdCube = ensAvgCube.regrid(_targetGrid_, scheme)
+            regdCube = ensAvgCube.interpolate(_targetGrid_, iris.analysis.Linear(extrapolation_mode=exmode))
         except Exception as e:
             print "ALERT !!! Error while regridding!! %s" % str(e)
             print " So skipping this without saving data"
@@ -126,9 +141,23 @@ def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_ho
             regdCube.data[regdCube.data < 0.0] = 0.0
         # end of if (varName, varSTASH) in _precipVars_:
         
-        if exmode == 'mask':            
+        if exmode == 'mask':
             regdCube.data = numpy.ma.masked_array(regdCube.data, 
                                 dtype=numpy.float64, fill_value=9.999e+20) 
+
+        if _reverseLatitude_:   # required for VSDB 90 to -90 and it shoule be 
+            # revered before regridding. Because we kept target grid file as
+            # VSDB grib.
+            # Need to reverse latitude from SN to NS
+            rcsh = len(regdCube.data.shape)
+            if rcsh == 3:
+                regdCube.data = regdCube.data[:,::-1,:]
+            elif rcsh == 2:
+                regdCube.data = regdCube.data[::-1,:]
+            lat = regdCube.coords('latitude')[0]
+            lat.points = lat.points[::-1]
+            print "latitude reverse done ........................."
+        # end of if _reverseLatitude_:
         
         print regdCube
         # save into grib2 file 
@@ -137,16 +166,16 @@ def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_ho
         
         print "Appending %s to grib2 file" % varName
         # make memory free
-        del regdCube     
+        del regdCube      
         time.sleep(15)
-        os.remove(ensfpath)         
-    # end of for varName, varSTASH  in neededVars:
+#        os.remove(ensfpath)  
+    # end of for varName, varSTASH  in neededVars:                      
     time.sleep(15)
     # execute post wgrib2 command compression algorithm
     cmd = "%s %s %s %s" % (wgrib2, g2filepath, __wgrib2Arguments__, wg2filepath)
     print cmd
     subprocess.call(cmd, shell=True)            
-    time.sleep(10)
+    time.sleep(15)
     # remove the grib2 file generated by IRIS
     os.remove(g2filepath)
     # rename g2filepath as wg2filepath
@@ -165,7 +194,7 @@ def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_ho
     cmd = ['chmod', '644', g1filepath]
     subprocess.call(cmd, shell=False)
     print "Converted grib2 to grib1 file : -", g1filepath
-    time.sleep(10)
+    time.sleep(15)
     os.remove(g2filepath)                         
 # end of def createTarBalls(path, today, ...):
 
