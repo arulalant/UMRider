@@ -382,13 +382,18 @@ def packEnsembles(arg):
         pressureConstraint = iris.Constraint(pressure=lambda cell: 
                                 int(cell.point) in _requiredPressureLevels_)
     
-    loadConstraints = varConstraint & STASHConstraint & forecast_period_constraint & latConstraint & lonConstraint   
+    # make load constraints together
+    loadConstraints = varConstraint & STASHConstraint & forecast_period_constraint & latConstraint & lonConstraint
+    # initialize 
     ensembleData, ensCube, dshape = None, None, None
     print "packEnsembles Started using", infiles
     for idx, infile in enumerate(infiles):
         print "extracting ensemble data", infile
         # load ensemble cube with all constraints
-        ensCube = getCubeData(infile, constraints=loadConstraints)[0]        
+        ensCube = getCubeData(infile, constraints=loadConstraints)
+        if not ensCube: raise ValueError("unable to extract variable %s %s %d" % varName, varSTASH, fhr)
+        # Got variable successfully!    
+        ensCube = ensCube[0]        
         # extract pressure levels
         if pressureConstraint and ensCube.coords('pressure'): 
             ensCube = ensCube.extract(pressureConstraint)
