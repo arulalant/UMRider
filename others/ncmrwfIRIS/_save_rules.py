@@ -163,8 +163,9 @@ def identification(cube, grib):
     centre(cube, grib)
     reference_time(cube, grib)
 
-    # operational product, operational test, research product, etc    
-    gribapi.grib_set_long(grib, "productionStatusOfProcessedData", 0) # required for NCMRWF
+    # operational product, operational test, research product, etc table 1.3
+    # http://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_table1-3.shtml   
+    gribapi.grib_set_long(grib, "productionStatusOfProcessedData", 0) # required 0 for NCMRWF
     # set it as operational product
 
     # Code table 1.4
