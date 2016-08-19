@@ -1,7 +1,8 @@
 #!/bin/bash
 #
 #BSUB -a poe                  # set parallel operating environment
-#BSUB -J umeps2g2[24-240:24]  # job name [loop through 24 to 240 hours with intervals of 24]
+####### BSUB -J  umeps2g2[24-240:24] job name [loop through 24 to 240 hours with intervals of 24] 
+####### Jobname and hours will be submitted in the model executing script itself.
 #BSUB -W 06:00                # wall-clock time (hrs:mins)
 #BSUB -n 16                   # number of tasks in job
 #BSUB -x
