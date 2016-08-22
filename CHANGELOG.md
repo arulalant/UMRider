@@ -1,5 +1,17 @@
 # Change Log
 
+## [v1.0.2.2](https://github.com/NCMRWF/UMRider/tree/v1.0.2.2) (2016-08-22)
+[Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.2.1...v1.0.2.2)
+
+**Closed issues:**
+
+- Support for NEPS on updated files structure  [\#121](https://github.com/NCMRWF/UMRider/issues/121)
+- UMRider should support for NCUM 10.2 version output  [\#120](https://github.com/NCMRWF/UMRider/issues/120)
+
+**Merged pull requests:**
+
+- Support for NCUM 10.2 [\#122](https://github.com/NCMRWF/UMRider/pull/122) ([arulalant](https://github.com/arulalant))
+
 ## [v1.0.2.1](https://github.com/NCMRWF/UMRider/tree/v1.0.2.1) (2016-07-26)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.2...v1.0.2.1)
 
