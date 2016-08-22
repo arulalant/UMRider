@@ -7,7 +7,7 @@
 ## resolution, finally convert to grib1 format for vsdb input purpose.
 ##
 ## Arulalan.T
-## 25-July-2016.
+## 19-Aug-2016.
 
 import os, subprocess, datetime, getopt, sys, iris, numpy, time 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../g2utils')))
@@ -38,12 +38,35 @@ gribmap = "/gpfs1/home/Libs/GNU/GRADS/grads-2.0.2.oga.1/Contents/gribmap"
 cnvgrib = "/gpfs1/home/Libs/INTEL/CNVGRIB/CNVGRIB-1.4.1/cnvgrib-1.4.1/cnvgrib"
 wgrib2 = "/gpfs1/home/Libs/GNU/WGRIB2/v2.0.1/wgrib2"
 
-_targetGridFile_ = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../data/sample_global_2p5X2p5_73X144.grib2'))
-_targetGrid_ = iris.load(_targetGridFile_)[0]
+#_targetGridFile_ = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../data/sample_global_2p5X2p5_73X144.grib2'))
+#_targetGrid_ = iris.load(_targetGridFile_)[0]
 
 __grib1FilesNameSuffix__ = None
 __wgrib2Arguments__ = ' -set_bin_prec 12 -set_grib_type complex2 -grib_out '
 __OVERWRITE__ = True
+_reverseLatitude_ = True
+_preExtension_ = '_unOrdered'
+
+
+targetGridResolution = 2.5
+# define default global lat start, lon end points
+slat, elat = (-90., 90.)
+# define default global lon start, lon end points 
+slon, elon = (0., 360.)
+# reduce one step if user passed / default lon is 360. If we write 
+# longitude from 0 upto 360, wgrib2 reads it as 0 to 0. To avoid it, 
+# just reduct one step in longitude only incase of 360.
+if int(elon) == 360: elon -= targetGridResolution 
+# target grid as 0.25 deg (default) resolution by setting up sample points 
+# based on coord
+# generate lat, lon values
+latpoints = numpy.arange(slat, elat+targetGridResolution, targetGridResolution)
+lonpoints = numpy.arange(slon, elon+targetGridResolution, targetGridResolution)
+# correct lat, lon end points 
+if latpoints[-1] > elat: latpoints = latpoints[:-1]
+if lonpoints[-1] > elon: lonpoints = lonpoints[:-1]
+# set target grid lat, lon values pair                   
+_targetGrid_ = [('latitude', latpoints), ('longitude', lonpoints)]
     
 def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_hour, stephr=24):    
 
@@ -51,26 +74,23 @@ def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_ho
     day = int(start_long_fcst_hour) / int(stephr)
     pfileday = str(day).zfill(2)
     pfilename = 'umeps_prg_1cntl_44ens_24hourly_day' + pfileday
-    needed_fname = pfilename + '_' + today + '_' + utc + 'Z.grib2'
-    files = [f for f in os.listdir(inpath) if f == needed_fname]
-    if not files: return 
+    needed_fname = pfilename + '_' + today + '_' + utc + 'Z' + _preExtension_ + '.grib2'    
     
     tDay = datetime.datetime.strptime(today, "%Y%m%d")        
     tvDay = tDay.strftime('%d%m%y')
     
     opath = os.path.join(outpath, today)
-    createDirWhileParallelRacing(opath)        
-    
-    g2filepath = os.path.join(opath, 'prg_' + today + pfileday + '.grib2')
+    createDirWhileParallelRacing(opath)            
+    g2filepath = os.path.join(opath, 'prg%d%sz%s.grib2' % (day, utc.zfill(2), tvDay))    
     if __OVERWRITE__ and os.path.isfile(g2filepath): os.remove(g2filepath)
     
-    wg2filename = 'prg%d%sz%s.grib2' % (day, utc.zfill(2), tvDay)        
-    wg2filepath = os.path.join(opath, wg2filename)
-    if __OVERWRITE__ and os.path.isfile(wg2filepath): os.remove(wg2filepath)
-    
-    ensfpath = os.path.join(inpath, files[0])
-    inf = iris.load(ensfpath)
+    ensfpath_list = []
     for varName, varSTASH  in neededVars:
+        varfilename = varSTASH + '_' + needed_fname
+        files = [f for f in os.listdir(inpath) if f == varfilename]
+        if not files: return 
+        ensfpath = os.path.join(inpath, files[0])
+        inf = iris.load(ensfpath)
         # define variable name constraint
         varConstraint = iris.Constraint(name=varName)
         print varName, varSTASH
@@ -81,7 +101,7 @@ def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_ho
         ensAvgCube = cubeRealizationAverager(ensCube[0])
         # make memory free
         del ensCube
-        
+       
         if (varName, varSTASH) in _precipVars_:
             # DO NOT APPLY iris.analysis.Linear(extrapolation_mode='mask'), 
             # which writes nan every where for the snowfall_flux,  
@@ -92,13 +112,13 @@ def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_ho
             # extrapolated over masked grid points.
             exmode = 'mask'
         # end of if (...):
-        
         scheme = iris.analysis.Linear(extrapolation_mode=exmode)
+        
         try:
             # This lienar interpolate will do extra polate over ocean even 
             # though original data doesnt have values over ocean and wise versa.
             # So lets be aware of this.            
-            regdCube = ensAvgCube.regrid(_targetGrid_, scheme)
+            regdCube = ensAvgCube.interpolate(_targetGrid_, iris.analysis.Linear(extrapolation_mode=exmode))
         except Exception as e:
             print "ALERT !!! Error while regridding!! %s" % str(e)
             print " So skipping this without saving data"
@@ -115,9 +135,23 @@ def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_ho
             regdCube.data[regdCube.data < 0.0] = 0.0
         # end of if (varName, varSTASH) in _precipVars_:
         
-        if exmode == 'mask':            
+        if exmode == 'mask':
             regdCube.data = numpy.ma.masked_array(regdCube.data, 
                                 dtype=numpy.float64, fill_value=9.999e+20) 
+
+        if _reverseLatitude_:   # required for VSDB 90 to -90 and it shoule be 
+            # revered before regridding. Because we kept target grid file as
+            # VSDB grib.
+            # Need to reverse latitude from SN to NS
+            rcsh = len(regdCube.data.shape)
+            if rcsh == 3:
+                regdCube.data = regdCube.data[:,::-1,:]
+            elif rcsh == 2:
+                regdCube.data = regdCube.data[::-1,:]
+            lat = regdCube.coords('latitude')[0]
+            lat.points = lat.points[::-1]
+            print "latitude reverse done ........................."
+        # end of if _reverseLatitude_:
         
         print regdCube
         # save into grib2 file 
@@ -126,19 +160,14 @@ def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_ho
         
         print "Appending %s to grib2 file" % varName
         # make memory free
-        del regdCube       
+        del regdCube      
+        time.sleep(15)
+        ensfpath_list.append(ensfpath)
     # end of for varName, varSTASH  in neededVars:                      
-            
-    # execute post wgrib2 command compression algorithm
-    cmd = "%s %s %s %s" % (wgrib2, g2filepath, __wgrib2Arguments__, wg2filepath)
-    print cmd
-    subprocess.call(cmd, shell=True)            
-    time.sleep(10)
-    # remove the grib2 file generated by IRIS
-    os.remove(g2filepath)
-    # rename g2filepath as wg2filepath
-    g2filepath = wg2filepath
-    print "Created grib2 file using wgrib2 command with compress arguments " 
+    time.sleep(15)
+    
+    cmd = 'rm -rf ' + '  '.join(ensfpath_list)
+    subprocess.call(cmd, shell=True)
     
     # Conver grib2 to grib1 
     g1filepath = '.'.join(g2filepath.split('.')[:-1])
@@ -152,22 +181,23 @@ def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_ho
     cmd = ['chmod', '644', g1filepath]
     subprocess.call(cmd, shell=False)
     print "Converted grib2 to grib1 file : -", g1filepath
-    os.remove(g2filepath)                                
+    time.sleep(15)
+    os.remove(g2filepath)                         
 # end of def createTarBalls(path, today, ...):
 
 if __name__ == '__main__':
 
     
     date = None
-    inpath = None
-    oftype = None
-    utc = None
+    oftype = 'forecast'
+    utc = '00'
+    inpath = '/gpfs3/home/umeps/EPS/long_fcst/post/'
     outpath = '/gpfs3/home/umeps/EPS/ShortJobs/NCUM_EPS_VSDB_Input'
     
-    helpmsg = './ncumeps_create_memavg_vsdb_input.py --date=20160302 --outpath=path --oftype=forecast --utc=00 --start_long_fcst_hour=24 --end_long_fcst_hour=24 --fcst_step_hour=24'
+    helpmsg = './ncumeps_create_memavg_vsdb_input.py --date=20160302 --start_long_fcst_hour=24 --end_long_fcst_hour=24 --fcst_step_hour=24'
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "d:o:t:z:s:e:i", ["date=",
-            "outpath=", "oftype=", "utc=", "start_long_fcst_hour=", "end_long_fcst_hour=", "fcst_step_hour="])
+        opts, args = getopt.getopt(sys.argv[1:], "d:s:e:i", ["date=",
+            "start_long_fcst_hour=", "end_long_fcst_hour=", "fcst_step_hour="])
     except getopt.GetoptError:
         print helpmsg
         sys.exit(2)
@@ -177,12 +207,6 @@ if __name__ == '__main__':
             sys.exit()
         elif opt in ("-d", "--date"):
             date = arg
-        elif opt in ("-o", "--outpath"):
-            inpath = arg 
-        elif opt in ("-t", "--oftype"):
-            oftype = arg
-        elif opt in ("-z", "--utc"):
-            utc = arg
         elif opt in ("-s", "--start_long_fcst_hour"):
             start_long_fcst_hour = arg
         elif opt in ("-e", "--end_long_fcst_hour"):

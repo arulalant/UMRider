@@ -6,7 +6,6 @@
 #BSUB -n 16                   # number of tasks in job (max task in one node)
 #BSUB -x                      # exclusive mode
 #BSUB -R span[ptile=16]       # task per node 
-#BSUB -R rusage[mem=61440]    # RAM memeory per node 
 #BSUB -q ultra             	  # queue
 #BSUB -e /gpfs3/home/umfcst/UMRiderLogs/indreg/bsub/um2grb2.fcst.00hr.err.%J.hybrid     # error file name in which %J is replaced by the job ID
 #BSUB -o /gpfs3/home/umfcst/UMRiderLogs/indreg/bsub/um2grb2.fcst.00hr.out.%J.hybrid     # output file name in which %J is replaced by the job ID
