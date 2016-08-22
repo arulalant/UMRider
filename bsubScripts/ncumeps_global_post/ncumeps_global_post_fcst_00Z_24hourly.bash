@@ -1,12 +1,12 @@
 #!/bin/bash
 #
 #BSUB -a poe                  # set parallel operating environment
-#BSUB -J umeps2g2[24-240:24]  # job name [loop through 24 to 240 hours with intervals of 24]
+####### BSUB -J  umeps2g2[24-240:24] job name [loop through 24 to 240 hours with intervals of 24] 
+####### Jobname and hours will be submitted in the model executing script itself.
 #BSUB -W 06:00                # wall-clock time (hrs:mins)
 #BSUB -n 16                   # number of tasks in job
 #BSUB -x
 #BSUB -R span[ptile=16]
-#BSUB -R rusage[mem=61440]
 #BSUB -q ensemble             	  # queue
 #BSUB -e /gpfs3/home/umeps/UMRiderLogs/post/bsub/um2grb2.fcst.00hr.err.%J.%I.hybrid     # error file name in which %J is replaced by the job ID
 #BSUB -o /gpfs3/home/umeps/UMRiderLogs/post/bsub/um2grb2.fcst.00hr.out.%J.%I.hybrid     # output file name in which %J is replaced by the job ID

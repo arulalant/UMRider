@@ -38,7 +38,7 @@
 !
 !$$$
 
-      integer,parameter :: MAXPARAM=780
+      integer,parameter :: MAXPARAM=781
 
       type gribparam
           integer :: g1tblver
@@ -845,6 +845,7 @@
        data paramlist(778) /gribparam(2,205,0,5,3,'DLWRF')/
        data paramlist(779) /gribparam(2,212,0,5,4,'ULWRF')/
        data paramlist(780) /gribparam(2,11,0,0,17,'SKINT')/
+       data paramlist(781) /gribparam(2,221,0,3,18,'HPBL')/ 
       contains
 
 

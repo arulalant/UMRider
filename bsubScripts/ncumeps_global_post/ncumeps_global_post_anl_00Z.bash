@@ -6,8 +6,7 @@
 #BSUB -n 16                  # number of tasks in job
 #BSUB -x
 #BSUB -R span[ptile=16]
-#BSUB -R rusage[mem=61440]
-#BSUB -q small             	  # queue
+#BSUB -q ensemble             	  # queue
 #BSUB -e /gpfs3/home/umeps/UMRiderLogs/post/bsub/um2grb2.anl.00hr.err.%J.%I.hybrid     # error file name in which %J is replaced by the job ID
 #BSUB -o /gpfs3/home/umeps/UMRiderLogs/post/bsub/um2grb2.anl.00hr.out.%J.%I.hybrid     # output file name in which %J is replaced by the job ID
 
@@ -43,5 +42,8 @@ export SHELL=/bin/bash
 
 hour=0  # 0 will produce 0th hour prognostic data (equivalent to analysis)
 echo "hour="${hour}
+
+# sourcing umtid_bashrc to load module python-uvcdat-iris!
+source "$DIR/../umtid_bashrc"
 
 python $g2script --start_long_fcst_hour=${hour} --end_long_fcst_hour=${hour}

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 __author__ = 'arulalant'
-__version__ = 'v1.0.1'
+__version__ = 'v1.0.2'
 __long_name__ = 'NCUM Ensembles Parallel Rider'
 
 """
@@ -235,7 +235,18 @@ _aod_pseudo_level_var_ = {}
 ## B is not. B not necessarily to be written in out file. User may just specify
 ## only A in var.cfg configure file.
 _depedendantVars_ = {}
-                                            
+
+## These are all the variables need to be averaged across all ensembles.
+epsMeanVars = [
+    ## Pressure Level Variable names & STASH codes
+    ('geopotential_height', 'm01s16i202'),      
+    ('x_wind', 'm01s15i243'),
+    ('y_wind', 'm01s15i244'), 
+    ('air_temperature', 'm01s16i203'),
+    ('relative_humidity', 'm01s16i256'),
+    ## Non Pressure Level Variable names & STASH codes
+    ('air_pressure_at_sea_level', 'm01s16i222'),
+    ]                                            
 
 # start definition #2
 def getVarInOutFilesDetails(inDataPath, fname, hr):
@@ -260,6 +271,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
            __end_long_fcst_hour__ 
     
     hr = int(hr)
+    hr = (hr - 1) * 24 if hr > 0 else hr
     
     infile = os.path.join(inDataPath, fname)    
             
@@ -276,12 +288,12 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                 
         if __fcst_step_hour__ == 6:
             # applicable only for 6 hour instantaneous/intervals
-            fcstHours = numpy.array([6, 12, 18, 24]) + hr        
+            fcstHours = numpy.array([6, 12, 18, 24]) + hr       
         # we are extracting at particular instantaneous value, so no need to 
         # do hourly mean.
         doMultiHourlyMean = False
         
-    elif 'xbfti' in fname and fname.endswith('.pp0'):            
+    elif 'pa' in fname:            
         # consider variable
         varNamesSTASH = [('air_pressure_at_sea_level', 'm01s16i222'),
                     ('air_temperature', 'm01s16i203'),  
@@ -294,13 +306,12 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # the cube contains Instantaneous data at every 24-hours.        
         if __fcst_step_hour__ == 24:
             # applicable only for 24 hour instantaneous/intervals
-#            fcstHours = numpy.arange(0, 241, 24)       
              fcstHours = numpy.arange(__start_long_fcst_hour__, __end_long_fcst_hour__+1, 24)       
         # we are extracting at particular instantaneous value, so no need to 
         # do hourly mean.      
         doMultiHourlyMean = False    
         
-    elif 'xbfti' in fname and fname.endswith('.pp2'):            
+    elif 'pc' in fname:            
         # consider variable
         varNamesSTASH = [('air_temperature_maximum', 'm01s03i236'),  
                     ('air_temperature_minimum', 'm01s03i236'),  
@@ -371,13 +382,18 @@ def packEnsembles(arg):
         pressureConstraint = iris.Constraint(pressure=lambda cell: 
                                 int(cell.point) in _requiredPressureLevels_)
     
-    loadConstraints = varConstraint & STASHConstraint & forecast_period_constraint & latConstraint & lonConstraint   
+    # make load constraints together
+    loadConstraints = varConstraint & STASHConstraint & forecast_period_constraint & latConstraint & lonConstraint
+    # initialize 
     ensembleData, ensCube, dshape = None, None, None
     print "packEnsembles Started using", infiles
     for idx, infile in enumerate(infiles):
         print "extracting ensemble data", infile
         # load ensemble cube with all constraints
-        ensCube = getCubeData(infile, constraints=loadConstraints)[0]        
+        ensCube = getCubeData(infile, constraints=loadConstraints)
+        if not ensCube: raise ValueError("unable to extract variable %s %s %d from %s" % (varName, varSTASH, fhr, infile))
+        # Got variable successfully!    
+        ensCube = ensCube[0]        
         # extract pressure levels
         if pressureConstraint and ensCube.coords('pressure'): 
             ensCube = ensCube.extract(pressureConstraint)
@@ -667,100 +683,66 @@ def packEnsemblesInParallel(arg):
     global  _startT_, _inDataPath_, __fcst_step_hour__, __LPRINT__, \
             _opPath_, _ensemble_count_, __outg2files__, __start_long_fcst_hour__
    
-    fpname, fpextions, hr = arg 
-    
-    step_fcst_hour = __fcst_step_hour__
-    if step_fcst_hour == 6: fpextions = ['000']
-    
+    fpname, hr = arg 
+
+    step_fcst_hour = __fcst_step_hour__    
     ensembleFiles_allConstraints_list = []
     
-    for fpext in fpextions:
-        if step_fcst_hour == 6:
-            # 044_pb120
-            ensembleFiles = [os.path.join(_inDataPath_, str(ens).zfill(3)+'_'+fpname+hr.zfill(3)) 
-                                                    for ens in range(0, _ensemble_count_+1, 1)]
-            fileName = '000_' + fpname + '000'
-        elif step_fcst_hour == 24:
-            # xbfti_044.pp2
-            ensembleFiles = [os.path.join(_inDataPath_, fpname+'_'+str(ens).zfill(3)+fpext) 
-                                                    for ens in range(0, _ensemble_count_+1, 1)]
-            fileName = fpname + '_000' + fpext
-        
-        fname = os.path.join(_inDataPath_, fileName)
-        
-        # get variable indices
-        varNamesSTASH, fcstHours, doMultiHourlyMean, infile = getVarInOutFilesDetails(_inDataPath_,
-                                                                                     fileName, hr)
-        
-        for fname in ensembleFiles:
-            if not os.path.isfile(fname): 
-                print "The file doesn't exists: %s.. \n" %fname
-                return  
-            # end of if not os.path.isfile(fname): 
-        # end of for fname in ensembleFiles:
-        
-        if _convertVars_:
-            # load only needed variables from this file as well sort as per user specified ordered vars!
-            varNamesSTASH = [vns for vns in _convertVars_ if vns in varNamesSTASH]
-        
-        if not varNamesSTASH:
-            print "No varibale selected to load from the file '%s' " % fname
-            if __LPRINT__: 
-                print "Because global variable _convertVars_ doesn't contain any one of the following variables"
-                print "\n".join([str(i+1)+' : ' + str(tu) for i, tu in enumerate(varNamesSTASH)])
-            return None
-        else:
-            print "The following variables are going to be converted from file ", fname
-            print "\n".join([str(i+1)+' : ' + str(tu) for i, tu in enumerate(varNamesSTASH)])
-        # end of if not varNamesSTASH:
-        
-        if __fcst_step_hour__ == 24:            
-            for varName, varSTASH in varNamesSTASH:        
-                for fhr in fcstHours:            
-                    allConstraints = [varName, varSTASH, fhr]     
-                    ensembleFiles_allConstraints_list.append((ensembleFiles, allConstraints))
-            # end of for varName, varSTASH in varNamesSTASH:      
-    # end of for fpext in fpextions:
+    ensembleFiles = [os.path.join(_inDataPath_, str(ens).zfill(3)+'_'+fpname+hr) 
+                                            for ens in range(0, _ensemble_count_+1, 1)]
+    fileName = '000_' + fpname + '1'  # sample file to get the variabels name.
     
-    print "Started Processing the file:  \n"        
-        
-    if __fcst_step_hour__ == 6:         
-        for varName, varSTASH in varNamesSTASH: 
-            infiles_varNamesSTASHFcstHr = [(ensembleFiles, [varName, varSTASH, fhr]) for fhr in fcstHours]        
-            ## get the no of childs process to create fcst ensemble files  
-            nchild = len(infiles_varNamesSTASHFcstHr)     
-            # create the no of child parallel processes
-            inner_pool = mp.Pool(processes=nchild)
-            print "Creating %i (daemon) workers and jobs in child." % nchild
-
-            print "parallel ensemble begins for", varName, varSTASH
-            # pass the (ensemblefileslist, allConstraints, pressureConstraint) as 
-            # argument to take one fcst ensemble file per process / core to regrid it.
-            results = inner_pool.map(packEnsembles, infiles_varNamesSTASHFcstHr)
-            # closing and joining child pools      
-            inner_pool.close() 
-            inner_pool.join()
-            # parallel end
-        # end of for varName, varSTASH in varNamesSTASH:       
-                                           
-    elif __fcst_step_hour__ == 24:
+    fname = os.path.join(_inDataPath_, fileName)
+    # get variable indices
+    varNamesSTASH, fcstHours, doMultiHourlyMean, infile = getVarInOutFilesDetails(_inDataPath_,
+                                                                                 fileName, hr)
+    
+    for fname in ensembleFiles:
+        if not os.path.isfile(fname): 
+            print "The file doesn't exists: %s.. \n" %fname
+            return  
+        # end of if not os.path.isfile(fname): 
+    # end of for fname in ensembleFiles:
+    
+    if _convertVars_:
+        # load only needed variables from this file as well sort as per user specified ordered vars!
+        varNamesSTASH = [vns for vns in _convertVars_ if vns in varNamesSTASH]
+    
+    if not varNamesSTASH:
+        print "No varibale selected to load from the file '%s' " % fname
+        if __LPRINT__: 
+            print "Because global variable _convertVars_ doesn't contain any one of the following variables"
+            print "\n".join([str(i+1)+' : ' + str(tu) for i, tu in enumerate(varNamesSTASH)])
+        return None
+    else:
+        print "The following variables are going to be converted from file ", fname
+        print "\n".join([str(i+1)+' : ' + str(tu) for i, tu in enumerate(varNamesSTASH)])
+    # end of if not varNamesSTASH:
+    
+    for varName, varSTASH in varNamesSTASH:        
+        for fhr in fcstHours:            
+            allConstraints = [varName, varSTASH, fhr]     
+            ensembleFiles_allConstraints_list.append((ensembleFiles, allConstraints))
+    # end of for varName, varSTASH in varNamesSTASH:      
+    
+    print "Started Processing the file:  \n" 
                                                 
-        ## get the no of childs process to create fcst ensemble files  
-        nchild = len(ensembleFiles_allConstraints_list)     
-        maxprocess = mp.cpu_count()
-        if nchild > maxprocess: nchild = maxprocess
-        # create the no of child parallel processes
-        inner_pool = mp.Pool(processes=nchild)
-        print "Creating %i (daemon) workers and jobs in child." % nchild
+    ## get the no of childs process to create fcst ensemble files  
+    nchild = len(ensembleFiles_allConstraints_list)     
+    maxprocess = mp.cpu_count()
+    if nchild > maxprocess: nchild = maxprocess
+    # create the no of child parallel processes
+    inner_pool = mp.Pool(processes=nchild)
+    print "Creating %i (daemon) workers and jobs in child." % nchild
 
-        print "parallel ensemble begins for", varName, varSTASH
-        # pass the (ensemblefileslist, allConstraints, pressureConstraint) as 
-        # argument to take one fcst ensemble file per process / core to regrid it.
-        results = inner_pool.map(packEnsembles, ensembleFiles_allConstraints_list)
-        # closing and joining child pools      
-        inner_pool.close() 
-        inner_pool.join()
-        # parallel end
+    print "parallel ensemble begins for", varName, varSTASH
+    # pass the (ensemblefileslist, allConstraints, pressureConstraint) as 
+    # argument to take one fcst ensemble file per process / core to regrid it.
+    results = inner_pool.map(packEnsembles, ensembleFiles_allConstraints_list)
+    # closing and joining child pools      
+    inner_pool.close() 
+    inner_pool.join()
+    # parallel end
     # end of if __fcst_step_hour__ == 6:
               
     print "Time taken to convert the file: %8.5f seconds \n" %(time.time()-_startT_)
@@ -889,7 +871,7 @@ def tweaked_messages(cubeList):
 # end of def tweaked_messages(cube):
 
 # Start the convertFilesInParallel function
-def convertFilesInParallel(fname, fext, ftype):
+def convertFilesInParallel(fnames, ftype):
     """
     convertFilesInParallel function calling all the sub-functions
     :param fnames: a simple filename as argument in a string format
@@ -899,23 +881,11 @@ def convertFilesInParallel(fname, fext, ftype):
            __fcst_step_hour__, _createGrib2CtlIdxFiles_, \
            __start_long_fcst_hour__
     
-    # calculate start hour of long fcst in multiples of 24. Why?
-    # 00 hr contains from 06 to 24 hours data.
-    # 24 hr contains from 24 to 48 hours data, and so on.
-    start_fcst_hour = (__start_long_fcst_hour__ / 24) * 24
-        
-    if __fcst_step_hour__ == 6:
-        # here max fcst hours goes upto 240 only, not 241. why ??
-        # because 216 long fcst hours contains upto 240th hour fcst.
-        # and 240th long fcst contains upto 264th hour fcst.
-        # so here no need to add +1 to __end_long_fcst_hour__.
-        fcst_times = [str(hr).zfill(3) for hr in range(start_fcst_hour, __end_long_fcst_hour__, 24)]
-    elif __fcst_step_hour__ == 24:
-        fcst_times = ['000', ]
-    # end of if __fcst_step_hour__ == 6:
-    
-    fcst_filenames = [(fname, fext, hr) for hr in fcst_times]
-    print fcst_filenames
+    # calculate start hour of long fcst in multiple of days.
+    start_fcst_hour = __start_long_fcst_hour__ / 24
+    end_fcst_hour = __end_long_fcst_hour__ / 24
+    fcst_times = [str(hr) for hr in range(start_fcst_hour, end_fcst_hour+1, 1)]
+    fcst_filenames = [(fname, hr) for fname in fnames for hr in fcst_times]
     ## get the no of files and 
     nprocesses = len(fcst_filenames) 
     maxprocess = mp.cpu_count()
@@ -940,33 +910,22 @@ def convertFilesInParallel(fname, fext, ftype):
     return
 # end of def convertFilesInParallel(fnames):
 
-def _checkInFilesStatus(path, ftype, pfname, fext):
+def _checkInFilesStatus(path, ftype, pfname):
     
     global __start_long_fcst_hour__, __end_long_fcst_hour__, _ensemble_count_
     
     if ftype in ['ana', 'anl']:
         fhrs = ['000'] 
     elif ftype in ['fcst', 'prg']:
-        # calculate start hour of long fcst in multiples of 24. Why?
-        # 00 hr contains from 06 to 24 hours data.
-        # 24 hr contains from 24 to 48 hours data, and so on.
-        start_fcst_hour = (__start_long_fcst_hour__ / 24) * 24
-        
-        # here max fcst hours goes upto 240 only, not 241. why ??
-        # because 216 long fcst hours contains upto 240th hour fcst.
-        # and 240th long fcst contains upto 264th hour fcst.
-        # so here no need to add +1 to __end_long_fcst_hour__.
-        fhrs = [str(hr).zfill(3) for hr in range(0, __end_long_fcst_hour__, 24)]
+        # calculate start hour of long fcst in multiple of days. 
+        start_fcst_hour = (__start_long_fcst_hour__ / 24) 
+        end_fcst_hour = __end_long_fcst_hour__/24        
+        fhrs = [str(hr) for hr in range(start_fcst_hour, end_fcst_hour+1, 1)]
     
     fileNotExistList = []
 
     for ehr in range(0, _ensemble_count_+1, 1):
-        if fext and pfname == 'xbfti':
-            # eg : xbfti_044.pp0
-            fname = pfname + '_' + str(ehr).zfill(3) + fext
-            fpath = os.path.join(path, fname)
-            if not os.path.isfile(fpath): fileNotExistList.append(fpath)
-        elif pfname == 'pb':
+        if pfname in ['pa', 'pb', 'pc']:
             for fhr in fhrs:
                 # construct the correct fileName from partial fileName and hours
                 # add hour only if doenst have any extension on partial filename.
@@ -998,10 +957,15 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
         # its forecast time starting from 0 and reference time based on utc.
         # so we should calculate correct hour as below.
         fhrs = range(0+simulated_hr, 6+simulated_hr, __anl_step_hour__)     
-    elif ftype in ['fcst', 'prg']:
+    elif ftype in ['fcst', 'prg']:    
         outFileNameStructure = __fcstFileNameStructure__
-        fhrs = range(__start_long_fcst_hour__, __end_long_fcst_hour__+1, 
-                                                     __fcst_step_hour__)
+        if __fcst_step_hour__ == 6:
+            shr = int(__start_long_fcst_hour__/24)
+            shr = (shr - 1) * 24 if shr > 0 else shr
+            fhrs = numpy.array([6, 12, 18, 24]) + shr       
+        elif __fcst_step_hour__ == 24:
+            fhrs = range(__start_long_fcst_hour__, __end_long_fcst_hour__+1, 
+                                                         __fcst_step_hour__)
         print "fhrs = ", fhrs
         print "__start_long_fcst_hour__=",__start_long_fcst_hour__
         print "__end_long_fcst_hour__=",__end_long_fcst_hour__
@@ -1069,7 +1033,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
        _removeVars_, _requiredPressureLevels_, __setGrib2TableParameters__, \
         __outg2files__, __start_long_fcst_hour__, __wgrib2Arguments__, \
         __UMtype__, _preExtension_, _extraPolateMethod_, _targetGridFile_, \
-       __fillFullyMaskedVars__, _reverseLatitude_
+       __fillFullyMaskedVars__, _reverseLatitude_, epsMeanVars
      
     # load key word arguments
     UMtype = kwarg.get('UMtype', 'ensemble')
@@ -1128,11 +1092,9 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     __wgrib2Arguments__ = wgrib2Arguments
     # forecast filenames partial name
     if __fcst_step_hour__ == 6:
-        fcst_fname = 'pb'
-        fext = ['000',]
+        fcst_fnames = ['pb']
     elif __fcst_step_hour__ == 24:
-        fcst_fname = 'xbfti'
-        fext = ['.pp0', '.pp2']        
+        fcst_fnames = ['pa', 'pc']
         
     # get the current date in YYYYMMDD format
     _tmpDir_ = tmpPath
@@ -1161,36 +1123,34 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
                         _convertVars_.append(dvar)  # include depedendant var
                         _removeVars_.append(dvar)   # remove depedendant var at last
         # end of for var, dvar in _depedendantVars_.iteritems():
-        if fcst_fname == 'xbfti':            
+        for fcst_fname in fcst_fnames[:]:            
             # load only required file names to avoid unnneccessary computations
             # by cross checking with user defined variables list.
-            for ext in fext[:]:   
-                # loop through copy of fext[:], because fext list 
-                # will may change within this loop.
-                hr = utc.zfill(3)
-                ## if fileName has some extension, then do not add hr to it.
-                fileName = fcst_fname + '_' + hr + ext
-                varNamesSTASH, _, _, _ = getVarInOutFilesDetails(_inDataPath_, fileName, hr)
-                print "varNamesSTASH", varNamesSTASH
-                print "convertVars", convertVars
-                # check either user requires this file or not!
-                if not set(varNamesSTASH).intersection(convertVars):
-                    # remove the ext from fext, because user didn't 
-                    # require variabels from this ext file.
-                    fext.remove(ext)
-                    print "removed %s from list of files" % ext 
-            print "Final fext list :", fext
-        # end of if fcst_fname == 'xbfti':            
+            
+            hr = 0
+            ## if fileName has some extension, then do not add hr to it.
+            fileName = '000_' + fcst_fname + '1'
+            varNamesSTASH, _, _, _ = getVarInOutFilesDetails(_inDataPath_, fileName, hr)
+            print "varNamesSTASH", varNamesSTASH
+            print "convertVars", convertVars
+            # check either user requires this file or not!
+            if not set(varNamesSTASH).intersection(convertVars):
+                # remove the ext from fcst_fname, because user didn't 
+                # require variabels from this fcst_fnames file.
+                fcst_fnames.remove(fcst_fname)
+                print "removed %s from list of files" % fcst_fname             
+        # end of for fcst_fname in fcst_fnames:    
+        print "Final fname list :", fcst_fnames 
     # end of if convertVars:    
     
-    for ext in fext:
+    for fcst_fname in fcst_fnames:   
         # check either infiles are exist or not!
-        status = _checkInFilesStatus(_inDataPath_, 'prg', fcst_fname, ext)
+        status = _checkInFilesStatus(_inDataPath_, 'prg', fcst_fname)
         print "in status+++++++++++++++++++++++++++", status
         if not status:
             raise ValueError("In datapath does not contain the above valid infiles")
         # end of if not instatus:
-    # end of for ext in fext:
+    # end of for fcst_fname in fcst_fnames:
     
     _opPath_ = os.path.join(outPath, _current_date_)
     createDirWhileParallelRacing(_opPath_) 
@@ -1255,8 +1215,8 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
         print "Going to start convert Fcst files freshly"
     # end of if status is 'FilesExists': 
     
-    # do convert for forecast files # fext must be list 
-    convertFilesInParallel(fcst_fname, fext, ftype='fcst')    
+    # do convert for forecast files  
+    convertFilesInParallel(fcst_fnames, ftype='fcst')    
     
     pwd = os.getcwd()
     os.chdir(_opPath_)  # change to our path
@@ -1319,12 +1279,21 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
             else:
                 cubes = iris.load_cubes(inFn)
                 iris.fileformats.grib.save_messages(tweaked_messages(cubes), 
-                                                     outFn, append=True) # save grib2 file                
+                                                 outFn, append=True) # save grib2 file                
             # end of if __wgrib2Arguments__:
             time.sleep(15)
-            os.remove(inFn)
+            if (varName, varSTASH) not in epsMeanVars: os.remove(inFn)
+            ## epsMeanVars will be created through callback script. For that 
+            ## purpose we should not delete those files, because
+            ## it requires to create EPS MEAN VSDB INPUT. We have to load 
+            ## this file only in Python-IRIS. Because IRIS able to read it 
+            ## properly only for the simple compression algorithm not for the 
+            ## complex2 (wgrib2) algorithm. IRIS read the values wrongly,
+            ## if grib2 is written in complex2 algorithm. So... theses will 
+            ## be used to read it to create EPS mean and then will be deleted.
+            ## Dated : 05-Aug-2016.              
         # end of for varName, varSTASH in varNamesSTASH:   
-
+        time.sleep(15)
         # Lets create ctl and idx file. 
         createGrib2CtlIdxFilesFn(outFn, ftype='fcst')       
     # end of if __fcst_step_hour__ == 6:     

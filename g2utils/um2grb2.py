@@ -1022,7 +1022,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
     ##### FORECAST FILE END
     
     ##### REGIONAL FORECAST FILE BEGIN
-    elif fname.startswith('xbiwba_pb'):              # umglaa_pb
+    elif fname.startswith('umnsaa_pb'):              # umglaa_pb
         varNamesSTASH = [('land_binary_mask', 'm01s00i030'),
                     ('fog_area_fraction', 'm01s03i248'),
                     ('dew_point_temperature', 'm01s03i250'),
@@ -1063,7 +1063,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # do hourly mean.
         doMultiHourlyMean = False
         
-    elif fname.startswith('xbiwba_pd'):            # umglaa_pd
+    elif fname.startswith('umnsaa_pd'):            # umglaa_pd
         # consider variable
         varNamesSTASH = [('geopotential_height', 'm01s16i202'),
                     ('air_temperature', 'm01s16i203'),  
@@ -1089,7 +1089,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # do hourly mean.      
         doMultiHourlyMean = False
         
-    elif fname.startswith('xbiwba_pe'):            # umglaa_pe
+    elif fname.startswith('umnsaa_pe'):            # umglaa_pe
         varNamesSTASH = [('high_type_cloud_area_fraction', 'm01s09i205'),
                     ('medium_type_cloud_area_fraction', 'm01s09i204'),
                     ('low_type_cloud_area_fraction', 'm01s09i203'),                    
@@ -1141,7 +1141,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # do hourly mean.
         doMultiHourlyMean = False
 
-    elif fname.startswith('xbiwba_pf'):             # umglaa_pf        
+    elif fname.startswith('umnsaa_pf'):             # umglaa_pf        
         # other vars (these vars will be created as 6-hourly averaged)
         varNamesSTASH = [('surface_upward_latent_heat_flux', 'm01s03i234'),
              ('surface_upward_sensible_heat_flux', 'm01s03i217'),
@@ -1185,7 +1185,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
             # need to do 24 hourly average/accumulation explicitly.
             doMultiHourlyMean = True    
         
-    elif fname.startswith('xbiwba_pi'):             # umglaa_pi        
+    elif fname.startswith('umnsaa_pi'):             # umglaa_pi        
         # other vars (these vars will be created as 6-hourly averaged)
         varNamesSTASH = [('atmosphere_optical_thickness_due_to_dust_ambient_aerosol', 'm01s02i422'),
                          # The below two soil variable must be at the last in 
@@ -1475,9 +1475,7 @@ def regridAnlFcstFiles(arg):
         if '.' in fpname:
             fileName = fpname 
         else:
-            # generate filenames like 'xbiwba_pb0000', 'xbiwba_pb0601', 
-            # 'xbiwba_pb1201', 'xbiwba_pb1801', etc.,
-            fileName = fpname + hr + '01' if int(hr) > 0 else fpname + hr + '00'
+           fileName = fpname if '.' in fpname else fpname + hr.zfill(3) 
         # end of if '.' in pfname:
     # end of if  __UMtype__ == 'global':
     
@@ -1515,7 +1513,7 @@ def regridAnlFcstFiles(arg):
     if __LPRINT__: print "simulated_hr = ", simulated_hr
     print "simulated_hr = ", simulated_hr
     
-    if fpname.startswith(('umglaa', 'xbiwba')):
+    if fpname.startswith(('umglaa', 'umnsaa')):
         dtype = 'fcst'         
         outFileNameStructure = __fcstFileNameStructure__
         start_step_fcst_hour = __fcst_step_hour__
@@ -1599,6 +1597,10 @@ def regridAnlFcstFiles(arg):
         varConstraint = iris.Constraint(name=varName)
         # define varibale stash code constraint
         STASHConstraint = iris.AttributeConstraint(STASH=varSTASH)
+        
+        if not cubes.extract(varConstraint & STASHConstraint): 
+            raise ValueError("unable to extract variable %s %s" % (varName, varSTASH))
+        
         # get the standard_name of variable 
         stdNm = cubes.extract(varConstraint & STASHConstraint)[0].standard_name
         longNm = cubes.extract(varConstraint & STASHConstraint)[0].long_name
@@ -1701,7 +1703,7 @@ def regridAnlFcstFiles(arg):
                     tmpCube = a3_1p5_cube.extract(varConstraint & 
                                     STASHConstraint & a3_fcstRefTime &
                                     iris.Constraint(forecast_period=fhr) &
-                                    latConstraint & lonConstraint)[0]
+                                    latConstraint & lonConstraint)
                     print "special load of ana_hour 1.5"
                     print varName, "loaded from today infile, ", ana_today_infile
                     print "simulated_hr = ", simulated_hr            
@@ -1710,8 +1712,12 @@ def regridAnlFcstFiles(arg):
                 tmpCube = cubes.extract(varConstraint & STASHConstraint & 
                                     fcstRefTimeConstraint &
                                     iris.Constraint(forecast_period=fhr) &
-                                    latConstraint & lonConstraint)[0]
+                                    latConstraint & lonConstraint)
             # end of if __anl_step_hour__ == 3 and fhr == 1.5:
+            
+            if not tmpCube: raise ValueError("unable to extract variable %s %s %d" % varName, varSTASH, fhr)
+            # Got variable successfully!    
+            tmpCube = tmpCube[0]
             
             # extract pressure levels
             if pressureConstraint and tmpCube.coords('pressure'): 
@@ -2449,13 +2455,13 @@ def doShuffleVarsInOrder(fpath):
                                                              removeSTASH=True)
         # Lets make sure that standard_name is None for this variable.
         atmosphere_precipitable_water_content.standard_name = None
-        # Lets do second subtraction,  out = out - [3],                                                   
+        # Lets do second subtraction,  out = out - [3],     
         atmosphere_precipitable_water_content = cubeSubtractor(atmosphere_precipitable_water_content,               
                                      atmosphere_cloud_liquid_water_content[0],                              
                             long_name='atmosphere_precipitable_water_content',
                                                              removeSTASH=True) 
 
-        # Lets do third / last subtraction,  out = out - [4],                                                   
+        # Lets do third / last subtraction,  out = out - [4],
         atmosphere_precipitable_water_content = cubeSubtractor(atmosphere_precipitable_water_content,               
                                               atmosphere_cloud_ice_content[0],                               
                             long_name='atmosphere_precipitable_water_content', 
@@ -2689,6 +2695,7 @@ def doFcstConvert(fname):
     
     fcst_filenames = [(fname, hr) for hr in fcst_times]
     nchild = len(fcst_times)
+    if not nchild: raise ValueError("Got 0 fcst_times, couldn't make parallel !")
     # create the no of child parallel processes
     inner_pool = mp.Pool(processes=nchild)
     print "Creating %i (daemon) workers and jobs in child." % nchild
@@ -2728,6 +2735,7 @@ def convertFilesInParallel(fnames, ftype):
     
     ## get the no of files and 
     nprocesses = len(fnames)
+    if not nprocesses: raise ValueError("Got 0 fnames, couldn't make parallel !")
     # lets create no of parallel process w.r.t no of files.
 
     # parallel begin - 1 
@@ -2783,13 +2791,8 @@ def _checkInFilesStatus(path, ftype, pfnames):
             if __UMtype__ == 'global':
                 fname = pfname if '.' in pfname else pfname + fhr
             elif __UMtype__ == 'regional':
-                if '.' in pfname:
-                    fname = pfname 
-                else:
-                    # generate filenames like 'xbiwba_pb0000', 'xbiwba_pb0601', 
-                    # 'xbiwba_pb1201', 'xbiwba_pb1801', etc.,
-                    fname = pfname + fhr + '01' if int(fhr) > 0 else pfname + fhr + '00'
-                # end of if '.' in pfname:
+                # generate filenames like 'umnsaa_pb000', 'umnsaa_pb006', etc
+                fname = pfname if '.' in pfname else pfname + fhr.zfill(3)                
             # end of if __UMtype__ == 'global':
             fpath = os.path.join(path, fname)
             if not os.path.isfile(fpath): fileNotExistList.append(fpath)
@@ -2949,7 +2952,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
         fcst_fnames = UMInLongFcstFiles if UMInLongFcstFiles else ['umglaa_pb','umglaa_pd', 'umglaa_pe', 'umglaa_pf', 'umglaa_pi']
     elif __UMtype__ == 'regional':
         # pass user passed long forecast regional model infiles otherwise pass proper infiles.
-        fcst_fnames = UMInLongFcstFiles if UMInLongFcstFiles else ['xbiwba_pb','xbiwba_pd', 'xbiwba_pe', 'xbiwba_pf', 'xbiwba_pi']
+        fcst_fnames = UMInLongFcstFiles if UMInLongFcstFiles else ['umnsaa_pb','umnsaa_pd', 'umnsaa_pe', 'umnsaa_pf', 'umnsaa_pi']
     # end of if __UMtype__ == 'global':
     
     # get the current date in YYYYMMDD format
