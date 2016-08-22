@@ -55,7 +55,7 @@ g2ctl = "/gpfs2/home/umtid/Softwares/grib2ctl/g2ctl.pl"
 grib2ctl = "/gpfs2/home/umtid/Softwares/grib2ctl/grib2ctl.pl"
 gribmap = "/gpfs1/home/Libs/GNU/GRADS/grads-2.0.2.oga.1/Contents/gribmap"
 cnvgrib = "/gpfs1/home/Libs/INTEL/cnvgrib-1.4.0/cnvgrib"
-wgrib2 = "/gpfs1/home/Libs/GNU/WGRIB2/v2.0.4/wgrib2/wgrib2"
+wgrib2 = "/gpfs1/home/Libs/GNU/WGRIB2/v2.0.5/wgrib2/wgrib2"
 
 # other global variables
 __LPRINT__ = False

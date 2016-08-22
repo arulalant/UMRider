@@ -14,7 +14,7 @@ PS1="[`hostname -s`]["'$PWD]> '
 module load GNU-UVCDAT-IRIS/2.4.0_1.10.0d0
 module load GNU-qt/4.8.4
 module load GNU-gribapi/1.13.1
-module load GNU-wgrib2/2.0.4
+module load GNU-wgrib2/2.0.5
 module load cnvgrib/1.4.1
 module load GNU-grads/grads-2.1.a2
 # end of moulde load
