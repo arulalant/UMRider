@@ -23,9 +23,6 @@ localTable=$localTable_absolute_dir/ncmr_grib2_local_table
 export GRIB2TABLE=$localTable
 echo "export GRIB2TABLE="$GRIB2TABLE
 
-# get the absolute path of the script for forecast 00utc
-g2scripts_relative_dir="$DIR/../../g2scripts/"
-
 epsMeanScript=$DIR/ncumeps_create_memavg_vsdb_input.py
 
 export SHELL=/bin/bash
@@ -37,4 +34,4 @@ echo "hour="${hour}
 # sourcing umtid_bashrc to load module python-uvcdat-iris!
 source "$DIR/../umtid_bashrc"
 
-python $epsMeanScript --date=${1} --start_long_fcst_hour=${hour} --end_long_fcst_hour=${hour} --fcst_step_hour=24
+python $epsMeanScript --date=${UMRIDER_STARTDATE} --start_long_fcst_hour=${hour} --end_long_fcst_hour=${hour} --fcst_step_hour=24
