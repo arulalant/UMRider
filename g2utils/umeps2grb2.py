@@ -688,7 +688,8 @@ def packEnsemblesInParallel(arg):
     step_fcst_hour = __fcst_step_hour__    
     ensembleFiles_allConstraints_list = []
     
-    ensembleFiles = [os.path.join(_inDataPath_, str(ens).zfill(3)+'_'+fpname+hr) 
+    fexthr = hr if int(hr) else '1' 
+    ensembleFiles = [os.path.join(_inDataPath_, str(ens).zfill(3)+'_'+fpname+fexthr) 
                                             for ens in range(0, _ensemble_count_+1, 1)]
     fileName = '000_' + fpname + '1'  # sample file to get the variabels name.
     
@@ -929,7 +930,9 @@ def _checkInFilesStatus(path, ftype, pfname):
             for fhr in fhrs:
                 # construct the correct fileName from partial fileName and hours
                 # add hour only if doenst have any extension on partial filename.
-                fname = str(ehr).zfill(3) + '_' + pfname + fhr
+                fexthr = fhr if int(fhr) else '1'
+                fname = str(ehr).zfill(3) + '_' + pfname + fexthr
+                # becase extension 1 file contains both 00 hr and 24 hour.
                 fpath = os.path.join(path, fname)
                 if not os.path.isfile(fpath): fileNotExistList.append(fpath)
     # end of for ehr in range(0, _ensemble_count_+1, 1):
@@ -1004,13 +1007,19 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
         print "Intermediate files are exists in the outdirectory.", path
         for ifile in ifiles:
             if outFileNameStructure[0] in ifile and _preExtension_ in ifile:
-                try:
-                    os.remove(os.path.join(path, ifile))
-                except:
-                    pass                     
-                finally:
-                    status = 'IntermediateFilesExist'
-                print "removed intermediate nc file"
+                for fhr in fhrs: 
+                    if __fcst_step_hour__ == 6: 
+                        fchr = str(fhr).zfill(3) + 'hr'
+                    elif __fcst_step_hour__ == 24:
+                        fchr = 'day' + str(fhr/24).zfill(2)
+                    if fchr in ifile:
+                        try:
+                            os.remove(os.path.join(path, ifile))
+                        except:
+                            pass                     
+                        finally:
+                            status = 'IntermediateFilesExist'
+                        print "removed intermediate file", ifile
     # end of if ncfiles:
     if status in ['PartialFilesExist', 'IntermediateFilesExist']:
         # partial files exist, so make overwrite option as True and do 
