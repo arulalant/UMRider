@@ -70,7 +70,7 @@ _targetGrid_ = [('latitude', latpoints), ('longitude', lonpoints)]
     
 def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_hour, stephr=24):    
 
-
+    inpath = os.path.join(inpath, today)
     day = int(start_long_fcst_hour) / int(stephr)
     pfileday = str(day).zfill(2)
     pfilename = 'umeps_prg_1cntl_44ens_24hourly_day' + pfileday
