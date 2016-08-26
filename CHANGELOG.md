@@ -10,6 +10,7 @@
 
 **Merged pull requests:**
 
+- Fixed bugs in EPS VSDB Inpath [\#125](https://github.com/NCMRWF/UMRider/pull/125) ([arulalant](https://github.com/arulalant))
 - updated UMRIDER\_STARTDATE in EPS VSDB Creation Script [\#124](https://github.com/NCMRWF/UMRider/pull/124) ([arulalant](https://github.com/arulalant))
 - update on wgrib2 and checkoutfiles for EPS [\#123](https://github.com/NCMRWF/UMRider/pull/123) ([arulalant](https://github.com/arulalant))
 - Support for NCUM 10.2 [\#122](https://github.com/NCMRWF/UMRider/pull/122) ([arulalant](https://github.com/arulalant))
