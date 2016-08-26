@@ -13,4 +13,6 @@ $ bsub -J umeps2vsdbfcst[$i] < ncumeps_global_vsdb_fcst.bash
 
 This will produce long forecast 00utc files with 24-hourly intervals by averaging all 45 members and convert to grib1 standard for vsdb input.
 
+All above said jobs date will be taken from the environment variable called 'UMRIDER_STARTDATE'
+
 Arulalan.T

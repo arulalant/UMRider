@@ -215,6 +215,10 @@ if __name__ == '__main__':
             fcst_step_hour = arg
     # end of for opt, arg in opts:
     
+    if not date and os.environ.has_key('UMRIDER_STARTDATE'):
+        date = os.environ.get('UMRIDER_STARTDATE')
+        print "date is overridden by environment variable UMRIDER_STARTDATE", date
+    
     # create tar balls only if forecast & utc is 00, otherwise skip it!    
     if oftype == 'forecast' and utc == '00' and fcst_step_hour == '24': 
         # pass the arg to function  
