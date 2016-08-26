@@ -27,8 +27,8 @@ epsMeanScript=$DIR/ncumeps_create_memavg_vsdb_input.py
 
 export SHELL=/bin/bash
 
-# get the hour to pass command line argument (from based on JOB index)
-hour=$(printf "%02d" ${LSB_JOBINDEX})     # 2-digit number starting with 0
+# set the hour to pass command line argument to create anl vsdb
+hour=0
 echo "hour="${hour}
 
 # sourcing umtid_bashrc to load module python-uvcdat-iris!
