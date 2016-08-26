@@ -1,6 +1,6 @@
 # Change Log
 
-## [v1.0.2.2](https://github.com/NCMRWF/UMRider/tree/v1.0.2.2) (2016-08-22)
+## [v1.0.2.2](https://github.com/NCMRWF/UMRider/tree/v1.0.2.2) (2016-08-26)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.2.1...v1.0.2.2)
 
 **Closed issues:**
@@ -10,6 +10,8 @@
 
 **Merged pull requests:**
 
+- updated UMRIDER\_STARTDATE in EPS VSDB Creation Script [\#124](https://github.com/NCMRWF/UMRider/pull/124) ([arulalant](https://github.com/arulalant))
+- update on wgrib2 and checkoutfiles for EPS [\#123](https://github.com/NCMRWF/UMRider/pull/123) ([arulalant](https://github.com/arulalant))
 - Support for NCUM 10.2 [\#122](https://github.com/NCMRWF/UMRider/pull/122) ([arulalant](https://github.com/arulalant))
 
 ## [v1.0.2.1](https://github.com/NCMRWF/UMRider/tree/v1.0.2.1) (2016-07-26)
