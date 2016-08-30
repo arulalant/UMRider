@@ -8,8 +8,8 @@
 #BSUB -x
 #BSUB -R span[ptile=16]
 #BSUB -q ensemble             	  # queue
-#BSUB -e /gpfs3/home/umeps/UMRiderLogs/vsdb/bsub/umeps2grb2.vsdb.err.%J.%I.hybrid     # error file name in which %J is replaced by the job ID
-#BSUB -o /gpfs3/home/umeps/UMRiderLogs/vsdb/bsub/umeps2grb2.vsdb.out.%J.%I.hybrid     # output file name in which %J is replaced by the job ID
+#BSUB -e /gpfs3/home/umeps/UMRiderLogs/vsdb/bsub/umeps2grb2.vsdb.err.%J.hybrid     # error file name in which %J is replaced by the job ID
+#BSUB -o /gpfs3/home/umeps/UMRiderLogs/vsdb/bsub/umeps2grb2.vsdb.out.%J.hybrid     # output file name in which %J is replaced by the job ID
 
 
 # find out the directory of this bash script after submitted to bsub
