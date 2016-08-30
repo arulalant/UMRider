@@ -1,7 +1,7 @@
 # Change Log
 
-## [v1.0.2.2](https://github.com/NCMRWF/UMRider/tree/v1.0.2.2) (2016-08-26)
-[Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.2.1...v1.0.2.2)
+## [v2.0.0](https://github.com/NCMRWF/UMRider/tree/v2.0.0) (2016-08-26)
+[Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.2.1...v2.0.0)
 
 **Closed issues:**
 
