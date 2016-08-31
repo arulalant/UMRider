@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 __author__ = 'arulalant'
-__version__ = 'v1.0.1'
+__version__ = 'v2.0.0'
 __long_name__ = 'NCUM Parallel Rider'
 
 """
@@ -53,7 +53,8 @@ This is just test code as of now and is meant for a specific purpose only!
 Copyright: ESSO-NCMRWF, MoES, 2015-2016, 2016-2017.
 
 Author : Arulalan.T
-latest Update : 11-Mar-2016
+previous Update : 11-Mar-2016
+latest Update : 29-Aug-2016
 """
 
 # -- Start importing necessary modules
