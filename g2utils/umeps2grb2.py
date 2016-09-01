@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 __author__ = 'arulalant'
-__version__ = 'v1.0.2'
+__version__ = 'v2.0.0'
 __long_name__ = 'NCUM Ensembles Parallel Rider'
 
 """
@@ -16,7 +16,8 @@ Copyright: ESSO-NCMRWF, MoES, 2015-2016, 2016-2017.
 
 Author : Arulalan.T
 initial code : 15-Mar-2016
-latest Update : 30-Mar-2016
+Previous Update : 30-Mar-2016
+latest Update : 29-Aug-2016
 """
 
 # -- Start importing necessary modules
@@ -529,11 +530,7 @@ def packEnsembles(arg):
         print "taken into memory of all ensembles", ensembleData.shape 
         # convert data into masked array
         ensembleData = numpy.ma.masked_array(ensembleData, dtype=numpy.float64)
-        if (varName, varSTASH) in [('y_wind', 'm01s03i210'),]:
-            ### mask less than e-5, for vwind it goes beyond e-5. So lets set 0 to it.    
-            ensembleData.data[ensembleData.data <= 1e-5] = 0.0
-            ensembleData.data[ensembleData.data <= -1e-5] = 0.0
-        elif (varName, varSTASH) in [('precipitation_amount', 'm01s05i226'),]:
+        if (varName, varSTASH) in [('precipitation_amount', 'm01s05i226'),]:
             # precipitation should not go less than 0.
             ensembleData.data[ensembleData.data < 0] = 0.0
         # end of if (varName, varSTASH) in [('y_wind', 'm01s03i210'),]
