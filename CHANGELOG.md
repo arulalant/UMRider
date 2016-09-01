@@ -1,6 +1,6 @@
 # Change Log
 
-## [v2.0.0](https://github.com/NCMRWF/UMRider/tree/v2.0.0) (2016-08-26)
+## [v2.0.0](https://github.com/NCMRWF/UMRider/tree/v2.0.0) (2016-09-01)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.2.1...v2.0.0)
 
 **Closed issues:**
@@ -10,6 +10,8 @@
 
 **Merged pull requests:**
 
+- 	fixed y\_wind bug in NEPS [\#127](https://github.com/NCMRWF/UMRider/pull/127) ([arulalant](https://github.com/arulalant))
+- update on log filename [\#126](https://github.com/NCMRWF/UMRider/pull/126) ([arulalant](https://github.com/arulalant))
 - Fixed bugs in EPS VSDB Inpath [\#125](https://github.com/NCMRWF/UMRider/pull/125) ([arulalant](https://github.com/arulalant))
 - updated UMRIDER\_STARTDATE in EPS VSDB Creation Script [\#124](https://github.com/NCMRWF/UMRider/pull/124) ([arulalant](https://github.com/arulalant))
 - update on wgrib2 and checkoutfiles for EPS [\#123](https://github.com/NCMRWF/UMRider/pull/123) ([arulalant](https://github.com/arulalant))
