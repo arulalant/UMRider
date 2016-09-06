@@ -89,7 +89,7 @@ g2ctl = "/gpfs2/home/umtid/Softwares/grib2ctl/g2ctl.pl"
 grib2ctl = "/gpfs2/home/umtid/Softwares/grib2ctl/grib2ctl.pl"
 gribmap = "/gpfs1/home/Libs/GNU/GRADS/grads-2.0.2.oga.1/Contents/gribmap"
 cnvgrib = "/gpfs1/home/Libs/INTEL/CNVGRIB/CNVGRIB-1.4.1/cnvgrib-1.4.1/cnvgrib"
-wgrib2 = "/gpfs1/home/Libs/GNU/WGRIB2/v2.0.5/wgrib2/wgrib2"
+wgrib2 = "/gpfs1/home/Libs/GNU/WGRIB2/v2.0.4/wgrib2/wgrib2"
 
 # other global variables
 __LPRINT__ = False
@@ -1660,7 +1660,7 @@ def regridAnlFcstFiles(arg):
                 # extract time as follows. 
                 # the cube contains data of every 1-hourly accumutated.
                 # but we need to make only every 6th hourly accumutated.
-                fcstHours = numpy.array([(1, 2, 3, 4, 5, 6)])
+                fcstHours = numpy.array([(1, 2, 3, 4, 5, 6)]) - 0.5 # required since NCUM 10.2 onwards
                 ana_precip_infile = __getTodayOrYesterdayInfile__(_inDataPath_, fileName)    
                 if ana_precip_infile != infile: 
                     cubes = getCubeData(ana_precip_infile)   
