@@ -673,9 +673,15 @@ def set_fixed_surfaces(cube, grib):
         output_unit = cf_units.Unit("m")
         v_coord = cube.coord("height")
 
+    # depth
+    elif cube.coords("depth"):
+        grib_v_code = 106   # required for NCMRWF NCUM 10.2  
+        output_unit = cf_units.Unit("m")
+        v_coord = cube.coord("depth")
+        
     # depth_below_land_surface
     elif cube.coords("depth_below_land_surface"):
-        grib_v_code = 106   # required for NCMRWF  
+        grib_v_code = 106   # required for NCMRWF NCUM 8.5 
         output_unit = cf_units.Unit("m")
         v_coord = cube.coord("depth_below_land_surface")
 
@@ -734,6 +740,7 @@ def set_fixed_surfaces(cube, grib):
                          int(output_v[0]))
         gribapi.grib_set(grib, "scaledValueOfSecondFixedSurface",
                          int(output_v[1]))
+        print("output_v", output_v) 
 
 
 def set_time_range(time_coord, grib):
