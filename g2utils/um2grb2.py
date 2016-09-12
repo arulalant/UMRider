@@ -1717,8 +1717,8 @@ def regridAnlFcstFiles(arg):
                                     iris.Constraint(forecast_period=fhr) &
                                     latConstraint & lonConstraint)
             # end of if __anl_step_hour__ == 3 and fhr == 1.5:
-            
-            if not tmpCube: raise ValueError("unable to extract variable %s %s %d" % varName, varSTASH, fhr)
+            print fcstRefTimeConstraint, fhr
+            if not tmpCube: raise ValueError("unable to extract variable %s %s %s %s" % (varName, varSTASH, str(fhr), infile))
             # Got variable successfully!    
             tmpCube = tmpCube[0]
             
