@@ -1,4 +1,4 @@
-# (C) British Crown Copyright 2014 - 2015, Met Office
+# (C) British Crown Copyright 2014 - 2016, Met Office
 #
 # This file is part of Iris.
 #
@@ -99,7 +99,7 @@ _TIME_RANGE_UNITS = {
 # Reference Code Table 4.5.
 _FIXED_SURFACE = {
     100: FixedSurface(None, 'pressure', 'Pa'),  # Isobaric surface
-    103: FixedSurface(None, 'height', 'm'),      # Height level above ground
+    103: FixedSurface(None, 'height', 'm')      # Height level above ground
     106: FixedSurface('depth', 'depth_below_land_surface', 'm') # depth_below_land_surface # required for NCMRWF
 }
 _TYPE_OF_FIXED_SURFACE_MISSING = 255
@@ -273,7 +273,8 @@ def reference_time_coord(section):
 
     """
     # Look-up standard name by significanceOfReferenceTime.
-    _lookup = {1: 'forecast_reference_time',
+    _lookup = {0: 'time',
+               1: 'forecast_reference_time',
                2: 'time',
                3: 'time'}
 
@@ -794,6 +795,76 @@ def grid_definition_template_12(section, metadata):
     metadata['dim_coords_and_dims'].append((x_coord, x_dim))
 
 
+def grid_definition_template_20(section, metadata):
+    """
+    Translate template representing a Polar Stereographic grid.
+
+    Updates the metadata in-place with the translations.
+
+    Args:
+
+    * section:
+        Dictionary of coded key/value pairs from section 3 of the message.
+
+    * metadata:
+        :class:`collections.OrderedDict` of metadata.
+
+    """
+    major, minor, radius = ellipsoid_geometry(section)
+    geog_cs = ellipsoid(section['shapeOfTheEarth'], major, minor, radius)
+
+    proj_centre = projection_centre(section['projectionCentreFlag'])
+    if proj_centre.bipolar_and_symmetric:
+        raise TranslationError('Bipolar and symmetric polar stereo projections'
+                               ' are not supported by the '
+                               'grid_definition_template_20 translation.')
+    if proj_centre.south_pole_on_projection_plane:
+        central_lat = -90.
+    else:
+        central_lat = 90.
+    central_lon = section['orientationOfTheGrid'] * _GRID_ACCURACY_IN_DEGREES
+    true_scale_lat = section['LaD'] * _GRID_ACCURACY_IN_DEGREES
+    cs = icoord_systems.Stereographic(central_lat=central_lat,
+                                      central_lon=central_lon,
+                                      true_scale_lat=true_scale_lat,
+                                      ellipsoid=geog_cs)
+    x_coord, y_coord, scan = _calculate_proj_coords_from_lon_lat(section, cs)
+
+    # Determine the order of the dimensions.
+    y_dim, x_dim = 0, 1
+    if scan.j_consecutive:
+        y_dim, x_dim = 1, 0
+
+    # Add the projection coordinates to the metadata dim coords.
+    metadata['dim_coords_and_dims'].append((y_coord, y_dim))
+    metadata['dim_coords_and_dims'].append((x_coord, x_dim))
+
+
+def _calculate_proj_coords_from_lon_lat(section, cs):
+    # Construct the coordinate points, the start point is given in millidegrees
+    # but the distance measurement is in 10-3 m, so a conversion is necessary
+    # to find the origin in m.
+
+    scan = scanning_mode(section['scanningMode'])
+    lon_0 = section['longitudeOfFirstGridPoint'] * _GRID_ACCURACY_IN_DEGREES
+    lat_0 = section['latitudeOfFirstGridPoint'] * _GRID_ACCURACY_IN_DEGREES
+    x0_m, y0_m = cs.as_cartopy_crs().transform_point(
+        lon_0, lat_0, ccrs.Geodetic())
+    dx_m = section['Dx'] * 1e-3
+    dy_m = section['Dy'] * 1e-3
+    x_dir = -1 if scan.i_negative else 1
+    y_dir = 1 if scan.j_positive else -1
+    x_points = x0_m + dx_m * x_dir * np.arange(section['Nx'], dtype=np.float64)
+    y_points = y0_m + dy_m * y_dir * np.arange(section['Ny'], dtype=np.float64)
+
+    # Create the dimension coordinates.
+    x_coord = DimCoord(x_points, standard_name='projection_x_coordinate',
+                       units='m', coord_system=cs)
+    y_coord = DimCoord(y_points, standard_name='projection_y_coordinate',
+                       units='m', coord_system=cs)
+    return x_coord, y_coord, scan
+
+
 def grid_definition_template_30(section, metadata):
     """
     Translate template representing a Lambert Conformal grid.
@@ -844,26 +915,7 @@ def grid_definition_template_30(section, metadata):
         msg = 'Unable to translate resolution and component flags.'
         warnings.warn(msg)
 
-    # Construct the coordinate points, the start point is given in millidegrees
-    # but the distance measurement is in 10-3 m, so a conversion is necessary
-    # to find the origin in m.
-    scan = scanning_mode(section['scanningMode'])
-    lon_0 = section['longitudeOfFirstGridPoint'] * _GRID_ACCURACY_IN_DEGREES
-    lat_0 = section['latitudeOfFirstGridPoint'] * _GRID_ACCURACY_IN_DEGREES
-    x0_m, y0_m = cs.as_cartopy_crs().transform_point(
-        lon_0, lat_0, ccrs.Geodetic())
-    dx_m = section['Dx'] * 1e-3
-    dy_m = section['Dy'] * 1e-3
-    x_dir = -1 if scan.i_negative else 1
-    y_dir = 1 if scan.j_positive else -1
-    x_points = x0_m + dx_m * x_dir * np.arange(section['Nx'], dtype=np.float64)
-    y_points = y0_m + dy_m * y_dir * np.arange(section['Ny'], dtype=np.float64)
-
-    # Create the dimension coordinates.
-    x_coord = DimCoord(x_points, standard_name='projection_x_coordinate',
-                       units='m', coord_system=cs)
-    y_coord = DimCoord(y_points, standard_name='projection_y_coordinate',
-                       units='m', coord_system=cs)
+    x_coord, y_coord, scan = _calculate_proj_coords_from_lon_lat(section, cs)
 
     # Determine the order of the dimensions.
     y_dim, x_dim = 0, 1
@@ -947,7 +999,7 @@ def grid_definition_template_40_regular(section, metadata, cs):
     # GRIB2 message. This computed key provides a rapid calculation of the
     # monotonic latitude points that form the Gaussian grid, accounting for
     # the coverage of the grid.
-    y_points = section['distinctLatitudes']
+    y_points = section.get_computed_key('distinctLatitudes')
     y_points.sort()
     if not scan.j_positive:
         y_points = y_points[::-1]
@@ -984,8 +1036,8 @@ def grid_definition_template_40_reduced(section, metadata, cs):
     # from coded keys, it would be complex and time-consuming compared to
     # loading the latitude and longitude arrays directly using the computed
     # keys 'latitudes' and 'longitudes'.
-    x_points = section['longitudes']
-    y_points = section['latitudes']
+    x_points = section.get_computed_key('longitudes')
+    y_points = section.get_computed_key('latitudes')
 
     # Create lat/lon coordinates.
     x_coord = AuxCoord(x_points, standard_name='longitude',
@@ -1143,6 +1195,9 @@ def grid_definition_section(section, metadata):
     elif template == 12:
         # Process transverse Mercator.
         grid_definition_template_12(section, metadata)
+    elif template == 20:
+        # Polar stereographic.
+        grid_definition_template_20(section, metadata)
     elif template == 30:
         # Process Lambert conformal:
         grid_definition_template_30(section, metadata)
@@ -1663,6 +1718,19 @@ def statistical_cell_method(section):
     return cell_method
 
 
+def ensemble_identifier(section):
+    if options.warn_on_unsupported:
+        # Reference Code Table 4.6.
+        warnings.warn('Unable to translate type of ensemble forecast.')
+        warnings.warn('Unable to translate number of forecasts in ensemble.')
+
+    # Create the realization coordinates.
+    realization = DimCoord(section['perturbationNumber'],
+                           standard_name='realization',
+                           units='no_unit')
+    return realization
+
+
 def product_definition_template_0(section, metadata, rt_coord):
     """
     Translate template representing an analysis or forecast at a horizontal
@@ -1690,9 +1758,17 @@ def product_definition_template_0(section, metadata, rt_coord):
     data_cutoff(section['hoursAfterDataCutoff'],
                 section['minutesAfterDataCutoff'])
 
+    if 'forecastTime' in section.keys():
+        forecast_time = section['forecastTime']
+    # The gribapi encodes the forecast time as 'startStep' for pdt 4.4x;
+    # product_definition_template_40 makes use of this function. The
+    # following will be removed once the suspected bug is fixed.
+    elif 'startStep' in section.keys():
+        forecast_time = section['startStep']
+
     # Calculate the forecast period coordinate.
     fp_coord = forecast_period_coord(section['indicatorOfUnitOfTimeRange'],
-                                     section['forecastTime'])
+                                     forecast_time)
     # Add the forecast period coordinate to the metadata aux coords.
     metadata['aux_coords_and_dims'].append((fp_coord, None))
 
@@ -1732,15 +1808,8 @@ def product_definition_template_1(section, metadata, frt_coord):
     # Perform identical message processing.
     product_definition_template_0(section, metadata, frt_coord)
 
-    if options.warn_on_unsupported:
-        # Reference Code Table 4.6.
-        warnings.warn('Unable to translate type of ensemble forecast.')
-        warnings.warn('Unable to translate number of forecasts in ensemble.')
+    realization = ensemble_identifier(section)
 
-    # Create the realization coordinates.
-    realization = DimCoord(section['perturbationNumber'],
-                           standard_name='realization',
-                           units='no_unit')
     # Add the realization coordinate to the metadata aux coords.
     metadata['aux_coords_and_dims'].append((realization, None))
 
@@ -1853,6 +1922,35 @@ def product_definition_template_9(section, metadata, frt_coord):
     return probability_type
 
 
+def product_definition_template_11(section, metadata, frt_coord):
+    """
+    Translate template representing individual ensemble forecast, control
+    or perturbed; average, accumulation and/or extreme values
+    or other statistically processed values at a horizontal level or in a
+    horizontal layer in a continuous or non-continuous time interval.
+
+    Updates the metadata in-place with the translations.
+
+    Args:
+
+    * section:
+        Dictionary of coded key/value pairs from section 4 of the message.
+
+    * metadata:
+        :class:`collections.OrderedDict` of metadata.
+
+    * frt_coord:
+        The scalar forecast reference time :class:`iris.coords.DimCoord`.
+
+    """
+    product_definition_template_8(section, metadata, frt_coord)
+
+    realization = ensemble_identifier(section)
+
+    # Add the realization coordinate to the metadata aux coords.
+    metadata['aux_coords_and_dims'].append((realization, None))
+
+
 def product_definition_template_31(section, metadata, rt_coord):
     """
     Translate template representing a satellite product.
@@ -1913,6 +2011,35 @@ def product_definition_template_31(section, metadata, rt_coord):
         metadata['aux_coords_and_dims'].append((rt_coord, None))
 
 
+def product_definition_template_40(section, metadata, frt_coord):
+    """
+    Translate template representing an analysis or forecast at a horizontal
+    level or in a horizontal layer at a point in time for atmospheric chemical
+    constituents.
+
+    Updates the metadata in-place with the translations.
+
+    Args:
+
+    * section:
+        Dictionary of coded key/value pairs from section 4 of the message.
+
+    * metadata:
+        :class:`collectins.OrderedDict` of metadata.
+
+    * frt_coord:
+        The scalar forecast reference time :class:`iris.coords.DimCoord`.
+
+    """
+    # Perform identical message processing.
+    product_definition_template_0(section, metadata, frt_coord)
+
+    constituent_type = section['constituentType']
+
+    # Add the constituent type as  an attribute.
+    metadata['attributes']['WMO_constituent_type'] = constituent_type
+
+
 def product_definition_section(section, metadata, discipline, tablesVersion,
                                rt_coord):
     """
@@ -1957,9 +2084,13 @@ def product_definition_section(section, metadata, discipline, tablesVersion,
     elif template == 9:
         probability = \
             product_definition_template_9(section, metadata, rt_coord)
+    elif template == 11:
+        product_definition_template_11(section, metadata, rt_coord)
     elif template == 31:
         # Process satellite product.
         product_definition_template_31(section, metadata, rt_coord)
+    elif template == 40:
+        product_definition_template_40(section, metadata, rt_coord)
     else:
         msg = 'Product definition template [{}] is not ' \
             'supported'.format(template)
