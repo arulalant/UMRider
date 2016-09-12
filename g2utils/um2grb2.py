@@ -1417,7 +1417,7 @@ def _convert2VolumetricMoisture(cube, levels=[100.0, 250.0, 650.0, 2000.0]):
     # And either we should do mask grid points < 0.005 or replace with 0.0051.
     # Here we are replacing with 0.0051 since soil moisture masking will not 
     # make proper sense!. so replace the values less than 0.005 with 0.0051.
-    cube.data[numpy.ma.logical_and(cube.data > 0.0, cube.data < 0.005)] = 0.0051
+    cube.data[numpy.ma.logical_and(cube.data > 0.0, cube.data < 0.01)] = 0.0101
     
     # update the units as m3 / m3
     cube.units = Unit('m3 m-3')
@@ -1831,8 +1831,9 @@ def regridAnlFcstFiles(arg):
             # end of if (varName, varSTASH) in _precipVars_:
             
             if (varName, varSTASH) in [('land_binary_mask', 'm01s00i030')]:
-                regdCube.data[regdCube.data > 0] = 1
-                # trying to keep values either 0 or 1. Not fraction!
+                regdCube.data[regdCube.data < 0] = 1
+                # trying to keep values either 0 or 1. Not -ve! 
+                # Sometimes model writes -1 instead of 1. Lets fix this in above cmd.
                 regdCube.data = numpy.ma.array(regdCube.data, dtype=numpy.int)            
             # end of if (varName, varSTASH) in [('land_binary_mask', 'm01s00i030')]:
             
@@ -1952,7 +1953,7 @@ def regridAnlFcstFiles(arg):
                                         levels=[100.0, 250.0, 650.0, 2000.0])
                     print "converted four layer soil moisture to volumetric"
                 # end of if regdCube.standard_name == 'moisture_content_of_soil_layer':                
-                               
+                print "after soil_model_level_number", regdCube.data 
                 # We need to save this variable into nc file, why because
                 # if we saved into grib2 and then re-read it while re-ordering
                 # variables, iris couldnt load variables with 
@@ -2295,8 +2296,8 @@ def doShuffleVarsInOrder(fpath):
                 var_60S_60N = var.extract(lat_60S_60N)
                 print "before resetting ", vname, var_60S_60N.data.min(), var_60S_60N.data.max()
                 if vname == 'volumetric_moisture_of_soil_layer':
-                    # reset the minimum values as 0.0051
-                    var_60S_60N.data[var_60S_60N.data < 0.005] = 0.0051
+                    # reset the minimum values as 0.01
+                    var_60S_60N.data[var_60S_60N.data < 0.01] = 0.0101
                     print "resetting min of volumetric_moisture_of_soil_layer as ", var_60S_60N.data.min()
                 elif vname == 'soil_temperature':
                     # We should assign min of extra tropical band !
