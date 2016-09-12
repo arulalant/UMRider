@@ -11,7 +11,7 @@ name=ST
         fill_lev =  10 : ST000010(200100)
         fill_lev =  35 : ST010035(200100)
         fill_lev = 100 : ST035100(200100)
-        fill_lev = 200 : ST100200(200100)
+        fill_lev = 300 : ST100300(200100)
 # ELSE IF
         fill_lev =  10 : ST000010(200100)
         fill_lev = 200 : ST010200(200100)
@@ -33,7 +33,7 @@ name=SM
         fill_lev =  10 : SM000010(200100)
         fill_lev =  35 : SM010035(200100)
         fill_lev = 100 : SM035100(200100)
-        fill_lev = 200 : SM100200(200100)
+        fill_lev = 300 : SM100300(200100)
 # ELSE IF
         fill_lev =  10: SM000010(200100)
         fill_lev = 200 : SM010200(200100)
