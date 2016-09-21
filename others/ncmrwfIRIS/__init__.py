@@ -1,4 +1,4 @@
-# (C) British Crown Copyright 2010 - 2015, Met Office
+# (C) British Crown Copyright 2010 - 2016, Met Office
 #
 # This file is part of Iris.
 #
@@ -17,7 +17,7 @@
 """
 Conversion of cubes to/from GRIB.
 
-See also: `ECMWF GRIB API <http://www.ecmwf.int/publications/manuals/grib_api/index.html>`_.
+See also: `ECMWF GRIB API <https://software.ecmwf.int/wiki/display/GRIB/Home>`_.
 
 """
 
@@ -37,24 +37,28 @@ import numpy as np
 import numpy.ma as ma
 import scipy.interpolate
 
-from iris.analysis.interpolate import Linear1dExtrapolator
+from iris._deprecation import warn_deprecated
+from iris.analysis._interpolate_private import Linear1dExtrapolator
 import iris.coord_systems as coord_systems
 from iris.exceptions import TranslationError
 # NOTE: careful here, to avoid circular imports (as iris imports grib)
 from iris.fileformats.grib import grib_phenom_translation as gptx
 from iris.fileformats.grib import _save_rules
 import iris.fileformats.grib._load_convert
-from iris.fileformats.grib._message import _GribMessage
+from iris.fileformats.grib.message import GribMessage
 import iris.fileformats.grib.load_rules
 
 
-__all__ = ['as_messages', 'as_pairs', 'grib_generator', 'load_cubes',
-           'reset_load_rules', 'save_grib2', 'save_messages', 'GribWrapper',
+__all__ = ['load_cubes', 'save_grib2', 'load_pairs_from_fields',
+           'save_pairs_from_cube', 'save_messages', 'GribWrapper',
+           'as_messages', 'as_pairs', 'grib_generator', 'reset_load_rules',
            'hindcast_workaround']
 
 
 #: Set this flag to True to enable support of negative forecast periods
 #: when loading and saving GRIB files.
+#:
+#: .. deprecated:: 1.10
 hindcast_workaround = False
 
 
@@ -123,7 +127,7 @@ def reset_load_rules():
     .. deprecated:: 1.7
 
     """
-    warnings.warn('reset_load_rules was deprecated in v1.7.')
+    warn_deprecated('reset_load_rules was deprecated in v1.7.')
 
 
 class GribDataProxy(object):
@@ -175,8 +179,14 @@ class GribWrapper(object):
     """
     Contains a pygrib object plus some extra keys of our own.
 
+    .. deprecated:: 1.10
+
+    The class :class:`iris.fileformats.grib.message.GribMessage`
+    provides alternative means of working with GRIB message instances.
+
     """
     def __init__(self, grib_message, grib_fh=None, auto_regularise=True):
+        warn_deprecated('Deprecated at version 1.10')
         """Store the grib message and compute our extra keys."""
         self.grib_message = grib_message
         deferred = grib_fh is not None
@@ -631,11 +641,11 @@ class GribWrapper(object):
             pdt = self.productDefinitionTemplateNumber
 
             #pdt 4.0? (standard forecast)
-            if pdt in (0, 1):
+            if pdt in (0, 1): # Need for NCMRWF
                 processingDone = 'none'
 
             #pdt 4.8 or 4.9? (time-processed)
-            elif pdt in (8, 9, 11):
+            elif pdt in (8, 9, 11): # Need for NCMRWF
                 typeOfStatisticalProcessing = self.typeOfStatisticalProcessing
                 processingDone = PROCESSING_TYPES.get(typeOfStatisticalProcessing,
                                     'time _grib2_process_unknown_%i' % typeOfStatisticalProcessing)
@@ -834,6 +844,12 @@ def grib_generator(filename, auto_regularise=True):
     Returns a generator of :class:`~iris.fileformats.grib.GribWrapper`
     fields from the given filename.
 
+    .. deprecated:: 1.10
+
+    The function:
+    :meth:`iris.fileformats.grib.message.GribMessage.messages_from_filename`
+    provides alternative means of obtainig GRIB messages from a file.
+
     Args:
 
     * filename (string):
@@ -849,6 +865,7 @@ def grib_generator(filename, auto_regularise=True):
         reduced grid to an equivalent regular grid.
 
     """
+    warn_deprecated('Deprecated at version 1.10')
     with open(filename, 'rb') as grib_fh:
         while True:
             grib_message = gribapi.grib_new_from_file(grib_fh)
@@ -892,18 +909,19 @@ def load_cubes(filenames, callback=None, auto_regularise=True):
     """
     if iris.FUTURE.strict_grib_load:
         grib_loader = iris.fileformats.rules.Loader(
-            _GribMessage.messages_from_filename,
+            GribMessage.messages_from_filename,
             {},
             iris.fileformats.grib._load_convert.convert)
     else:
         if auto_regularise is not None:
             # The old loader supports the auto_regularise keyword, but in
             # deprecation mode, so warning if it is found.
-            warnings.warn('the`auto_regularise` kwarg is deprecated and '
-                          'will be removed in a future release. Resampling '
-                          'quasi-regular grids on load will no longer be '
-                          'available.  Resampling should be done on the '
-                          'loaded cube instead using Cube.regrid.')
+            msg = ('the`auto_regularise` kwarg is deprecated and '
+                   'will be removed in a future release. Resampling '
+                   'quasi-regular grids on load will no longer be '
+                   'available.  Resampling should be done on the '
+                   'loaded cube instead using Cube.regrid.')
+            warn_deprecated(msg)
 
         grib_loader = iris.fileformats.rules.Loader(
             grib_generator, {'auto_regularise': auto_regularise},
@@ -911,9 +929,61 @@ def load_cubes(filenames, callback=None, auto_regularise=True):
     return iris.fileformats.rules.load_cubes(filenames, callback, grib_loader)
 
 
+def load_pairs_from_fields(grib_messages):
+    """
+    Convert an iterable of GRIB messages into an iterable of
+    (Cube, Grib message) tuples.
+
+    Args:
+
+    * grib_messages:
+        An iterable of :class:`iris.fileformats.grib.message.GribMessage`.
+
+    Returns:
+        An iterable of tuples of (:class:`iris.cube.Cube`,
+        :class:`iris.fileformats.grib.message.GribMessage`).
+
+    This capability can be used to filter out fields before they are passed to
+    the load pipeline, and amend the cubes once they are created, using
+    GRIB metadata conditions.  Where the filtering
+    removes a significant number of fields, the speed up to load can be
+    significant:
+
+        >>> import iris
+        >>> from iris.fileformats.grib import load_pairs_from_fields
+        >>> from iris.fileformats.grib.message import GribMessage
+        >>> filename = iris.sample_data_path('polar_stereo.grib2')
+        >>> filtered_messages = []
+        >>> for message in GribMessage.messages_from_filename(filename):
+        ...     if message.sections[1]['productionStatusOfProcessedData'] == 0:
+        ...         filtered_messages.append(message)
+        >>> cubes_messages = load_pairs_from_fields(filtered_messages)
+        >>> for cube, msg in cubes_messages:
+        ...     prod_stat = msg.sections[1]['productionStatusOfProcessedData']
+        ...     cube.attributes['productionStatusOfProcessedData'] = prod_stat
+        >>> print(cube.attributes['productionStatusOfProcessedData'])
+        0
+
+    This capability can also be used to alter fields before they are passed to
+    the load pipeline.  Fields with out of specification header elements can
+    be cleaned up this way and cubes created:
+
+        >>> from iris.fileformats.grib import load_pairs_from_fields
+        >>> cleaned_messages = GribMessage.messages_from_filename(filename)
+        >>> for message in cleaned_messages:
+        ...     if message.sections[1]['productionStatusOfProcessedData'] == 0:
+        ...         message.sections[1]['productionStatusOfProcessedData'] = 4
+        >>> cubes = load_pairs_from_fields(cleaned_messages)
+
+    """
+    grib_conv = iris.fileformats.grib._load_convert.convert
+    return iris.fileformats.rules.load_pairs_from_fields(grib_messages,
+                                                         grib_conv)
+
+
 def save_grib2(cube, target, append=False, **kwargs):
     """
-    Save a cube to a GRIB2 file.
+    Save a cube or iterable of cubes to a GRIB2 file.
 
     Args:
 
@@ -936,6 +1006,19 @@ def save_grib2(cube, target, append=False, **kwargs):
 
 
 def as_pairs(cube):
+    """
+    .. deprecated:: 1.10
+    Please use :func:`iris.fileformats.grib.save_pairs_from_cube`
+    for the same functionality.
+
+
+    """
+    warn_deprecated('as_pairs is deprecated in v1.10; please use'
+                    ' save_pairs_from_cube instead.')
+    return save_pairs_from_cube(cube)
+
+
+def save_pairs_from_cube(cube):
     """
     Convert one or more cubes to (2D cube, GRIB message) pairs.
     Returns an iterable of tuples each consisting of one 2D cube and
@@ -961,6 +1044,9 @@ def as_pairs(cube):
 
 def as_messages(cube):
     """
+    .. deprecated:: 1.10
+    Please use :func:`iris.fileformats.grib.save_pairs_from_cube` instead.
+
     Convert one or more cubes to GRIB messages.
     Returns an iterable of grib_api GRIB messages.
 
@@ -969,7 +1055,7 @@ def as_messages(cube):
                       list of cubes.
 
     """
-    return (message for cube, message in as_pairs(cube))
+    return (message for cube, message in save_pairs_from_cube(cube))
 
 
 def save_messages(messages, target, append=False):

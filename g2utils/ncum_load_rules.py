@@ -60,7 +60,14 @@ G2Param_vs_cf = {
 (2, 3, 1, 195, 1, 7): (None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_0.67um', '1'), 
 (2, 3, 1, 196, 1, 7): (None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_0.87um', '1'), 
 (2, 3, 1, 197, 1, 7): (None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_1.02um', '1'),
-# Need to load from NCMRWF Local Table entries end 
+
+# required to load NGFS OSF files.
+(2, 0, 4, 192, 1): ('surface_downwelling_shortwave_flux_in_air', None, 'W m-2'),
+(2, 0, 4, 193, 1): ('surface_upwelling_shortwave_flux_in_air', None, 'W m-2'), 
+(2, 0, 5, 192, 1): ('surface_downwelling_longwave_flux', None, 'W m-2'),          
+(2, 0, 5, 193, 1): ('surface_upwelling_longwave_flux_in_air', None, 'W m-2'),
+
+# load from NCMRWF Local Table entries end 
 }
     
 def update_cf_standard_name(cube, field, filename):

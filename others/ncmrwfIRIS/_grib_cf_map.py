@@ -1,4 +1,4 @@
-# (C) British Crown Copyright 2013 - 2015, Met Office
+# (C) British Crown Copyright 2013 - 2016, Met Office
 #
 # This file is part of Iris.
 #
@@ -16,6 +16,12 @@
 # along with Iris.  If not, see <http://www.gnu.org/licenses/>.
 #
 # DO NOT EDIT: AUTO-GENERATED
+# Created on 12 February 2016 17:02 from 
+# http://www.metarelate.net/metOcean
+# at commit cf419fba84a70fba5f394f1481cfcdbba28877ff
+
+# https://github.com/metarelate/metOcean/commit/cf419fba84a70fba5f394f1481cfcdbba28877ff
+
 """
 Provides GRIB/CF phenomenon translations.
 
