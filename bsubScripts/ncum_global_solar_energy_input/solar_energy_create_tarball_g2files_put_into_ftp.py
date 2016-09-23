@@ -62,13 +62,18 @@ def createTarBalls(path, today, utc, stephr=3):
     # end of if os.path.exists(y4DayPath):            
         
     tarpath = os.path.abspath(tartoday)
+    # remove past 11th day tar ball from ftp_server 
+    cmd = 'ssh ncmlogin3 "ssh %s mkdir -p /data/niwe/NCUM_SOLAR_ENERGY/0.25/%s"' % (ftp_server, today)
+    print cmd
+    subprocess.call(cmd, shell=True)
+    
     # do scp the tar files to ftp_server and nkn_server    
-    cmd = 'ssh ncmlogin3 "scp -p %s/fcst_*%s.tar.gz  %s:/data/niwe/NCUM_SOLAR_ENERGY/0.25/"' % (tarpath, today, ftp_server)
+    cmd = 'ssh ncmlogin3 "scp -p %s/fcst_*%s.tar.gz  %s:/data/niwe/NCUM_SOLAR_ENERGY/0.25/%s"' % (tarpath, today, ftp_server, today)
     print cmd
     subprocess.call(cmd, shell=True)
     
     # remove past 11th day tar ball from ftp_server 
-    cmd = 'ssh ncmlogin3 "ssh %s rm -rf /data/niwe/NCUM_SOLAR_ENERGY/0.25/*%s*tar.bz2"' % (ftp_server, y11Day)
+    cmd = 'ssh ncmlogin3 "ssh %s rm -rf /data/niwe/NCUM_SOLAR_ENERGY/0.25/*%s*"' % (ftp_server, y11Day)
     print cmd
     try:
         subprocess.call(cmd, shell=True)
