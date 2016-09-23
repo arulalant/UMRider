@@ -32,7 +32,8 @@ def createTarBalls(path, today, utc, stephr=3):
     # get past 11th day timestamp
     y11Day = (tDay - datetime.timedelta(days=11)).strftime('%Y%m%d')
     
-    if not os.path.exists('../TarFiles'): os.makedirs('../TarFiles')
+    tartoday = '../TarFiles/%s' % today
+    if not os.path.exists(tartoday): os.makedirs(tartoday)
     print "currnet path : ", os.getcwd()
     # normal "$ tar cvjf fcst_20160223.tar.bz2 *fcst*grb2" cmd takes 6 minutes 43 seconds.
     #
@@ -42,7 +43,7 @@ def createTarBalls(path, today, utc, stephr=3):
     # Lets create tar ball for every day individually.
     for i, hr in enumerate(range(0, 241, 24)):
         # create forecast files tar file in parallel # -m500 need to be include for pbzip2
-        cmd = "tar -c ./fcst_{%s..%d}h%s*.grb2 | %s  -v  -c -f -p32 > %s/fcst_day%s_solar_ind_0.25_%s.tar.gz" % (str(hr+1).zfill(2), hr+24, today, pigz, '../TarFiles', str(i+1).zfill(2), today)
+        cmd = "tar -c ./fcst_{%s..%d}h%s*.grb2 | %s  -v  -c -f -p32 > %s/fcst_day%s_solar_ind_0.25_%s.tar.gz" % (str(hr+1).zfill(2), hr+24, today, pigz, tartoday, str(i).zfill(2), today)
         print cmd
         subprocess.call(cmd, shell=True)
     # end of for i, hr in enumerate(range(0, 241, 24)):
@@ -60,7 +61,7 @@ def createTarBalls(path, today, utc, stephr=3):
         subprocess.call(cmd, shell=True)
     # end of if os.path.exists(y4DayPath):            
         
-    tarpath = os.path.abspath('../TarFiles')
+    tarpath = os.path.abspath(tartoday)
     # do scp the tar files to ftp_server and nkn_server    
     cmd = 'ssh ncmlogin3 "scp -p %s/fcst_*%s.tar.gz  %s:/data/niwe/NCUM_SOLAR_ENERGY/0.25/"' % (tarpath, today, ftp_server)
     print cmd
