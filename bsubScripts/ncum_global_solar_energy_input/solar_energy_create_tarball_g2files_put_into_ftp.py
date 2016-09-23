@@ -68,7 +68,7 @@ def createTarBalls(path, today, utc, stephr=3):
     subprocess.call(cmd, shell=True)
     
     # do scp the tar files to ftp_server and nkn_server    
-    cmd = 'ssh ncmlogin3 "scp -p %s/fcst_*%s.tar.gz  %s:/data/niwe/NCUM_SOLAR_ENERGY/0.25/%s"' % (tarpath, today, ftp_server, today)
+    cmd = 'ssh ncmlogin3 "scp -p %s/fcst_*%s.tar.gz  %s:/data/niwe/NCUM_SOLAR_ENERGY/0.25/%s/"' % (tarpath, today, ftp_server, today)
     print cmd
     subprocess.call(cmd, shell=True)
     
