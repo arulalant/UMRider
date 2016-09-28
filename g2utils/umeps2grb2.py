@@ -784,7 +784,7 @@ def tweaked_messages(cubeList):
     global _ncmrGrib2LocalTableVars_, __setGrib2TableParameters__
     
     for cube in cubeList:
-        for cube, grib_message in iris.fileformats.grib.as_pairs(cube):
+        for cube, grib_message in iris.fileformats.grib.save_pairs_from_cube(cube):
             print "Tweaking begin ", cube.standard_name            
             # post process the GRIB2 message, prior to saving
             gribapi.grib_set_long(grib_message, "centre", 29) # RMC of India
@@ -864,7 +864,7 @@ def tweaked_messages(cubeList):
             print "Tweaking end ", cube.standard_name
             
             yield grib_message
-        # end of for cube, grib_message in iris.fileformats.grib.as_pairs(cube):
+        # end of for cube, grib_message in iris.fileformats.grib.save_pairs_from_cube(cube):
     # end of for cube in cubeList:
 # end of def tweaked_messages(cube):
 
