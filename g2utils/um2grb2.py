@@ -1655,14 +1655,15 @@ def regridAnlFcstFiles(arg):
                 # fileName[-3:] is equivalent to hr. but hr had updated in 
                 # filename extension for some case. So it better extract 
                 # forecast hour from the fileName itself.                
-                fcstHours = numpy.arange(24).reshape(4, 6) + int(fileName[-3:])
+                fcstHours = numpy.arange(24).reshape(4, 6) + int(fileName[-3:]) + 0.5 
+                # required since NCUM 10.2 onwards
                 print varName, "fcstHours ", fcstHours, int(fileName[-3:])
             elif dtype == 'ana':
                 # for analysis pe file, and this varibale we need to set the 
                 # extract time as follows. 
                 # the cube contains data of every 1-hourly accumutated.
                 # but we need to make only every 6th hourly accumutated.
-                fcstHours = numpy.array([(1, 2, 3, 4, 5, 6)]) - 0.5 # required since NCUM 10.2 onwards
+                fcstHours = numpy.array([(0, 1, 2, 3, 4, 5)]) + 0.5 # required since NCUM 10.2 onwards
                 ana_precip_infile = __getTodayOrYesterdayInfile__(_inDataPath_, fileName)    
                 if ana_precip_infile != infile: 
                     cubes = getCubeData(ana_precip_infile)   
@@ -1718,6 +1719,7 @@ def regridAnlFcstFiles(arg):
                                     latConstraint & lonConstraint)
             # end of if __anl_step_hour__ == 3 and fhr == 1.5:
             print fcstRefTimeConstraint, fhr
+            
             if not tmpCube: raise ValueError("unable to extract variable %s %s %s %s" % (varName, varSTASH, str(fhr), infile))
             # Got variable successfully!    
             tmpCube = tmpCube[0]
@@ -2030,7 +2032,7 @@ def tweaked_messages(cubeList):
            __setGrib2TableParameters__, __soilFirstSecondFixedSurfaceUnit__
     
     for cube in cubeList:
-        for cube, grib_message in iris.fileformats.grib.as_pairs(cube):
+        for cube, grib_message in iris.fileformats.grib.save_pairs_from_cube(cube):
             print "Tweaking begin ", cube.standard_name
             # post process the GRIB2 message, prior to saving
             gribapi.grib_set_long(grib_message, "centre", 29) # RMC of India
@@ -2128,7 +2130,7 @@ def tweaked_messages(cubeList):
             print "Tweaking end ", cube.standard_name
             
             yield grib_message
-        # end of for cube, grib_message in iris.fileformats.grib.as_pairs(cube):
+        # end of for cube, grib_message in iris.fileformats.grib.save_pairs_from_cube(cube):
     # end of for cube in cubeList:
 # end of def tweaked_messages(cube):
 
