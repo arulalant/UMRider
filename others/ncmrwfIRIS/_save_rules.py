@@ -720,7 +720,7 @@ def set_fixed_surfaces(cube, grib):
         output_v = v_coord.units.convert(v_coord.points[0], output_unit)
         if output_v - abs(output_v):
             warnings.warn("Vertical level encoding problem: scaling required.")
-        output_v = round(output_v) # we must round it, so that WRF able understand! # required for NCMRWF
+        output_v = round(output_v) # we must round it, so that WRF/TIGGE able understand! # required for NCMRWF
         
         gribapi.grib_set(grib, "typeOfFirstFixedSurface", grib_v_code)
         gribapi.grib_set(grib, "scaleFactorOfFirstFixedSurface", 0)
