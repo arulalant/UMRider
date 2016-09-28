@@ -77,15 +77,7 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour',
     meanCube.add_aux_coord(timeAxFirst)
     
     # get the forecat time bounds and time points from two extremes 
-    fbounds = [fcstAxFirst.bounds[0][0], fcstAxLast.bounds[-1][-1]]
-
-    if action is 'sum' and fbounds[0] != 0:
-        # this change is required only for _accumulationVars_ vars, since its 
-        # hourly accumulation, which we converting to 6-hourly accumulation.
-        # Instead of cross check by _accumulationVars_, here we are checking
-        # by action is 'sum', since sum arg passed only to _accumulationVars_.
-        fbounds = [fcstAxFirst.bounds[0][1], fcstAxLast.bounds[-1][-1]]
-    # end of if ...:    
+    fbounds = [fcstAxFirst.bounds[0][0], fcstAxLast.bounds[-1][-1]] 
     
     if fpoint == 'cbound':
         #### THE CENTRE POINT OF FORECAST TIME BOUNDS
