@@ -36,13 +36,8 @@ g2ctl = "/gpfs2/home/umtid/Softwares/grib2ctl/g2ctl.pl"
 grib2ctl = "/gpfs2/home/umtid/Softwares/grib2ctl/grib2ctl.pl"
 gribmap = "/gpfs1/home/Libs/GNU/GRADS/grads-2.0.2.oga.1/Contents/gribmap"
 cnvgrib = "/gpfs1/home/Libs/INTEL/CNVGRIB/CNVGRIB-1.4.1/cnvgrib-1.4.1/cnvgrib"
-wgrib2 = "/gpfs1/home/Libs/GNU/WGRIB2/v2.0.1/wgrib2"
-
-#_targetGridFile_ = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../data/sample_global_2p5X2p5_73X144.grib2'))
-#_targetGrid_ = iris.load(_targetGridFile_)[0]
 
 __grib1FilesNameSuffix__ = None
-__wgrib2Arguments__ = ' -set_bin_prec 12 -set_grib_type complex2 -grib_out '
 __OVERWRITE__ = True
 _reverseLatitude_ = True
 _preExtension_ = '_unOrdered'
@@ -101,19 +96,42 @@ def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_ho
         ensAvgCube = cubeRealizationAverager(ensCube[0])
         # make memory free
         del ensCube
-       
-        if (varName, varSTASH) in _precipVars_:
-            # DO NOT APPLY iris.analysis.Linear(extrapolation_mode='mask'), 
-            # which writes nan every where for the snowfall_flux,  
-            # rainfall_flux, precipitation_flux. So donot apply that.         
-            exmode = 'linear'
-        else:
-            # In general all the other variables should not be 
-            # extrapolated over masked grid points.
-            exmode = 'mask'
-        # end of if (...):
-        scheme = iris.analysis.Linear(extrapolation_mode=exmode)
         
+        # Fix latitude and longitude issues
+        # FOR VSDB, it requires lat from -90 to 90 and lon from 0 to 357.5.
+        # But here it starts from -89.5 to 89.5 and lon from 0.35 to 359.5.
+        # when we do regrid from 0.35x0.35 to 2.5x2.5, it get NaN filled over 
+        # 90S, 90N, 0E, 357.5E (all four corners). So we are fixing this issue 
+        # by changing the corners as like below, and it will resolve the 
+        # interpolation Nan problems.
+        latitude = ensAvgCube.coords('latitude')[0]
+        latp = latitude.points.tolist()
+        latp[0] = -90.0
+        latp[-1] = 90.0
+        latitude.points = numpy.array(latp)
+
+        longitude = ensAvgCube.coords('longitude')[0]
+        lonp = longitude.points.tolist()
+        lonp[0] = 0.0
+        lonp[-1] = 360.0
+        longitude.points = numpy.array(lonp)
+        
+        # Here while making average across all realization, it creates NaN
+        # over all corners of the dataset (may be becase some one of the realization
+        # has NaN or something else). So we are just copying the second most 
+        # row (lat) data to last lat row data.
+        esh = len(ensAvgCube.data.shape)
+        edata = ensAvgCube.data
+        if esh == 3:
+            edata[:, 0] = edata[:, 1, :]
+            edata[:, -1] = edata[:, -2, :]
+        elif esh == 2:
+            edata[0] = edata[1, :]
+            edata[-1] = edata[-2, :]
+        # Togethese these two adjustments, it will create 2.5x2.5 vsdb perfect
+        # grib1 files. # TESTED on 07-Oct-2016.
+        ensAvgCube.data = edata                
+        exmode = 'mask'
         try:
             # This lienar interpolate will do extra polate over ocean even 
             # though original data doesnt have values over ocean and wise versa.
@@ -153,7 +171,6 @@ def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_ho
             print "latitude reverse done ........................."
         # end of if _reverseLatitude_:
         
-        print regdCube
         # save into grib2 file 
         iris.fileformats.grib.save_messages(tweaked_messages([regdCube]), 
                                                      g2filepath, append=True) # save grib2 file        
