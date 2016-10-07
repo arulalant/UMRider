@@ -34,11 +34,6 @@ echo "export UMRIDER_SETUP="$UMRIDER_SETUP
 echo "export UMRIDER_VARS="$UMRIDER_VARS
 echo "export GRIB2TABLE="$GRIB2TABLE
 
-# sourcing umtid_bashrc to load module python-uvcdat-iris!
-#source "$DIR/../umtid_bashrc"
-# execute the script
-#srun -n 1 -c 64 python $g2script
-
 export SHELL=/bin/bash
 
 hour=0  # 0 will produce 0th hour prognostic data (equivalent to analysis)
