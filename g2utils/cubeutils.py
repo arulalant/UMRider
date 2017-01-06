@@ -77,7 +77,7 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour',
     meanCube.add_aux_coord(timeAxFirst)
     
     # get the forecat time bounds and time points from two extremes 
-    fbounds = [fcstAxFirst.bounds[0][0], fcstAxLast.bounds[-1][-1]] 
+    fbounds = [round(fcstAxFirst.bounds[0][0]), round(fcstAxLast.bounds[-1][-1])] 
     
     if fpoint == 'cbound':
         #### THE CENTRE POINT OF FORECAST TIME BOUNDS
