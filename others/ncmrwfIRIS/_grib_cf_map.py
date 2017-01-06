@@ -327,6 +327,7 @@ CF_TO_GRIB2 = {
     CFName(None, 'density', 'kg m-3'): G2Param(2, 0, 3, 10), # 3089
     CFName('visibility_in_air', None, 'm'): G2Param(2, 0, 19, 0), # 3020   
     CFName('precipitation_amount', None, 'kg m-2'): G2Param(2, 0, 1, 8), # 228228
+    CFName(None, 'time_cummulated_precipitation', 'kg m-2'): G2Param(2, 0, 1, 52), # 228228
     CFName(None, 'soil_moisture_content', 'kg m-2'): G2Param(2, 2, 0, 3), # 3086        
     CFName('sea_water_potential_temperature', 'ocean_potential_temperature', 'C'): G2Param(2, 192, 150, 129), # 150129
     CFName('sea_water_salinity', 'ocean_salinity', '1e-3'): G2Param(2, 192, 150, 130), # 150130

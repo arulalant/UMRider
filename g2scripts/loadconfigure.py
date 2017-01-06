@@ -133,13 +133,13 @@ if fillFullyMaskedVars:
         raise ValueError("fillFullyMaskedVars must be either interger or float")
 
 # check the variable's path 
-for name, path in [('inPath', inPath), ('outPath', outPath), ('tmpPath', tmpPath)]:
-    if path is None:
-        raise ValueError("In configure file, '%s' path is not defined !" % name)
-    if not os.path.exists(path):
-        raise ValueError("In configure file, '%s = %s' path does not exists" % (name, path))
-    print name, " = ", path
-# end of for name, path in [...]:
+#for name, path in [('inPath', inPath), ('outPath', outPath), ('tmpPath', tmpPath)]:
+#    if path is None:
+#        raise ValueError("In configure file, '%s' path is not defined !" % name)
+#    if not os.path.exists(path):
+#        raise ValueError("In configure file, '%s = %s' path does not exists" % (name, path))
+#    print name, " = ", path
+## end of for name, path in [...]:
 
 if targetGridFile:
     if not os.path.isfile(targetGridFile):
@@ -203,6 +203,9 @@ neededVars = uniquifyListInOrder(neededVars)
 
 print "*" * 80
 print "UMtype = ", UMtype
+print "inPath = ", inPath
+print "outPath = ", outPath
+print "tmpPath =", tmpPath
 print "UMInAnlFiles = ", UMInAnlFiles
 print "UMInShortFcstFiles", UMInShortFcstFiles
 print "UMInLongFcstFiles", UMInLongFcstFiles

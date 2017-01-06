@@ -533,7 +533,7 @@ def packEnsembles(arg):
         if (varName, varSTASH) in [('precipitation_amount', 'm01s05i226'),]:
             # precipitation should not go less than 0.
             ensembleData.data[ensembleData.data < 0] = 0.0
-        # end of if (varName, varSTASH) in [('y_wind', 'm01s03i210'),]
+        # end of if ...:
         
         # http://www.cpc.ncep.noaa.gov/products/wesley/g2grb.html
         # Says that 9.999e+20 value indicates as missingValue in grib2
@@ -839,6 +839,16 @@ def tweaked_messages(cubeList):
                 if cube.long_name:                     
                     loc_longname = [1 for lname in _ncmrGrib2LocalTableVars_ if cube.long_name.startswith(lname)]
                 # end of if cube.long_name: 
+                
+                # here str conversion is essential to avoid checking 'cloud' in None
+                # (for long_name in some case), which will throw error.
+                if 'cloud' in str(cube.standard_name) or 'cloud' in str(cube.long_name):
+                    # we have to explicitly re-set the type of first surfcae
+                    # as surfaced (1) and type of second fixed surface as 
+                    # as Nominal top of the atmosphere i.e. 8 (WMO standard)
+                    gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 1)
+                    gribapi.grib_set(grib_message, "typeOfSecondFixedSurface", 8) 
+                # end of if 'cloud' in cube.long_name or 'cloud':
                 
                 if cube.standard_name in _ncmrGrib2LocalTableVars_ or loc_longname:
                     # We have to enable local table version and disable the 
@@ -1310,8 +1320,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
         if not os.path.exists(callBackScript): 
             print "callBackScript '%s' doenst exist" % callBackScript
             return 
-        kwargs = ' --date=%s --outpath=%s --oftype=forecast --utc=%s --start_long_fcst_hour=%d --end_long_fcst_hour=%d --fcst_step_hour=%d' % (_current_date_, _opPath_, utc, 
-                start_long_fcst_hour, end_long_fcst_hour, __fcst_step_hour__)
+        kwargs = ' --date=%s --start_long_fcst_hour=%d --end_long_fcst_hour=%d --fcst_step_hour=%d' % (_current_date_, start_long_fcst_hour, end_long_fcst_hour, __fcst_step_hour__)
         scriptExecuteCmd = callBackScript + ' ' + kwargs
         # execute user defined call back script with keyword arguments
         subprocess.call(scriptExecuteCmd, shell=True)

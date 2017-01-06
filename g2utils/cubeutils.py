@@ -77,15 +77,7 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour',
     meanCube.add_aux_coord(timeAxFirst)
     
     # get the forecat time bounds and time points from two extremes 
-    fbounds = [fcstAxFirst.bounds[0][0], fcstAxLast.bounds[-1][-1]]
-
-    if action is 'sum' and fbounds[0] != 0:
-        # this change is required only for _accumulationVars_ vars, since its 
-        # hourly accumulation, which we converting to 6-hourly accumulation.
-        # Instead of cross check by _accumulationVars_, here we are checking
-        # by action is 'sum', since sum arg passed only to _accumulationVars_.
-        fbounds = [fcstAxFirst.bounds[0][1], fcstAxLast.bounds[-1][-1]]
-    # end of if ...:    
+    fbounds = [round(fcstAxFirst.bounds[0][0]), round(fcstAxLast.bounds[-1][-1])] 
     
     if fpoint == 'cbound':
         #### THE CENTRE POINT OF FORECAST TIME BOUNDS
@@ -120,7 +112,7 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour',
         cm = iris.coords.CellMethod('sum', ('time',), intervals=(dt,), 
                                      comments=(actionIntervals+' accumulation',))
     
-    # add cell_methods to the meanCube                                                                       
+    # add cell_methods to the meanCube
     if fbounds: meanCube.cell_methods = (cm,)   
     
     # make memory free
@@ -166,6 +158,119 @@ def cubeSubtractor(cube, otherCube, standard_name=None,
     return subtracted
 # end of def cubeSubtractor(...):
 
+def cubeCummulator(cubes, standard_name=None, 
+                        long_name=None, removeSTASH=False, addZerosFirstCube=True):
+    '''
+    cubeCummulator : It cummulate the data over time from starting cube.
+    addZerosFirstCube : True | False. It does add zeros cubes begining of the 
+      cummulated cubes (For the tigge purpose).
+    Return : Generators | Yields the cummulated cubes
+    
+    Arulalan.T
+    29-Sep-2016
+    '''
+    
+    # first cube 
+    precube = cubes[0]
+    
+    timeDimension = True if len(precube.shape) == 3 else False
+    attr = precube.attributes
+    if removeSTASH and 'STASH' in attr: attr.pop('STASH')
+    lname = long_name if long_name else precube.long_name
+    sname = standard_name if standard_name else precube.standard_name
+    if sname == 'None': sname = None
+#    cm = precube.cell_methods[0] if precube.cell_methods else None 
+    unit = precube.units 
+    cm = iris.coords.CellMethod('sum', ('time',), intervals=('1 hour',), 
+                     comments=(' accumulation',))
+    
+    precube.cell_methods = (cm,)
+    precube.standard_name = sname
+    precube.long_name = lname
+        
+    timeAxFirst = cubes[0].coords('time')[0]
+    fcstAxFirst = cubes[0].coords('forecast_period')[0]
+
+    if addZerosFirstCube:
+        # get the time coord of first time cube and set to zerocube
+        tbounds = [timeAxFirst.bounds[0][0], timeAxFirst.bounds[0][0]]
+        timeAxFirst.points = [tbounds[0]]
+        timeAxFirst.bounds = tbounds
+        
+        # get the fcst time coord of first time cube and set to zerocube
+        fbounds = [fcstAxFirst.bounds[0][0], fcstAxFirst.bounds[0][0]]
+        fcstAxFirst.points = [fbounds[0]]
+        fcstAxFirst.bounds = fbounds
+    
+        # create first cube filled with zeros (for TIGGE cummulate standard)
+        zerocube = numpy.ma.zeros(precube.data.shape)
+        # set fill_value 
+        numpy.ma.set_fill_value(zerocube, 9.999e+20)    
+        zerocube = iris.cube.Cube(data=zerocube, units=unit, standard_name=sname, 
+                           long_name=lname, attributes=attr, cell_methods=(cm,))
+        # add the updated time coordinate to the meanCube
+        zerocube.add_aux_coord(timeAxFirst)
+        # add the updated fcst time coordinate to the meanCube
+        zerocube.add_aux_coord(fcstAxFirst)
+        # add dimension coords 
+        zerocube.add_dim_coord(precube.coords('latitude')[0], 0)
+        zerocube.add_dim_coord(precube.coords('longitude')[0], 1)
+        for axc in precube.aux_coords: 
+            if axc.standard_name in ['forecast_period', 'time']: continue
+            zerocube.add_aux_coord(axc)    
+                
+        # add cell_methods to the zerocube
+        zerocube.cell_methods = (cm,)
+        
+        # yeilding zeros cube 
+        yield zerocube
+    # end of if addZerosFirstCube:
+            
+    # yielding first cube 
+    yield precube 
+    
+    timelen = cubes.coords('time')[0].shape[0]
+    for idx in range(1, timelen, 1):
+        # loop through over time index from second cubes onwards
+        cummulated = cubes[idx].data + precube.data 
+
+        # get the time coord of first time cube and set to mean
+        timeAx = cubes[idx].coords('time')[0]
+        tbounds = [timeAxFirst.bounds[0][0], timeAx.bounds[-1][-1]]
+        timeAx.points = [tbounds[0] + ((tbounds[-1] - tbounds[0]) / 2.0)]
+        timeAx.bounds = tbounds
+        
+        # get the fcst time coord of first time cube and set to mean
+        fcstAx = cubes[idx].coords('forecast_period')[0]
+        fbounds = [fcstAxFirst.bounds[0][0], fcstAx.bounds[-1][-1]]
+        fcstAx.points = [fbounds[0] + ((fbounds[-1] - fbounds[0]) / 2.0)]
+        fcstAx.bounds = fbounds
+        
+        # set fill_value 
+        numpy.ma.set_fill_value(cummulated, 9.999e+20)    
+        cummulated = iris.cube.Cube(data=cummulated, units=unit, standard_name=sname, 
+                           long_name=lname, attributes=attr, cell_methods=(cm,))
+        # add the updated time coordinate to the meanCube
+        cummulated.add_aux_coord(timeAx)
+        # add the updated fcst time coordinate to the meanCube
+        cummulated.add_aux_coord(fcstAx)
+        # add dimension coords 
+        cummulated.add_dim_coord(cubes[idx].coords('latitude')[0], 0)
+        cummulated.add_dim_coord(cubes[idx].coords('longitude')[0], 1)
+        for axc in cubes[idx].aux_coords: 
+            if axc.standard_name in ['forecast_period', 'time']: continue
+            cummulated.add_aux_coord(axc)    
+        
+         # add cell_methods to the zerocube
+        cummulated.cell_methods = (cm,)
+        
+        # yeilding contious time-cummulated cubes
+        yield cummulated
+        # assign cummulated to precube 
+        precube = cummulated
+    # end of for idx in range(1, timelen, 1):
+# end of def cubeCummulator(...):
+
 def cubeRealizationAverager(tmpCube, action='mean', dr='1 ENS'):
     """
     :param tmpCube:     The temporary cube data (in Iris format) with non-singleton time dimension
@@ -201,7 +306,7 @@ def cubeRealizationAverager(tmpCube, action='mean', dr='1 ENS'):
         lastCube = tmpCube.extract(iris.Constraint(realization=rp))
         meanCube = iris.analysis.maths.add(meanCube, lastCube) 
     # end of for rp in rpoints[1:]:
-           
+    
     if action == 'mean':
         # to compute mean value of meanCube divide it by length of time
         # points which we added before 

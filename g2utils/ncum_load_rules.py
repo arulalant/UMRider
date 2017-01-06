@@ -69,6 +69,11 @@ G2Param_vs_cf = {
 
 # load from NCMRWF Local Table entries end 
 }
+
+# In NCUM_Regional model time axis 'forecast_reference_time' and 'forecast_period' are wrong.
+# so lets fix it.
+fix_timeaxis_of_regional_acc_avg_cubes = [('stratiform_rainfall_amount', 'm01s04i201'),
+                                          ('stratiform_snowfall_amount', 'm01s04i202')]
     
 def update_cf_standard_name(cube, field, filename):
     """
@@ -114,6 +119,20 @@ def update_cf_standard_name(cube, field, filename):
                                      units=Unit('m'), attributes={'positive': 'up'})
                         cube.add_aux_coord(heightAx)                        
             # end of if ccm:
+        if (cube.standard_name, varSTASH) in fix_timeaxis_of_regional_acc_avg_cubes:
+            # fix the time axis varying reference_time problem which occurs in NCUM_Regional model.
+            forecast_reference_time = cube.coords('forecast_reference_time')[0]
+            fpoint = forecast_reference_time.points[0]
+            # get floating point remainder
+            freminder = fpoint % 1
+            if freminder:
+                # yes, forecast_reference_time has minutes/float values. So lets make it as hour/int.
+                forecast_reference_time.points = array([float(int(fpoint))])
+                # add the minutes values to the forecast_period and its bounds.
+                forecast_period = cube.coords('forecast_period')[0]
+                forecast_period.points = array([round(forecast_period.points[0]+freminder, 3)])
+                forecast_period.bounds = array([[round(forecast_period.bounds[0][0]+freminder, 3), 
+                                            round(forecast_period.bounds[0][1]+freminder, 3)]])
         # end of if varSTASH in ncumSTASH_Vs_cf:
     elif isinstance(field, GribWrapper):
         # loading from grib file

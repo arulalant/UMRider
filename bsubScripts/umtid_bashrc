@@ -17,4 +17,6 @@ module load GNU-gribapi/1.13.1
 module load GNU-wgrib2/2.0.4
 module load cnvgrib/1.4.1
 module load GNU-grads/grads-2.1.a2
+module load cdo/1.6.4
+#source activate iris-1.10.dev1
 # end of moulde load
