@@ -22,7 +22,8 @@ from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                     setGrib2TableParameters, anl_aavars_reference_time, \
                     anl_aavars_time_bounds, wgrib2Arguments, UMInShortFcstFiles, \
                     soilFirstSecondFixedSurfaceUnit, UMtype, targetGridFile, \
-                    fillFullyMaskedVars, extraPolateMethod
+                    fillFullyMaskedVars, extraPolateMethod, UMReanalysis, \
+                    write2NetcdfFile
 
 if loadg2utils == 'system':
     # Load g2utils from system python which has installed through setup.py
@@ -60,6 +61,7 @@ while sDay <= eDay:
     # call analysis conversion function w.r.t data assimilated 
     # during short forecast hour - 06UTC.
     convertAnlFiles(inPath, outPath, tmpPath, UMtype=UMtype,
+                                    UMReanalysis=UMReanalysis,
                         UMInShortFcstFiles=UMInShortFcstFiles,
                                 targetGridFile=targetGridFile,
                     targetGridResolution=targetGridResolution, 
@@ -81,6 +83,7 @@ soilFirstSecondFixedSurfaceUnit=soilFirstSecondFixedSurfaceUnit,
                        overwrite=overwriteFiles, lprint=debug,
               setGrib2TableParameters=setGrib2TableParameters,
                               wgrib2Arguments=wgrib2Arguments,
+                            write2NetcdfFile=write2NetcdfFile,                              
                                 callBackScript=callBackScript)
     print "Time lag incremented by 1"
     sDay += lag

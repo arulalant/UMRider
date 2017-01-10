@@ -52,6 +52,7 @@ outPath = cdic.get('outPath', None)
 tmpPath = cdic.get('tmpPath', None)
 
 UMtype = cdic.get('UMtype', 'global')
+UMReanalysis = eval(cdic.get('UMReanalysis', 'False'))
 UMInAnlFiles = eval(cdic.get('UMInAnlFiles', 'None'))
 UMInShortFcstFiles = eval(cdic.get('UMInShortFcstFiles', 'None'))
 UMInLongFcstFiles = eval(cdic.get('UMInLongFcstFiles', 'None'))
@@ -88,6 +89,7 @@ wgrib2Arguments = None if wgrib2Arguments in ['None', ''] else wgrib2Arguments
 callBackScript = cdic.get('callBackScript', None)
 callBackScript = None if callBackScript in ['None', ''] else callBackScript
 setGrib2TableParameters = eval(cdic.get('setGrib2TableParameters', 'None'))
+write2NetcdfFile = eval(cdic.get('write2NetcdfFile', 'False'))
 
 if soilFirstSecondFixedSurfaceUnit not in ('cm', 'mm'):
     raise ValueError("soilFirstSecondFixedSurfaceUnit takes either 'cm' or 'mm'")
@@ -206,10 +208,23 @@ print "UMtype = ", UMtype
 print "inPath = ", inPath
 print "outPath = ", outPath
 print "tmpPath =", tmpPath
-print "UMInAnlFiles = ", UMInAnlFiles
-print "UMInShortFcstFiles", UMInShortFcstFiles
-print "UMInLongFcstFiles", UMInLongFcstFiles
 print "date = ", date
+if UMReanalysis:
+    print "UMReanalysis = ", UMReanalysis
+    print "UMInAnlFiles = ", UMInAnlFiles
+else:
+    print "UMInAnlFiles = ", UMInAnlFiles
+    print "UMInShortFcstFiles", UMInShortFcstFiles
+    print "UMInLongFcstFiles", UMInLongFcstFiles
+    print "anl_step_hour = ", anl_step_hour
+    print "anl_aavars_reference_time = ", anl_aavars_reference_time
+    print "anl_aavars_time_bounds = ", anl_aavars_time_bounds
+
+print "start_long_fcst_hour = ", start_long_fcst_hour
+print "fcst_step_hour = ", fcst_step_hour
+print "end_long_fcst_hour_at_00z = ", end_long_fcst_hour_at_00z
+print "end_long_fcst_hour_at_12z = ", end_long_fcst_hour_at_12z
+
 if targetGridFile: print "targetGridFile = ", targetGridFile
 if not targetGridFile: print "targetGridResolution = ", targetGridResolution
 print "loadg2utils = ", loadg2utils
@@ -220,24 +235,21 @@ print "longitude = ", requiredLon
 print "pressureLevels = ", pressureLevels
 print "extraPolateMethod = ", extraPolateMethod
 print "soilFirstSecondFixedSurfaceUnit = ", soilFirstSecondFixedSurfaceUnit
-print "anl_step_hour = ", anl_step_hour
-print "anl_aavars_reference_time = ", anl_aavars_reference_time
-print "anl_aavars_time_bounds = ", anl_aavars_time_bounds
-print "start_long_fcst_hour = ", start_long_fcst_hour
-print "fcst_step_hour = ", fcst_step_hour
-print "end_long_fcst_hour_at_00z = ", end_long_fcst_hour_at_00z
-print "end_long_fcst_hour_at_12z = ", end_long_fcst_hour_at_12z
 print "fillFullyMaskedVars = ", fillFullyMaskedVars
 if anlOutGrib2FilesNameStructure: print "anlOutGrib2FilesNameStructure = ", anlOutGrib2FilesNameStructure
 if fcstOutGrib2FilesNameStructure: print "fcstOutGrib2FilesNameStructure = ", fcstOutGrib2FilesNameStructure
-print "createGrib2CtlIdxFiles = ", createGrib2CtlIdxFiles
-print "convertGrib2FilestoGrib1Files = ", convertGrib2FilestoGrib1Files
-print "grib1FilesNameSuffix = ", grib1FilesNameSuffix
-print "createGrib1CtlIdxFiles = ", createGrib1CtlIdxFiles
-print "removeGrib2FilesAfterGrib1FilesCreated = ", removeGrib2FilesAfterGrib1FilesCreated
-if setGrib2TableParameters: print "setGrib2TableParameters = ", setGrib2TableParameters
+if write2NetcdfFile:
+    print "write2NetcdfFile = ", write2NetcdfFile
+else:
+    print "createGrib2CtlIdxFiles = ", createGrib2CtlIdxFiles
+    print "convertGrib2FilestoGrib1Files = ", convertGrib2FilestoGrib1Files
+    print "grib1FilesNameSuffix = ", grib1FilesNameSuffix
+    print "createGrib1CtlIdxFiles = ", createGrib1CtlIdxFiles
+    print "removeGrib2FilesAfterGrib1FilesCreated = ", removeGrib2FilesAfterGrib1FilesCreated
+    if setGrib2TableParameters: print "setGrib2TableParameters = ", setGrib2TableParameters
+    if wgrib2Arguments: print "wgrib2Arguments = ", wgrib2Arguments
+
 if callBackScript: print "callBackScript = ", callBackScript
-if wgrib2Arguments: print "wgrib2Arguments = ", wgrib2Arguments
 print "Successfully loaded the above params from UMRIDER_SETUP configure file!", setupfile
 print "*" * 80
 print "Successfully loaded the below variables from UMRIDER_VARS configure file!", varfile 

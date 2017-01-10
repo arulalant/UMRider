@@ -21,7 +21,8 @@ from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                  removeGrib2FilesAfterGrib1FilesCreated, pressureLevels, \
                  callBackScript, setGrib2TableParameters, wgrib2Arguments, \
                  soilFirstSecondFixedSurfaceUnit, UMtype, targetGridFile, \
-                 UMInLongFcstFiles, fillFullyMaskedVars, extraPolateMethod
+                 UMInLongFcstFiles, fillFullyMaskedVars, extraPolateMethod, \
+                 write2NetcdfFile
 
 if loadg2utils == 'system':
     # Load g2utils from system python which has installed through setup.py
@@ -79,6 +80,7 @@ soilFirstSecondFixedSurfaceUnit=soilFirstSecondFixedSurfaceUnit,
                        overwrite=overwriteFiles, lprint=debug,
               setGrib2TableParameters=setGrib2TableParameters,
                               wgrib2Arguments=wgrib2Arguments,
+                            write2NetcdfFile=write2NetcdfFile,                              
                                 callBackScript=callBackScript)
     print "Time lag incremented by 1"
     sDay += lag
