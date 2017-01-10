@@ -1318,7 +1318,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     if callBackScript:
         callBackScript = os.path.abspath(callBackScript)
         if not os.path.exists(callBackScript): 
-            print "callBackScript '%s' doenst exist" % callBackScript
+            print "callBackScript '%s' doesn't exist" % callBackScript
             return 
         kwargs = ' --date=%s --start_long_fcst_hour=%d --end_long_fcst_hour=%d --fcst_step_hour=%d' % (_current_date_, start_long_fcst_hour, end_long_fcst_hour, __fcst_step_hour__)
         scriptExecuteCmd = callBackScript + ' ' + kwargs
