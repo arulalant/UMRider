@@ -94,6 +94,7 @@ wgrib2 = "/gpfs1/home/Libs/GNU/WGRIB2/v2.0.4/wgrib2/wgrib2"
 # other global variables
 __LPRINT__ = True
 __utc__ = '00'
+__UMReanalysis__ = False
 __outFileType__ = 'ana'
 # start and step hour in short forecast files
 __anl_step_hour__ = 6
@@ -148,6 +149,7 @@ __setGrib2TableParameters__ = None
 __wgrib2Arguments__ = None
 _extraPolateMethod_ = 'auto'
 __UMtype__ = 'global'
+_write2NetcdfFile_ = False
 # By default __soilFirstSecondFixedSurfaceUnit__ takes as 'cm', suggested for
 # WRF-Noah model. 
 __soilFirstSecondFixedSurfaceUnit__ = 'cm'
@@ -610,6 +612,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
     infile = os.path.join(inDataPath, fname)    
     
     inDataPathHour = inDataPath.split('/')[-1]      
+    inDataPathHour = None if not inDataPathHour.isdigit() else inDataPathHour
     
     ##### ANALYSIS FILE BEGIN     
     if fname.startswith(('qwqg00.pp0', 'umgla.pp0', 'umnsa.pp0')): # qwqg00.pp0
@@ -870,7 +873,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('tropopause_air_pressure', 'm01s30i451'),
                     ('sea_ice_area_fraction', 'm01s00i031'),
                     ('sea_ice_thickness', 'm01s00i032'),
-#                    ('soil_moisture_content', 'm01s08i208'),  # production has -ve values, (WRONG values)
+                    ('soil_moisture_content', 'm01s08i208'),  # production has -ve values, (WRONG values)
                     # the snowfall_amount need to be changed as 
                     # liquid_water_content_of_surface_snow by convert it into
                     # water equivalent of snow amount.
@@ -1062,7 +1065,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('tropopause_air_pressure', 'm01s30i451'),
                     ('sea_ice_area_fraction', 'm01s00i031'),
                     ('sea_ice_thickness', 'm01s00i032'),
-#                    ('soil_moisture_content', 'm01s08i208'),  # production has -ve values, (WRONG values)
+                    ('soil_moisture_content', 'm01s08i208'),  # production has -ve values, (WRONG values)
                     # the snowfall_amount need to be changed as 
                     # liquid_water_content_of_surface_snow by convert it into
                     # water equivalent of snow amount.
@@ -1252,7 +1255,108 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
             doMultiHourlyMean = True    
         
     ##### REGIONAL FORECAST FILE END
-    
+            
+    ##### IMDAA FORECAST FILE BEGIN #######
+    elif  fname.startswith('pp3'):             # pp3
+        varNamesSTASH = [    
+#                        ('None', 'm01s04i204'),   
+#                    ('None', 'm01s03i296'),   
+#                    ('None', 'm01s03i297'),   
+#                    ('None', 'm01s15i212'),   
+#                    ('None', 'm01s15i213'),   
+#                    ('None', 'm01s01i202'),   
+#                    ('None', 'm01s01i215'),   
+#                    ('None', 'm01s01i216'),   
+#                    ('None', 'm01s02i208'),   
+#                    ('None', 'm01s03i232'),   
+#                    ('None', 'm01s09i202'),   
+#                    ('None', 'm01s09i216'),   
+#                    ('None', 'm01s01i212'),   
+                    ('air_pressure_at_sea_level', 'm01s16i222'),   
+                    ('air_temperature', 'm01s03i236'),   
+                    ('atmosphere_boundary_layer_thickness', 'm01s00i025'),   
+                    ('cloud_base_altitude', 'm01s09i219'),   
+                    ('convective_rainfall_amount', 'm01s05i201'),   
+                    ('convective_rainfall_rate', 'm01s05i205'),   
+                    ('convective_snowfall_amount', 'm01s05i202'),   
+                    ('convective_snowfall_flux', 'm01s05i206'),   
+                    ('downward_heat_flux_in_soil', 'm01s03i202'),   
+                    ('high_type_cloud_area_fraction', 'm01s09i205'),   
+                    ('land_binary_mask', 'm01s00i030'),   
+                    ('low_type_cloud_area_fraction', 'm01s09i203'),   
+                    ('medium_type_cloud_area_fraction', 'm01s09i204'),   
+                    ('moisture_content_of_soil_layer', 'm01s08i223'),   
+                    ('precipitation_amount', 'm01s05i226'),   
+                    ('relative_humidity', 'm01s03i245'),   
+                    ('relative_humidity', 'm01s09i229'),   
+                    ('snowfall_amount', 'm01s00i023'),   
+                    ('soil_temperature', 'm01s08i225'),   
+                    ('stratiform_rainfall_amount', 'm01s04i201'),   
+                    ('stratiform_rainfall_rate', 'm01s04i203'),   
+                    ('stratiform_snowfall_amount', 'm01s04i202'),   
+                    ('subsurface_runoff_flux', 'm01s08i235'),   
+                    ('surface_air_pressure', 'm01s00i409'),   
+                    ('surface_downwelling_longwave_flux', 'm01s02i207'),   
+                    ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'),   
+                    ('surface_downwelling_shortwave_flux_in_air_assuming_clear_sky', 'm01s01i210'),   
+                    ('surface_net_downward_longwave_flux', 'm01s02i201'),   
+                    ('surface_net_downward_shortwave_flux', 'm01s01i201'),   
+                    ('surface_roughness_length', 'm01s00i026'),   
+                    ('surface_runoff_flux', 'm01s08i234'),   
+                    ('surface_temperature', 'm01s00i024'),   
+                    ('surface_upward_latent_heat_flux', 'm01s03i234'),   
+                    ('surface_upward_sensible_heat_flux', 'm01s03i217'),   
+                    ('surface_upward_water_flux', 'm01s03i223'),   
+                    ('surface_upwelling_shortwave_flux_in_air_assuming_clear_sky', 'm01s01i211'),   
+                    ('toa_incoming_shortwave_flux', 'm01s01i207'),   
+                    ('toa_outgoing_longwave_flux', 'm01s02i205'),   
+                    ('toa_outgoing_longwave_flux_assuming_clear_sky', 'm01s02i206'),   
+                    ('toa_outgoing_shortwave_flux', 'm01s01i205'),   
+                    ('toa_outgoing_shortwave_flux_assuming_clear_sky', 'm01s01i209'),   
+                    ('visibility_in_air', 'm01s03i247'),   
+                    ('wind_speed_of_gust', 'm01s03i463'),   
+                    ('x_wind', 'm01s03i225'),   
+                    ('y_wind', 'm01s03i226'),] 
+        # Just convert pp/ff file to grib2/nc file. So no need to extract 
+        # individual fcst hours.
+        fcstHours = [None]
+        doMultiHourlyMean = False
+        
+    elif  fname.startswith('pp5'):             # pp5
+
+        varNamesSTASH = [
+#                    ('None', 'm01s00i253'),   
+#                    ('None', 'm01s00i266'),   
+#                    ('None', 'm01s00i267'),   
+#                    ('None', 'm01s00i268'),   
+                    ('air_potential_temperature', 'm01s00i004'),   
+                    ('air_pressure', 'm01s00i408'),   
+                    ('dimensionless_exner_function', 'm01s00i255'),   
+                    ('mass_fraction_of_cloud_ice_in_air', 'm01s00i012'),   
+                    ('mass_fraction_of_cloud_liquid_water_in_air', 'm01s00i254'),   
+                    ('potential_vorticity_of_atmosphere_layer', 'm01s15i217'),   
+                    ('specific_humidity', 'm01s00i010'),   
+                    ('surface_altitude', 'm01s00i033'),   
+                    ('upward_air_velocity', 'm01s00i150'),   
+                    ('x_wind', 'm01s00i002'),   
+                    ('y_wind', 'm01s00i003'),]
+        # Just convert pp/ff file to grib2/nc file. So no need to extract 
+        # individual fcst hours.
+        fcstHours = [None]
+        doMultiHourlyMean = False    
+            
+    elif  fname.startswith('pp6'):             # pp6
+
+        varNamesSTASH = [('air_temperature', 'm01s16i203'),
+                         ('geopotential_height', 'm01s16i202'),
+                         ('relative_humidity', 'm01s16i256'),
+                         ('x_wind', 'm01s15i201'),
+                         ('y_wind', 'm01s15i202'),]
+        # Just convert pp/ff file to grib2/nc file. So no need to extract 
+        # individual fcst hours.
+        fcstHours = [None]
+        doMultiHourlyMean = False    
+    ##### IMDAA FORECAST FILE END #######
     else:
         raise ValueError("Filename not implemented yet!")
     # end if-loop
@@ -1493,11 +1597,14 @@ def regridAnlFcstFiles(arg):
            __fcst_step_hour__, __anl_step_hour__, _targetGridFile_, __UMtype__, \
            _precipVars_, _requiredPressureLevels_, __anl_aavars_reference_time__, \
            __anl_aavars_time_bounds__, _extraPolateMethod_, _maskOverOceanVars_, \
-           __fillFullyMaskedVars__,  _reverseLatitude_, __outFileType__ 
+           __fillFullyMaskedVars__,  _reverseLatitude_, __outFileType__, \
+           _write2NetcdfFile_, __UMReanalysis__ 
    
     fpname, hr = arg 
     
-    if  __UMtype__ == 'global':
+    if __UMReanalysis__:
+        fileName = fpname # keep filename for IMDAA reanalysis
+    elif  __UMtype__ == 'global':
         ### if fileName has some extension, then do not add hr to it.
         fileName = fpname + hr if not '.' in fpname else fpname
     elif  __UMtype__ == 'regional':
@@ -1510,6 +1617,7 @@ def regridAnlFcstFiles(arg):
     
     fname = os.path.join(_inDataPath_, fileName)        
     inDataPathHour = _inDataPath_.split('/')[-1]  
+    inDataPathHour = inDataPathHour if inDataPathHour.isdigit() else None
     # call definition to get variable indices
     varNamesSTASH, fcstHours, doMultiHourlyMean, infile = getVarInOutFilesDetails(_inDataPath_,
                                                                                fileName, hr)
@@ -1537,22 +1645,20 @@ def regridAnlFcstFiles(arg):
     
     # call definition to get cube data
     cubes = getCubeData(infile)
+    simulated_hr = int(__utc__) # lets store the simulated_hr
     nVars = len(cubes)
-    simulated_hr = int(infile.split('/')[-2])
-    if __LPRINT__: print "simulated_hr = ", simulated_hr
-    print "simulated_hr = ", simulated_hr
-    
+        
     if fpname.startswith(('umglaa', 'umnsaa')) or __outFileType__ == 'fcst':
         dtype = 'fcst'         
         outFileNameStructure = __fcstFileNameStructure__
         start_step_fcst_hour = __fcst_step_hour__
-    if fpname.startswith(('umglca', 'qwqg00', 'umnsa')) or __outFileType__ == 'ana':
+    elif fpname.startswith(('umglca', 'qwqg00', 'umnsa')) or __outFileType__ in ['ana', 'rea']:
         dtype = 'ana'
         outFileNameStructure = __anlFileNameStructure__
         start_step_fcst_hour = __anl_step_hour__
     # end of if fpname.startswith('umglaa'):
-    
-    
+    if __outFileType__ in ['rea', 'reanalysis']: dtype = 'rea'
+        
     # get the out fileName Structure based on pre / user defined indecies                       
     outFnIndecies = __getAnlFcstFileNameIndecies__(outFileNameStructure)
     # get the file name extension
@@ -1604,7 +1710,7 @@ def regridAnlFcstFiles(arg):
     # which brings to  1 time point.
     
     # Define default lat, lon, pressure contraint (None just bring model global data)
-    latConstraint, lonConstraint, pressureConstraint = None, None, None
+    latConstraint, lonConstraint, pressureConstraint, fpConstraint = None, None, None, None
     if _requiredLat_: 
         # make constraint of required latitude
         latConstraint = iris.Constraint(latitude=lambda cell: 
@@ -1641,78 +1747,82 @@ def regridAnlFcstFiles(arg):
         # end of if stdNm is None and longNm is None:
         print "  Working on variable: %s \n" % stdNm
         
-        if (varName, varSTASH) in [('soil_temperature', 'm01s03i238'), 
-                        ('moisture_content_of_soil_layer', 'm01s08i223')]:                        
-            # Within pi file, these variable has instantaneous time point,
-            # rest of other variables in pi file are 3-hr averaged.
-            # get an instantaneous forecast time for soil_temperature, and 
-            # moisture_content_of_soil_layer. 
-            if dtype == 'ana':
-                ana_soil_infile = os.path.join(_inDataPath_, fileName)
-                cubes = getCubeData(ana_soil_infile)   
-                simulated_hr = int(ana_soil_infile.split('/')[-2])                
-                # get instantaneous forecast hours to be extracted.
-                fcstHours = numpy.array([0,])
-                print varName, "loaded from file, ", ana_soil_infile
-                print "simulated_hr = ", simulated_hr
-            elif dtype == 'fcst':                         
-                # get instantaneous forecast hours to be extracted.
-                if isinstance(fcstHours[0], numpy.ndarray):
-                    fcstHours += 1  # adjust fcst hour by add 1
-                    idx = 1         # get second time in tuple        
-                    # do this process only one time though we have 2 variables
-                    # here (both soil_temperature & moisture_content_of_soil_layer)
-                    # becase here we are overwriting fcstHours which we 
-                    # previously defined in getVarInOutFilesDetails function.
-                    fcstHours = numpy.array([fhr[idx] for fhr in fcstHours])
-                print varName,"fcstHours", fcstHours
-        # end of if (varName, varSTASH) in [...]:
-        
-        if (varName, varSTASH) in _accumulationVars_:
-            # From pe files, we need to extract precipitation_amount fileds
-            # as 6 hourly accumulation, but other variables from pe files
-            # are instantaneous fileds (no need to 6 hourly mean/sum).
-            # both analysis & forecast need to be accumulation.
-            doMultiHourlyMean = True
-            if dtype == 'fcst':
-                # for forecast pe file, and this varibale we need to set the 
-                # extract time as follows. 
-                # the cube contains data of every 1-hourly accumutated.
-                # but we need to make only every 6th hourly accumutated.
-                # fileName[-3:] is equivalent to hr. but hr had updated in 
-                # filename extension for some case. So it better extract 
-                # forecast hour from the fileName itself.                
-                if __UMtype__ == 'global':
-                    if __fcst_step_hour__ == 6:
-                        fcstHours = numpy.arange(24).reshape(4, 6) + int(fileName[-3:]) + 0.5
-                    elif __fcst_step_hour__ == 24:
-                        # precipitation_amount should be from 03z till next day 03z to make it as 
-                        # 24 hourly accumulation, because IMD merged rainfall data starts from
-                        # 03z to next day 03z.
-                        fcstHours = [numpy.arange(3, 27, 1) + int(fileName[-3:]) + 0.5]
-                        # get next day file to access next day 03z hour data 
-                        infile2 = infile[:-3] + str(int(hr)+24).zfill(3)
-                        cubes = getCubeData([infile, infile2])
-                        
-                elif __UMtype__ == 'regional':
-                    fcstHours = numpy.arange(0., 6., 0.25).reshape(6, 4) + int(fileName[-3:]) + 0.125
-                print varName, "fcstHours ", fcstHours, int(fileName[-3:])
-            elif dtype == 'ana':
-                # for analysis pe file, and this varibale we need to set the 
-                # extract time as follows. 
-                # the cube contains data of every 1-hourly accumutated.
-                # but we need to make only every 6th hourly accumutated.
-                fcstHours = numpy.array([(0, 1, 2, 3, 4, 5)]) + 0.5 # required since NCUM 10.2 onwards
-                if __UMtype__ != 'regional':
-                    ana_precip_infile = __getTodayOrYesterdayInfile__(_inDataPath_, fileName)    
-                    if ana_precip_infile != infile: 
-                        cubes = getCubeData(ana_precip_infile)   
-                        simulated_hr = int(ana_precip_infile.split('/')[-2])
-                        print varName, "loaded from file, ", ana_precip_infile
-                        print "simulated_hr = ", simulated_hr
-                # end of if ana_infile != infile:               
-        # end of if (varName, varSTASH) in _accumulationVars_:
-        
+        if __UMReanalysis__:
+            simulated_hr = int(__utc__) # lets store the simulated_hr
+        else:
+            if (varName, varSTASH) in [('soil_temperature', 'm01s03i238'), 
+                            ('moisture_content_of_soil_layer', 'm01s08i223')]:                        
+                # Within pi file, these variable has instantaneous time point,
+                # rest of other variables in pi file are 3-hr averaged.
+                # get an instantaneous forecast time for soil_temperature, and 
+                # moisture_content_of_soil_layer. 
+                if dtype == 'ana':
+                    ana_soil_infile = os.path.join(_inDataPath_, fileName)
+                    cubes = getCubeData(ana_soil_infile)   
+                    simulated_hr = int(ana_soil_infile.split('/')[-2])                
+                    # get instantaneous forecast hours to be extracted.
+                    fcstHours = numpy.array([0,])
+                    print varName, "loaded from file, ", ana_soil_infile
+                    print "simulated_hr = ", simulated_hr
+                elif dtype == 'fcst':                         
+                    # get instantaneous forecast hours to be extracted.
+                    if isinstance(fcstHours[0], numpy.ndarray):
+                        fcstHours += 1  # adjust fcst hour by add 1
+                        idx = 1         # get second time in tuple        
+                        # do this process only one time though we have 2 variables
+                        # here (both soil_temperature & moisture_content_of_soil_layer)
+                        # becase here we are overwriting fcstHours which we 
+                        # previously defined in getVarInOutFilesDetails function.
+                        fcstHours = numpy.array([fhr[idx] for fhr in fcstHours])
+                    print varName,"fcstHours", fcstHours
+            # end of if (varName, varSTASH) in [...]:
+            
+            if (varName, varSTASH) in _accumulationVars_:
+                # From pe files, we need to extract precipitation_amount fileds
+                # as 6 hourly accumulation, but other variables from pe files
+                # are instantaneous fileds (no need to 6 hourly mean/sum).
+                # both analysis & forecast need to be accumulation.
+                doMultiHourlyMean = True
+                if dtype == 'fcst':
+                    # for forecast pe file, and this varibale we need to set the 
+                    # extract time as follows. 
+                    # the cube contains data of every 1-hourly accumutated.
+                    # but we need to make only every 6th hourly accumutated.
+                    # fileName[-3:] is equivalent to hr. but hr had updated in 
+                    # filename extension for some case. So it better extract 
+                    # forecast hour from the fileName itself.                
+                    if __UMtype__ == 'global':
+                        if __fcst_step_hour__ == 6:
+                            fcstHours = numpy.arange(24).reshape(4, 6) + int(fileName[-3:]) + 0.5
+                        elif __fcst_step_hour__ == 24:
+                            # precipitation_amount should be from 03z till next day 03z to make it as 
+                            # 24 hourly accumulation, because IMD merged rainfall data starts from
+                            # 03z to next day 03z.
+                            fcstHours = [numpy.arange(3, 27, 1) + int(fileName[-3:]) + 0.5]
+                            # get next day file to access next day 03z hour data 
+                            infile2 = infile[:-3] + str(int(hr)+24).zfill(3)
+                            cubes = getCubeData([infile, infile2])
+                            
+                    elif __UMtype__ == 'regional':
+                        fcstHours = numpy.arange(0., 6., 0.25).reshape(6, 4) + int(fileName[-3:]) + 0.125
+                    print varName, "fcstHours ", fcstHours, int(fileName[-3:])
+                elif dtype == 'ana':
+                    # for analysis pe file, and this varibale we need to set the 
+                    # extract time as follows. 
+                    # the cube contains data of every 1-hourly accumutated.
+                    # but we need to make only every 6th hourly accumutated.
+                    fcstHours = numpy.array([(0, 1, 2, 3, 4, 5)]) + 0.5 # required since NCUM 10.2 onwards
+                    if __UMtype__ != 'regional':
+                        ana_precip_infile = __getTodayOrYesterdayInfile__(_inDataPath_, fileName)    
+                        if ana_precip_infile != infile: 
+                            cubes = getCubeData(ana_precip_infile)   
+                            simulated_hr = int(ana_precip_infile.split('/')[-2])
+                            print varName, "loaded from file, ", ana_precip_infile
+                            print "simulated_hr = ", simulated_hr
+                    # end of if ana_infile != infile:               
+            # end of if (varName, varSTASH) in _accumulationVars_:
+        # end of if __UMReanalysis__:
+        print "simulated_hr----", simulated_hr        
         # define (simulated_hr) forecast_reference_time constraint
         fcstRefTimeConstraint = iris.Constraint(forecast_reference_time=PartialDateTime(hour=simulated_hr))
         if __LPRINT__: print fcstRefTimeConstraint
@@ -1735,7 +1845,8 @@ def regridAnlFcstFiles(arg):
                     # these vars taken already from qwqg00.pp0 file. 
                     continue                    
             # end of if __anl_step_hour__ == 3 and fhr == 0:
-                
+            if fhr:
+                fpConstraint = iris.Constraint(forecast_period=fhr)
             if __anl_step_hour__ == 3 and fhr == 1.5:
                 # Load from current date instead of yesterday date 
                 ana_today_infile = os.path.join(_inDataPath_, fileName)                 
@@ -1746,7 +1857,7 @@ def regridAnlFcstFiles(arg):
                     # extract based on new constraints which are all applicable only to ana 1.5 hours.
                     tmpCube = a3_1p5_cube.extract(varConstraint & 
                                     STASHConstraint & a3_fcstRefTime &
-                                    iris.Constraint(forecast_period=fhr) &
+                                    fpConstraint &
                                     latConstraint & lonConstraint)
                     print "special load of ana_hour 1.5"
                     print varName, "loaded from today infile, ", ana_today_infile
@@ -1754,11 +1865,9 @@ def regridAnlFcstFiles(arg):
             else:
                 # extract cube with possible and required constraints
                 tmpCube = cubes.extract(varConstraint & STASHConstraint & 
-                                    fcstRefTimeConstraint &
-                                    iris.Constraint(forecast_period=fhr) &
+                                    fcstRefTimeConstraint & fpConstraint &
                                     latConstraint & lonConstraint)
             # end of if __anl_step_hour__ == 3 and fhr == 1.5:
-            print fcstRefTimeConstraint, fhr
             
             if not tmpCube: raise ValueError("unable to extract variable %s %s %s %s" % (varName, varSTASH, str(fhr), infile))
             # Got variable successfully!    
@@ -1782,32 +1891,34 @@ def regridAnlFcstFiles(arg):
                 print "has_lazy_data =", tmpCube.has_lazy_data()
             # end of if tmpCube.has_lazy_data():
             
-            if (varName, varSTASH) == ('snowfall_amount', 'm01s00i023'):
-                # the snowfall_amount need to be changed as 
-                # liquid_water_content_of_surface_snow by convert it into
-                # water equivalent of snow amount.                    
-                _convert2WEASD(tmpCube)
-            # end of if (varName, varSTASH) == ('snowfall_amount', 'm01s00i023'):
-            
-            if doMultiHourlyMean and (tmpCube.coords('forecast_period')[0].shape[0] > 1):              
-                # grab the variable which is f(t,z,y,x)
-                # tmpCube corresponds to each variable for the SYNOP hours from
-                # start to end of short time period mean (say 3-hourly)                                
-                cubeName = tmpCube.standard_name    
-                cubeName = cubeName if cubeName else ''
-                # get action as either do we have to accumulation or mean.
-                action = 'sum' if (cubeName, varSTASH) in _accumulationVars_ else 'mean'
-                # convert 3-hourly mean data into 6-hourly mean or accumulation
-                # actionIntervals is 6 hourly mean or accumulation
-                # here dt intervals meant to be forecast intervals, as per 
-                # model, it forecast every one hour. so we must pass as 
-                # '1 hour' to dt intervals argument. 
-                if __LPRINT__: print "action = ", action
-                tmpCube = cubeAverager(tmpCube, action, dt='1 hour', 
-                            actionIntervals=str(start_step_fcst_hour)+' hour', 
-                                           tpoint=timepoint, fpoint=fcstpoint, 
-                                         tbounds=timebound, fbounds=fcstbound)
-            # end of if doMultiHourlyMean and tmpCube.coords('forecast_period')[0].shape[0] > 1:     
+            if not __UMReanalysis__:
+                if (varName, varSTASH) == ('snowfall_amount', 'm01s00i023'):
+                    # the snowfall_amount need to be changed as 
+                    # liquid_water_content_of_surface_snow by convert it into
+                    # water equivalent of snow amount.                    
+                    _convert2WEASD(tmpCube)
+                # end of if (varName, varSTASH) == ('snowfall_amount', 'm01s00i023'):
+                
+                if doMultiHourlyMean and (tmpCube.coords('forecast_period')[0].shape[0] > 1):              
+                    # grab the variable which is f(t,z,y,x)
+                    # tmpCube corresponds to each variable for the SYNOP hours from
+                    # start to end of short time period mean (say 3-hourly)                                
+                    cubeName = tmpCube.standard_name    
+                    cubeName = cubeName if cubeName else ''
+                    # get action as either do we have to accumulation or mean.
+                    action = 'sum' if (cubeName, varSTASH) in _accumulationVars_ else 'mean'
+                    # convert 3-hourly mean data into 6-hourly mean or accumulation
+                    # actionIntervals is 6 hourly mean or accumulation
+                    # here dt intervals meant to be forecast intervals, as per 
+                    # model, it forecast every one hour. so we must pass as 
+                    # '1 hour' to dt intervals argument. 
+                    if __LPRINT__: print "action = ", action
+                    tmpCube = cubeAverager(tmpCube, action, dt='1 hour', 
+                                actionIntervals=str(start_step_fcst_hour)+' hour', 
+                                               tpoint=timepoint, fpoint=fcstpoint, 
+                                             tbounds=timebound, fbounds=fcstbound)
+                # end of if doMultiHourlyMean and tmpCube.coords('forecast_period')[0].shape[0] > 1:     
+            # end of if not __UMReanalysis__:
             print "before regrid", varName, tmpCube.data.min(), tmpCube.data.max()             
             exmode = None # required, when user didnt do any regrid
             # interpolate it as per targetGridResolution deg resolution by 
@@ -1886,11 +1997,13 @@ def regridAnlFcstFiles(arg):
                 regdCube.data = numpy.ma.masked_array(regdCube.data, 
                                     dtype=numpy.float64, fill_value=9.999e+20) 
                 
-                if (varName, varSTASH) in [('moisture_content_of_soil_layer', 'm01s08i223'),
+                if (varName, varSTASH) in [('soil_moisture_content', 'm01s08i208'),
+                                           ('moisture_content_of_soil_layer', 'm01s08i223'),
                                            ('sea_ice_area_fraction', 'm01s00i031'),
                                            ('sea_ice_thickness', 'm01s00i032'),]:
                         # We should assign 0 instead 1e-15 only for this var!
                         regdCube.data[regdCube.data <= 1e-15] = 0.0
+                        regdCube.data[regdCube.data < 0.0] = 0.0
                 elif (varName, varSTASH) == ('soil_temperature', 'm01s03i238'):
                     # We should assign min instead 1e-15 only for this var!
                     # because 0 will not make sense when temperature unit is Kelvin
@@ -1932,8 +2045,10 @@ def regridAnlFcstFiles(arg):
             stdNm, stash, fcstTm, refTm, lat1, lon1 = getCubeAttr(regdCube)
             if __LPRINT__: print "Got attributes from regdCube"
             # save the cube in append mode as a grib2 file       
-
-            if fcstTm.bounds is not None:
+             
+            if dtype == 'rea':
+                hr = '00'
+            elif fcstTm.bounds is not None:
                 # (need this for pf files)
                 if dtype == 'ana':
                     # this is needed for analysis 00th simulated_hr
@@ -1966,9 +2081,8 @@ def regridAnlFcstFiles(arg):
                 if __LPRINT__: print "points comes in ", hr, fileName 
             # end of if fcstTm.bounds:
             
-            if dtype == 'ana':
-                hr = str(int(hr) + int(_inDataPath_.split('/')[-1]))
-              
+            #if dtype == 'ana':
+            #    hr = str(int(hr) + int(__utc__))
             # generate the out file name based on actual informations                                 
             outFn = __genAnlFcstOutFileName__(outFileNameStructure, 
                                  outFnIndecies, _current_date_, hr, 
@@ -2011,7 +2125,6 @@ def regridAnlFcstFiles(arg):
                 # nc file. so we saved into muliple individual nc files, only
                 # those who have depth_below_land_surface and will be deleted
                 # after inserted properly into orderd grib2 files.
-                outFn = varSTASH + '_'+ ofname + '.nc'
                 ncfile = True
             # end of if regdCube.coords('soil_model_level_number'):
             
@@ -2027,7 +2140,6 @@ def regridAnlFcstFiles(arg):
                 # vertical level at 2meter in millimeter.
                 _convert2VolumetricMoisture(regdCube, levels=3000.0)
                 print "converted single layer soil moisture to volumetric"
-                outFn = varSTASH + '_'+ ofname + '.nc'
                 ncfile = True
             # end of if (varName, varSTASH) in (...):
             
@@ -2039,19 +2151,25 @@ def regridAnlFcstFiles(arg):
                 # nc file, then load into memory (cf_standard_name) while 
                 # re-ordering, followed by save into grib2 file. cf -> grib2 
                 # dictionary may not throw error, due to different key cfname.
-                ncfile = True
-                outFn = varSTASH + '_'+ ofname + '.nc'
+                ncfile = True                
             # end of if (varName, varSTASH) in _ncfilesVars_:
             
+            if _write2NetcdfFile_:
+               ncfile = True
+               # store all vars into ncfileVars list
+            # generate intermediate nc filename 
+            if ncfile: outFn = varSTASH + '_'+ ofname + '.nc' 
+            # generate complete outfile path 
             outFn = os.path.join(_opPath_, outFn)
             print "Going to be save into ", outFn
                         
             try:                
                 # _lock_ other threads / processors from being access same file 
                 # to write other variables
-                _lock_.acquire()
+                _lock_.acquire() 
                 if ncfile:
-                    iris.fileformats.netcdf.save(regdCube, outFn)  # save nc file 
+                    # save nc file 
+                    iris.fileformats.netcdf.save(regdCube, outFn)  
                 else:
                     iris.fileformats.grib.save_grib2(regdCube, outFn, append=True) # save grib2 file 
                 # release the _lock_, let other threads/processors access this file.
@@ -2214,64 +2332,18 @@ def doShuffleVarsInOrder(fpath):
            _requiredLat_, _convertVars_, __outFileType__, __grib1FilesNameSuffix__, \
            __removeGrib2FilesAfterGrib1FilesCreated__, _removeVars_, cnvgrib, \
            __fcst_step_hour__, __anl_step_hour__, g2ctl, grib2ctl, gribmap, \
-           __anl_aavars_reference_time__, _reverseLatitude_, __wgrib2Arguments__
+           __anl_aavars_reference_time__, _reverseLatitude_, __wgrib2Arguments__, \
+           _write2NetcdfFile_
     
     print "doShuffleVarsInOrder Begins"
-    try:        
-        f = iris.load(fpath)
-    except gribapi.GribInternalError as e:
-        if str(e) == "Wrong message length":
-            print "ALERT!!!! ERROR!!! Couldn't read grib2 file to re-order", e
-        else:
-            print "ALERT!!! ERROR!!! couldn't read grib2 file to re-order", e
-        return 
-    except Exception as e:
-        print "ALERT!!! ERROR!!! couldn't read grib2 file to re-order", e
-        return 
-    # end of try:
-    print "f = ", f
-    # get only the pressure coordinate variables
-    unOrderedPressureLevelVarsList = [i for i in f if len(i.coords('pressure')) == 1]
-    # get only the non pressure coordinate variables
-    unOrderedNonPressureLevelVarsList = list(set(f) - set(unOrderedPressureLevelVarsList))
-    
-    # generate dictionary (standard_name, STASH) as key and cube variable as value
-    unOrderedPressureLevelVars = {}
-    for i in unOrderedPressureLevelVarsList:
-        name = i.standard_name if i.standard_name else i.long_name
-        unOrderedPressureLevelVars[name] = i
-        
-    unOrderedNonPressureLevelVars = {}
-    for i in unOrderedNonPressureLevelVarsList:
-        name = i.standard_name if i.standard_name else i.long_name
-        unOrderedNonPressureLevelVars[name] = i   
-    
     # need to store the ordered variables in this empty list
-    orderedVars = []    
-    if _convertVars_:
-        # user has passed their own ordered and limited vars 
-        orderedVarsList = _convertVars_
-    else:
-        # use inbuilt ordered list from this module itself
-        orderedVarsList = _orderedVars_['PressureLevel'] + _orderedVars_['nonPressureLevel']
-        
-    for (varName, varSTASH) in orderedVarsList:
-        # skip if user specified var not in pressure level vars list 
-        if not (varName, varSTASH) in _orderedVars_['PressureLevel']: continue
-        # got pressure vars, add to ordered final vars list  
-        if varName in unOrderedPressureLevelVars: orderedVars.append(unOrderedPressureLevelVars[varName])
-    # end of for name, STASH in _orderedVars_['PressureLevel']:
-            
+    orderedVars = []
     ncloaddic = {}
     ncloadedfiles = []
-    for (varName, varSTASH) in orderedVarsList:
-        # skip if user specified var not in non-pressure level vars list 
-        if not (varName, varSTASH) in _orderedVars_['nonPressureLevel']: continue
-        # got non-pressure vars, add to ordered final vars list  
-        if varName in unOrderedNonPressureLevelVars: 
-            orderedVars.append(unOrderedNonPressureLevelVars[varName])
-        elif (varName, varSTASH) in _ncfilesVars_:
-            ## generate nc file name
+    
+    if _write2NetcdfFile_:
+        for (varName, varSTASH) in _convertVars_:
+            # load and store all intermediate nc files
             ncfpath = varSTASH + '_' + '.'.join(fpath.split('.')[:-1]) + '.nc'
             if not os.path.isfile(ncfpath): continue
             if varSTASH not in ncloaddic:
@@ -2280,7 +2352,7 @@ def doShuffleVarsInOrder(fpath):
                     ncloadedfiles.append(ncfpath)
                 except Exception as e:
                     print "ALERT!!! ERROR!!! couldn't read nc file to re-order", e
-                    return 
+                    return
                 # end of try:             
             # end of if varSTASH not in ncloaddic:
             # define variable name constraint
@@ -2288,25 +2360,100 @@ def doShuffleVarsInOrder(fpath):
             # define varibale stash code constraint
             STASHConstraint = iris.AttributeConstraint(STASH=varSTASH)
             var = ncloaddic['varSTASH'].extract(varConstraint & STASHConstraint)
-            
-            if var: 
-                # apped the ordered / corrected vars into the list, which will  
-                # be going to saved into grib2 files by tweaking it further!                
-                if varName in _aod_pseudo_level_var_:
-                    for plev, pval in _aod_pseudo_level_var_[varName]:
-                        pvar = var[0].extract(iris.Constraint(pseudo_level=plev))
-                        # set standard_name as None
-                        pvar.standard_name = None
-                        # set long_name as standard_name + '_at_micronwavelength'
-                        # so that _grib_cf_map will be able to identify local 
-                        # table grib2 param code. 
-                        pvar.long_name = varName + '_at_%sum' % pval
-                        orderedVars.append(pvar)
-                else:
-                    orderedVars.append(var[0])
-            # end of if var:
-    # end of for (varName, STASH) in orderedVarsList:
+            orderedVars.append(var[0])
+        # end of for (varName, varSTASH) in _convertVars_:  
+
+    elif os.path.isfile(fpath):
+        try:        
+            f = iris.load(fpath) # load intermediate grib2 file
+        except gribapi.GribInternalError as e:
+            if str(e) == "Wrong message length":
+                print "ALERT!!!! ERROR!!! Couldn't read grib2 file to re-order", e
+            else:
+                print "ALERT!!! ERROR!!! couldn't read grib2 file to re-order", e
+            return 
+        except Exception as e:
+            print "ALERT!!! ERROR!!! couldn't read grib2 file to re-order", e
+            return
+  	 
+        print "f = ", f
+        # get only the pressure coordinate variables
+        unOrderedPressureLevelVarsList = [i for i in f if len(i.coords('pressure')) == 1]
+        # get only the non pressure coordinate variables
+        unOrderedNonPressureLevelVarsList = list(set(f) - set(unOrderedPressureLevelVarsList))
     
+        # generate dictionary (standard_name, STASH) as key and cube variable as value
+        unOrderedPressureLevelVars = {}
+        for i in unOrderedPressureLevelVarsList:
+            name = i.standard_name if i.standard_name else i.long_name
+            unOrderedPressureLevelVars[name] = i
+        
+        unOrderedNonPressureLevelVars = {}
+        for i in unOrderedNonPressureLevelVarsList:
+            name = i.standard_name if i.standard_name else i.long_name
+            unOrderedNonPressureLevelVars[name] = i   
+    
+        if _convertVars_:
+            # user has passed their own ordered and limited vars 
+            orderedVarsList = _convertVars_
+        else:
+            # use inbuilt ordered list from this module itself
+            orderedVarsList = _orderedVars_['PressureLevel'] + _orderedVars_['nonPressureLevel']
+        
+        for (varName, varSTASH) in orderedVarsList:
+            # skip if user specified var not in pressure level vars list 
+            if not (varName, varSTASH) in _orderedVars_['PressureLevel']: continue
+            # got pressure vars, add to ordered final vars list  
+            if varName in unOrderedPressureLevelVars: orderedVars.append(unOrderedPressureLevelVars[varName])
+        # end of for name, STASH in _orderedVars_['PressureLevel']:
+            
+        for (varName, varSTASH) in orderedVarsList:
+            # skip if user specified var not in non-pressure level vars list 
+            if not (varName, varSTASH) in _orderedVars_['nonPressureLevel']: continue
+            # got non-pressure vars, add to ordered final vars list  
+            if varName in unOrderedNonPressureLevelVars: 
+                orderedVars.append(unOrderedNonPressureLevelVars[varName])
+            elif (varName, varSTASH) in _ncfilesVars_:
+                ## generate nc file name
+                ncfpath = varSTASH + '_' + '.'.join(fpath.split('.')[:-1]) + '.nc'
+                if not os.path.isfile(ncfpath): continue
+                if varSTASH not in ncloaddic:
+                    try:
+                        ncloaddic['varSTASH'] = iris.load(ncfpath)
+                        ncloadedfiles.append(ncfpath)
+                    except Exception as e:
+                        print "ALERT!!! ERROR!!! couldn't read nc file to re-order", e
+                        return 
+                    # end of try:             
+                # end of if varSTASH not in ncloaddic:
+                # define variable name constraint
+                varConstraint = iris.Constraint(name=varName)
+                # define varibale stash code constraint
+                STASHConstraint = iris.AttributeConstraint(STASH=varSTASH)
+                var = ncloaddic['varSTASH'].extract(varConstraint & STASHConstraint)
+            
+                if var: 
+                    # apped the ordered / corrected vars into the list, which will  
+                    # be going to saved into grib2 files by tweaking it further!                
+                    if varName in _aod_pseudo_level_var_:
+                        for plev, pval in _aod_pseudo_level_var_[varName]:
+                            pvar = var[0].extract(iris.Constraint(pseudo_level=plev))
+                            # set standard_name as None
+                            pvar.standard_name = None
+                            # set long_name as standard_name + '_at_micronwavelength'
+                            # so that _grib_cf_map will be able to identify local 
+                            # table grib2 param code. 
+                            pvar.long_name = varName + '_at_%sum' % pval
+                            orderedVars.append(pvar)
+                    else:
+                        orderedVars.append(var[0])
+                # end of if var:
+        # end of for (varName, STASH) in orderedVarsList:
+    else:
+        print "In file doesn't exists", fpath
+        return
+    # end of if _write2NetcdfFile_:
+
     # store the land_binary_mask data into temporary variable
     land_binary_mask_var = [var for var in orderedVars 
                             if var.standard_name == 'land_binary_mask']
@@ -2555,40 +2702,59 @@ def doShuffleVarsInOrder(fpath):
 
     # generate correct file name by removing _preExtension_
     g2filepath = fpath.split(_preExtension_)
+    ncfilepath = g2filepath[0] + '.nc'
     wg2filepath = g2filepath[0] + g2filepath[-1]
     # set ordered extension is empty incase wgrib2 argument is empyt
     orderedExtension = '_Ordered' if __wgrib2Arguments__ else ''    
-    g2filepath = g2filepath[0] + orderedExtension + g2filepath[-1]    
-    
-    print "orderedVars ==============>", orderedVars
-    for c in tweaked_messages(orderedVars): print c
-    print g2filepath
+    g2filepath = g2filepath[0] + orderedExtension + g2filepath[-1]
     outstatus = False
-    # now lets save the ordered variables into same file
-    try:   
-        # before save it, tweak the cubes by setting centre no and 
-        # address other temporary issues before saving into grib2.
-        iris.fileformats.grib.save_messages(tweaked_messages(orderedVars), 
-                                                g2filepath, append=True)
-    except Exception as e:
-        print "ALERT !!! Error while saving orderd variables into grib2!! %s" % str(e)
-        print " So skipping this without saving data"
-        outstatus = True
-        return 
-    finally:
-        outstatus = True
-    # end of try:
+    
+    if _write2NetcdfFile_:
+        ## lets save into compressed netcdf4 file 
+        try:
+            iris.fileformats.netcdf.save(orderedVars, ncfilepath, 
+                    netcdf_format="NETCDF4_CLASSIC", zlib=True, shuffle=True, 
+                    least_significant_digit=6) 
+        except Exception as e:
+            print "ALERT !!! Error while saving orderd variables into nc!! %s" % str(e)
+            print " So skipping this without saving data"
+            outstatus = False
+            return 
+        finally:
+            outstatus = True
+    else:
+        # now lets save the ordered variables into same file
+        try:   
+            # before save it, tweak the cubes by setting centre no and 
+            # address other temporary issues before saving into grib2.
+            iris.fileformats.grib.save_messages(tweaked_messages(orderedVars), 
+                                                    g2filepath, append=True)
+        except Exception as e:
+            print "ALERT !!! Error while saving orderd variables into grib2!! %s" % str(e)
+            print " So skipping this without saving data"
+            outstatus = True
+            return 
+        finally:
+            outstatus = True
+        # end of try:
+    # end of if _write2NetcdfFile_:
     time.sleep(30)  # lets wait 30 more seconds to be written properly.    
     while not outstatus: time.sleep(30)   # lets wait till grib2 file written status to be completed.        
     
     # make memory free 
     del orderedVars
     
-    # remove the older file 
-    os.remove(fpath)
+    # remove intermediate nc files.
     for ncf in ncloadedfiles: os.remove(ncf)
         
-    print "Created the variables in ordered fassion and saved into", g2filepath
+    print "Created the variables in ordered fassion and saved into", 
+    if _write2NetcdfFile_: 
+        print ncfilepath
+        return
+         
+    print g2filepath
+    # remove the older grib2 file 
+    os.remove(fpath)
     
     if __wgrib2Arguments__ is not None:
         # execute post wgrib2 command
@@ -2707,7 +2873,7 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
         pool.close()     
         pool.join()
         # parallel end - 3    
-    elif ftype in ['anl', 'analysis']:
+    elif ftype in ['anl', 'analysis', 'rea', 'reanalysis']:
         ## generate the analysis filename w.r.t simulated_hr
         # get the out fileName Structure based on pre / user defined indecies                       
         outFnIndecies = __getAnlFcstFileNameIndecies__(__anlFileNameStructure__) 
@@ -2842,7 +3008,9 @@ def _checkInFilesStatus(path, ftype, pfnames):
     
     global __start_long_fcst_hour__, __end_long_fcst_hour__, __UMtype__
     
-    if ftype in ['ana', 'anl']:
+    if ftype in ['rea', 'reanalysis']:
+        fhrs = [None] 
+    elif ftype in ['ana', 'anl']:
         fhrs = ['000'] 
     elif ftype in ['fcst', 'prg']:
         if __UMtype__ == 'global':
@@ -2866,7 +3034,9 @@ def _checkInFilesStatus(path, ftype, pfnames):
         for fhr in fhrs:
             # constrct the correct fileName from partial fileName and hours
             # add hour only if doenst have any extension on partial filename.
-            if __UMtype__ == 'global':
+            if ftype in ['rea', 'reanalysis']:
+                fname = pfname
+            elif __UMtype__ == 'global':
                 fname = pfname if '.' in pfname else pfname + fhr
             elif __UMtype__ == 'regional':
                 # generate filenames like 'umnsaa_pb000', 'umnsaa_pb006', etc
@@ -2965,7 +3135,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
        _removeVars_, _requiredPressureLevels_, __setGrib2TableParameters__, \
        __wgrib2Arguments__, __soilFirstSecondFixedSurfaceUnit__,  __UMtype__, \
        __start_long_fcst_hour__, _extraPolateMethod_, _targetGridFile_, \
-       __fillFullyMaskedVars__
+       __fillFullyMaskedVars__, _write2NetcdfFile_
      
     # load key word arguments
     UMtype = kwarg.get('UMtype', 'global')    
@@ -2995,7 +3165,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     setGrib2TableParameters = kwarg.get('setGrib2TableParameters', None)
     wgrib2Arguments = kwarg.get('wgrib2Arguments', None)
     callBackScript = kwarg.get('callBackScript', None)
-    
+    write2netcdf = kwarg.get('write2NetcdfFile', False)
     
     # assign out file type in global variable
     __outFileType__ = 'fcst'
@@ -3024,6 +3194,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     _convertGrib2FilestoGrib1Files_ = convertGrib2FilestoGrib1Files
     __setGrib2TableParameters__ = setGrib2TableParameters
     __wgrib2Arguments__ = wgrib2Arguments
+    _write2NetcdfFile_ = write2netcdf
     # forecast filenames partial name
     if __UMtype__ == 'global':
         # pass user passed long forecast global model infiles otherwise pass proper infiles.
@@ -3182,10 +3353,11 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
        __setGrib2TableParameters__, __anl_aavars_reference_time__, \
        __anl_aavars_time_bounds__, _reverseLatitude_, __wgrib2Arguments__, \
        __soilFirstSecondFixedSurfaceUnit__, _extraPolateMethod_, _targetGridFile_, \
-       __UMtype__, __fillFullyMaskedVars__  
+       __UMtype__, __fillFullyMaskedVars__, _write2NetcdfFile_, __UMReanalysis__  
            
     # load key word arguments
     UMtype = kwarg.get('UMtype', 'global')
+    UMReanalysis = kwarg.get('UMReanalysis', False)
     UMInAnlFiles = kwarg.get('UMInAnlFiles', None)
     UMInShortFcstFiles = kwarg.get('UMInShortFcstFiles', None)
     targetGridResolution = kwarg.get('targetGridResolution', 0.25)
@@ -3213,9 +3385,18 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     setGrib2TableParameters = kwarg.get('setGrib2TableParameters', None)
     wgrib2Arguments = kwarg.get('wgrib2Arguments', None)
     callBackScript = kwarg.get('callBackScript', None)
+    write2netcdf = kwarg.get('write2NetcdfFile', False)
         
-    # assign out file type in global variable
-    __outFileType__ = 'ana'
+    # assign out file type in global variable    
+    __UMReanalysis__ = UMReanalysis
+    
+    if UMReanalysis:
+        __outFileType__ = 'rea' 
+        __anl_step_hour__ = 6 # 6 for cycle 00, 06, 12, 18 cycle step hour.
+    else:
+        __outFileType__ = 'ana' 
+        __anl_step_hour__ = anl_step_hour
+        
     # assign the convert vars list of tuples to global variable
     if convertVars: _convertVars_ = convertVars
     # assign the analysis file name structure
@@ -3224,8 +3405,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     __LPRINT__ = lprint
     # update global variables
     __UMtype__ = UMtype
-    __utc__ = utc
-    __anl_step_hour__ = anl_step_hour
+    __utc__ = utc    
     __anl_aavars_reference_time__ = anl_aavars_reference_time
     __anl_aavars_time_bounds__ = anl_aavars_time_bounds
     __removeGrib2FilesAfterGrib1FilesCreated__ = removeGrib2FilesAfterGrib1FilesCreated
@@ -3241,8 +3421,11 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     _convertGrib2FilestoGrib1Files_ = convertGrib2FilestoGrib1Files
     __setGrib2TableParameters__ = setGrib2TableParameters
     __wgrib2Arguments__ = wgrib2Arguments
+    _write2NetcdfFile_ = write2netcdf
     # analysis filenames partial name
-    if __UMtype__ in ['global', 'regional']:
+    if UMReanalysis:
+        anl_fnames = UMInShortFcstFiles
+    elif __UMtype__ in ['global', 'regional']:
         if __UMtype__ == 'global':
             # pass user passed short forecast in files otherwise pass proper infiles.
             anl_fnames = UMInShortFcstFiles if UMInShortFcstFiles else ['umglca_pb', 'umglca_pd', 'umglca_pe', 'umglca_pf', 'umglca_pi']            
@@ -3272,7 +3455,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     if not os.path.exists(_inDataPath_):
         raise ValueError("In datapath does not exists %s" % _inDataPath_)
     # end of if not os.path.exists(_inDataPath_):
-    
+    print     
     if convertVars:
         # check either depedendant vars are need to be loaded 
         for var, dvars in _depedendantVars_.iteritems():
@@ -3289,8 +3472,11 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
             # loop through copy of fcst_fnames[:], because fcst_fnames list 
             # will may change within this loop.
             hr = utc.zfill(3)
-            ### if fileName has some extension, then do not add hr to it.
-            fileName = fpname + hr if not '.' in fpname else fpname
+            if UMReanalysis:
+                fileName = fpname 
+            else:
+                ### if fileName has some extension, then do not add hr to it.
+                fileName = fpname + hr if not '.' in fpname else fpname
             varNamesSTASH, _, _, _ = getVarInOutFilesDetails(_inDataPath_, fileName, hr)
             # check either user requires this file or not!
             if not set(varNamesSTASH).intersection(convertVars):
@@ -3301,7 +3487,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     # end of if convertVars:    
     print "Final fpname list :", anl_fnames    
     # check either infiles are exist or not!
-    status = _checkInFilesStatus(_inDataPath_, 'ana', anl_fnames)
+    status = _checkInFilesStatus(_inDataPath_, __outFileType__, anl_fnames)
     if not status:
         raise ValueError("In datapath does not contain the above valid infiles")
     # end of if not instatus:
