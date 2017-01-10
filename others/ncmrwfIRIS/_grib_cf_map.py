@@ -115,12 +115,15 @@ GRIB2_TO_CF = {
     G2Param(2, 0, 3, 5): CFName('geopotential_height', None, 'm'),
     G2Param(2, 0, 3, 6): CFName('altitude', None, 'm'),
     G2Param(2, 0, 3, 9): CFName('geopotential_height_anomaly', None, 'm'),
+    G2Param(2, 0, 4, 13): CFName(None, 'direct_surface_shortwave_flux_in_air', 'W m-2'),
+    G2Param(2, 0, 4, 14): CFName(None, 'diffuse_surface_shortwave_flux_in_air', 'W m-2'),
     G2Param(2, 0, 4, 7): CFName('surface_downwelling_shortwave_flux_in_air', None, 'W m-2'),
     G2Param(2, 0, 4, 9): CFName('surface_net_downward_shortwave_flux', None, 'W m-2'),
     G2Param(2, 0, 5, 3): CFName('surface_downwelling_longwave_flux', None, 'W m-2'),
     G2Param(2, 0, 5, 5): CFName('surface_net_downward_longwave_flux', None, 'W m-2'),
     
     G2Param(2, 0, 6, 1): CFName('cloud_area_fraction', None, '%'),
+    G2Param(2, 0, 6, 201): CFName(None, 'very_low_type_cloud_area_fraction', '%'),
     G2Param(2, 0, 6, 3): CFName('low_type_cloud_area_fraction', None, '%'),
     G2Param(2, 0, 6, 4): CFName('medium_type_cloud_area_fraction', None, '%'),
     G2Param(2, 0, 6, 5): CFName('high_type_cloud_area_fraction', None, '%'),
@@ -208,11 +211,23 @@ GRIB2_TO_CF = {
 	G2Param(2, 0, 1, 47): CFName('stratiform_rainfall_amount', None, 'kg m-2'), # WMO    
     G2Param(2, 0, 1, 48): CFName('convective_rainfall_amount', None, 'kg m-2'), # WMO    
     
+    G2Param(2, 0, 1, 56): CFName(None, 'stratiform_snowfall_rate', 'kg m-2 s-1'), # WMO    
+    
     G2Param(2, 0, 4, 8): CFName('surface_upwelling_shortwave_flux_in_air', None, 'W m-2'), # WMO 
     G2Param(2, 0, 5, 4): CFName('surface_upwelling_longwave_flux_in_air', None, 'W m-2'),    
             
     G2Param(2, 0, 4, 198): CFName('toa_outgoing_shortwave_flux_assuming_clear_sky', None, 'W m-2'), # NCMRWF Local
     G2Param(2, 0, 5, 195): CFName('toa_outgoing_longwave_flux_assuming_clear_sky', None, 'W m-2'), # NCMRWF Local
+    
+    G2Param(2, 0, 4, 194): CFName(None, 'direct_uv_flux_in_air', 'W m-2'), # NCMRWF Local
+    G2Param(2, 0, 1, 193): CFName(None, 'soil_evaporation_rate', 'kg m-2 s-1'), # NCMRWF Local
+    G2Param(2, 0, 1, 194): CFName(None, 'canopy_evaporation_rate', 'kg m-2 s-1'), # NCMRWF Local
+    G2Param(2, 0, 1, 195): CFName(None, 'open_sea_evaporation_rate', 'kg m-2 s-1'), # NCMRWF Local
+    G2Param(2, 0, 5, 192): CFName(None, 'surface_downwelling_longwave_flux_assuming_clear_sky', 'W m-2'), #NCMRWF Local
+    G2Param(2, 0, 6, 204): CFName(None, 'cloud_volume_fraction_in_atmosphere_layer', '%'), # NCMRWF Local
+    G2Param(2, 0, 6, 205): CFName(None, 'liquid_cloud_volume_fraction_in_atmosphere_layer', '%'), # NCMRWF Local
+    G2Param(2, 0, 6, 206): CFName(None, 'ice_cloud_volume_fraction_in_atmosphere_layer', '%'), # NCMRWF Local
+    G2Param(2, 0, 1, 196): CFName(None, 'density_r_r_in_air', 'W m-2'),  # NCMRWF Local
     
 #    # the below 6 gets conflicts with surface_downwelling_shortwave_flux_in_air while loading from iris, because of same key in this dictionary (we didnt implement typeOfFirstFixedSurface in grib1_phenom_to_cf_info)
 #    G2Param(2, 0, 4, 7, 8): CFName('toa_incoming_shortwave_flux', None, 'W m-2'), # WMO
@@ -301,6 +316,8 @@ CF_TO_GRIB2 = {
     CFName('specific_humidity', None, 'kg kg-1'): G2Param(2, 0, 1, 0),
     CFName('surface_air_pressure', None, 'Pa'): G2Param(2, 0, 3, 0),
     CFName('surface_altitude', None, 'm'): G2Param(2, 2, 0, 7),
+    CFName(None, 'direct_surface_shortwave_flux_in_air', 'W m-2'): G2Param(2, 0, 4, 13),
+    CFName(None, 'diffuse_surface_shortwave_flux_in_air', 'W m-2'): G2Param(2, 0, 4, 14),
     CFName('surface_downwelling_longwave_flux', None, 'W m-2'): G2Param(2, 0, 5, 3),
     CFName('surface_downwelling_shortwave_flux_in_air', None, 'W m-2'): G2Param(2, 0, 4, 7),    
     CFName('surface_net_downward_longwave_flux', None, 'W m-2'): G2Param(2, 0, 5, 5),
@@ -394,7 +411,7 @@ CF_TO_GRIB2 = {
     # scaleFactorOfFirstFixedSurface):
     CFName(None, 'cloud_mixing_ratio', 'kg kg-1'): G2Param(2, 0, 1, 22, 105, 0), # 500100
     CFName(None, 'turbulent_kinetic_energy', 'J kg-1'): G2Param(2, 0, 19, 11, 105, 0), # 500158
-    
+    CFName(None, 'very_low_type_cloud_area_fraction', '%'): G2Param(2, 0, 6, 201), # NCMRWF Local
     CFName(None, 'cloud_area_fraction_assuming_random_overlap', '%'): G2Param(2, 0, 6, 202), # NCMRWF Local
     CFName(None, 'cloud_area_fraction_assuming_maximum_random_overlap', '%'): G2Param(2, 0, 6, 203), # NCMRWF Local
     
@@ -406,4 +423,15 @@ CF_TO_GRIB2 = {
     
     CFName('stratiform_rainfall_amount', None, 'kg m-2'): G2Param(2, 0, 1, 47), # WMO    
     CFName('convective_rainfall_amount', None, 'kg m-2'): G2Param(2, 0, 1, 48), # WMO
+    CFName(None, 'stratiform_snowfall_rate', 'kg m-2 s-1'): G2Param(2, 0, 1, 56), # WMO
+    
+    CFName(None, 'density_r_r_in_air', 'W m-2'): G2Param(2, 0, 1, 196),  # NCMRWF Local
+    CFName(None, 'direct_uv_flux_in_air', 'W m-2'): G2Param(2, 0, 4, 194),  # NCMRWF Local
+    CFName(None, 'soil_evaporation_rate', 'kg m-2 s-1'): G2Param(2, 0, 1, 193), # NCMRWF Local
+    CFName(None, 'canopy_evaporation_rate', 'kg m-2 s-1'): G2Param(2, 0, 1, 194), # NCMRWF Local
+    CFName(None, 'open_sea_evaporation_rate', 'kg m-2 s-1'): G2Param(2, 0, 1, 195), # NCMRWF Local
+    CFName(None, 'surface_downwelling_longwave_flux_assuming_clear_sky', 'W m-2'): G2Param(2, 0, 5, 192), #NCMRWF Local
+    CFName(None, 'cloud_volume_fraction_in_atmosphere_layer', '%'): G2Param(2, 0, 6, 204), # NCMRWF Local
+    CFName(None, 'liquid_cloud_volume_fraction_in_atmosphere_layer', '%'): G2Param(2, 0, 6, 205), # NCMRWF Local
+    CFName(None, 'ice_cloud_volume_fraction_in_atmosphere_layer', '%'): G2Param(2, 0, 6, 206), # NCMRWF Local
     }
