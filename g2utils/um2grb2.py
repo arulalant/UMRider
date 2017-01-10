@@ -1600,7 +1600,7 @@ def regridAnlFcstFiles(arg):
            __fillFullyMaskedVars__,  _reverseLatitude_, __outFileType__, \
            _write2NetcdfFile_, __UMReanalysis__ 
    
-    fpname, hr = arg 
+    fpname, hr, varIdx = arg 
     
     if __UMReanalysis__:
         fileName = fpname # keep filename for IMDAA reanalysis
@@ -1621,6 +1621,7 @@ def regridAnlFcstFiles(arg):
     # call definition to get variable indices
     varNamesSTASH, fcstHours, doMultiHourlyMean, infile = getVarInOutFilesDetails(_inDataPath_,
                                                                                fileName, hr)
+    
     if not os.path.isfile(fname): 
         print "The file doesn't exists: %s.. \n" %fname
         return  
@@ -1629,6 +1630,9 @@ def regridAnlFcstFiles(arg):
     if _convertVars_:
         # load only needed variables from this file !
         varNamesSTASH = [vns for vns in varNamesSTASH if vns in _convertVars_]
+    
+    # load only one varNamesSTASH (used for variable wise parallel conversion) 
+    if varIdx: varNamesSTASH = [varNamesSTASH[varIdx]]
     
     if not varNamesSTASH:
         print "No varibale selected to load from the file '%s' " % fname
@@ -2937,7 +2941,7 @@ def doFcstConvert(fname):
         fcst_times = [str(hr).zfill(2) for hr in range(0, __end_long_fcst_hour__, 6)]
     # end of if __UMtype__ == 'global':
     
-    fcst_filenames = [(fname, hr) for hr in fcst_times]
+    fcst_filenames = [(fname, hr, None) for hr in fcst_times]
     nchild = len(fcst_times)
     if not nchild: raise ValueError("Got 0 fcst_times, couldn't make parallel !")
     # create the no of child parallel processes
@@ -2962,8 +2966,31 @@ def doAnlConvert(fname):
     :param fname: Name of the FF filename in question as a "string"
     :return: Nothing! TANGIBLE!
     """
+    global _inDataPath_, _convertVars_, __UMReanalysis__
     
-    regridAnlFcstFiles((fname, '000'))  
+    hr = '000'
+    if __UMReanalysis__:
+        # call definition to get variable indices
+        varNamesSTASH, _, _, _ = getVarInOutFilesDetails(_inDataPath_, fname, hr)
+        if _convertVars_:
+            # load only needed variables from this file !
+            varNamesSTASH = [vns for vns in varNamesSTASH if vns in _convertVars_]    
+        varCount = len(varNamesSTASH)
+        anl_filenames = [(fname, hr, idx) for idx in range(varCount)]
+        nchild = len(anl_filenames)
+        if not nchild: raise ValueError("Got 0 varCount, couldn't make parallel !")
+        # create the no of child parallel processes
+        inner_pool = mp.Pool(processes=nchild)
+        print "Creating %i (daemon) workers and jobs in child." % nchild        
+        # pass the forecast hours as argument to take one fcst file per process / core to regrid it.
+        results = inner_pool.map(regridAnlFcstFiles, anl_filenames)
+        # closing and joining child pools      
+        inner_pool.close() 
+        inner_pool.join()
+        # parallel end
+    else:
+        # convert all variables in serial manner
+        regridAnlFcstFiles((fname, hr, None))  
 # end def doAnlConvert(fname):
 
 
