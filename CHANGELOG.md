@@ -1,5 +1,13 @@
 # Change Log
 
+## [v2.0.1](https://github.com/NCMRWF/UMRider/tree/v2.0.1) (2017-01-12)
+[Full Changelog](https://github.com/NCMRWF/UMRider/compare/v2.0.0...v2.0.1)
+
+**Merged pull requests:**
+
+- Support for NCUM Regional Model and IMDAA Reanalysis Post Processing [\#130](https://github.com/NCMRWF/UMRider/pull/130) ([arulalant](https://github.com/arulalant))
+- 	support for iris 1.10.dev1 [\#128](https://github.com/NCMRWF/UMRider/pull/128) ([arulalant](https://github.com/arulalant))
+
 ## [v2.0.0](https://github.com/NCMRWF/UMRider/tree/v2.0.0) (2016-09-01)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v1.0.2.1...v2.0.0)
 
