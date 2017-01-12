@@ -28,6 +28,13 @@ ncumSTASH_Vs_cf = {
 'm01s15i212': ('x_wind', None, 'm s-1', 50),
 # 50meter B-Grid V component wind   
 'm01s15i213': ('y_wind', None, 'm s-1', 50),
+'m01s00i253': (None, 'density_r_r_in_air', None, None),
+'m01s01i215': (None, 'direct_surface_shortwave_flux_in_air', 'W m-2', None),
+'m01s09i202': (None, 'very_low_type_cloud_area_fraction', '%', None),
+'m01s01i212': (None, 'direct_uv_flux_in_air', 'W m-2', None),
+'m01s03i296': (None, 'soil_evaporation_rate', 'kg m-2 s-1', None),
+'m01s03i297': (None, 'canopy_evaporation_rate', 'kg m-2 s-1', None),
+'m01s03i232': (None, 'open_sea_evaporation_rate', 'kg m-2 s-1', None), 
 }
 
 duplicateSTASH_vs_cf = {
@@ -53,6 +60,19 @@ G2Param_vs_cf = {
 (2, 0, 4, 198, 8): ('toa_outgoing_shortwave_flux_assuming_clear_sky', None, 'W m-2'),
 (2, 0, 5, 195, 8): ('toa_outgoing_longwave_flux_assuming_clear_sky', None, 'W m-2'), 
 (2, 0, 1, 192, 1): ('fog_area_fraction', None, '%'),
+(2, 0, 1, 193, 1): (None, 'soil_evaporation_rate', 'kg m-2 s-1'), 
+(2, 0, 1, 194, 1): (None, 'canopy_evaporation_rate', 'kg m-2 s-1'), 
+(2, 0, 1, 195, 1): (None, 'open_sea_evaporation_rate', 'kg m-2 s-1'), 
+(2, 0, 5, 192, 1): (None, 'surface_downwelling_longwave_flux_assuming_clear_sky', 'W m-2'), 
+(2, 0, 6, 204, 1): (None, 'cloud_volume_fraction_in_atmosphere_layer', '%'), 
+(2, 0, 6, 205, 1): (None, 'liquid_cloud_volume_fraction_in_atmosphere_layer', '%'), 
+(2, 0, 6, 206, 1): (None, 'ice_cloud_volume_fraction_in_atmosphere_layer', '%'), 
+(2, 0, 4, 13, 1): (None, 'direct_surface_shortwave_flux_in_air', 'W m-2'),
+(2, 0, 4, 14, 1): (None, 'diffuse_surface_shortwave_flux_in_air', 'W m-2'),
+(2, 0, 6, 201, 1): (None, 'very_low_type_cloud_area_fraction', '%'),
+(2, 0, 4, 194, 1): (None, 'direct_uv_flux_in_air', 'W m-2'),
+(2, 0, 1, 196, 1): (None, 'density_r_r_in_air', None),
+
 # grib version, discipline, parameter category, parameter no, typeOfFirstFixedSurface, scaleFactorOfFirstFixedSurface
 (2, 3, 1, 192, 1, 7): (None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_0.38um', '1'),
 (2, 3, 1, 193, 1, 7): (None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_0.44um', '1'), 
