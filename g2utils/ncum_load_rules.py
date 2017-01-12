@@ -28,6 +28,13 @@ ncumSTASH_Vs_cf = {
 'm01s15i212': ('x_wind', None, 'm s-1', 50),
 # 50meter B-Grid V component wind   
 'm01s15i213': ('y_wind', None, 'm s-1', 50),
+'m01s00i253': (None, 'density_r_r_in_air', None, None),
+'m01s01i215': (None, 'direct_surface_shortwave_flux_in_air', 'W m-2', None),
+'m01s09i202': (None, 'very_low_type_cloud_area_fraction', '%', None),
+'m01s01i212': (None, 'direct_uv_flux_in_air', 'W m-2', None),
+'m01s03i296': (None, 'soil_evaporation_rate', 'kg m-2 s-1', None),
+'m01s03i297': (None, 'canopy_evaporation_rate', 'kg m-2 s-1', None),
+'m01s03i232': (None, 'open_sea_evaporation_rate', 'kg m-2 s-1', None), 
 }
 
 duplicateSTASH_vs_cf = {
@@ -53,6 +60,19 @@ G2Param_vs_cf = {
 (2, 0, 4, 198, 8): ('toa_outgoing_shortwave_flux_assuming_clear_sky', None, 'W m-2'),
 (2, 0, 5, 195, 8): ('toa_outgoing_longwave_flux_assuming_clear_sky', None, 'W m-2'), 
 (2, 0, 1, 192, 1): ('fog_area_fraction', None, '%'),
+(2, 0, 1, 193, 1): (None, 'soil_evaporation_rate', 'kg m-2 s-1'), 
+(2, 0, 1, 194, 1): (None, 'canopy_evaporation_rate', 'kg m-2 s-1'), 
+(2, 0, 1, 195, 1): (None, 'open_sea_evaporation_rate', 'kg m-2 s-1'), 
+(2, 0, 5, 192, 1): (None, 'surface_downwelling_longwave_flux_assuming_clear_sky', 'W m-2'), 
+(2, 0, 6, 204, 1): (None, 'cloud_volume_fraction_in_atmosphere_layer', '%'), 
+(2, 0, 6, 205, 1): (None, 'liquid_cloud_volume_fraction_in_atmosphere_layer', '%'), 
+(2, 0, 6, 206, 1): (None, 'ice_cloud_volume_fraction_in_atmosphere_layer', '%'), 
+(2, 0, 4, 13, 1): (None, 'direct_surface_shortwave_flux_in_air', 'W m-2'),
+(2, 0, 4, 14, 1): (None, 'diffuse_surface_shortwave_flux_in_air', 'W m-2'),
+(2, 0, 6, 201, 1): (None, 'very_low_type_cloud_area_fraction', '%'),
+(2, 0, 4, 194, 1): (None, 'direct_uv_flux_in_air', 'W m-2'),
+(2, 0, 1, 196, 1): (None, 'density_r_r_in_air', None),
+
 # grib version, discipline, parameter category, parameter no, typeOfFirstFixedSurface, scaleFactorOfFirstFixedSurface
 (2, 3, 1, 192, 1, 7): (None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_0.38um', '1'),
 (2, 3, 1, 193, 1, 7): (None, 'atmosphere_optical_thickness_due_to_dust_ambient_aerosol_at_0.44um', '1'), 
@@ -69,6 +89,11 @@ G2Param_vs_cf = {
 
 # load from NCMRWF Local Table entries end 
 }
+
+# In NCUM_Regional model time axis 'forecast_reference_time' and 'forecast_period' are wrong.
+# so lets fix it.
+fix_timeaxis_of_regional_acc_avg_cubes = [('stratiform_rainfall_amount', 'm01s04i201'),
+                                          ('stratiform_snowfall_amount', 'm01s04i202')]
     
 def update_cf_standard_name(cube, field, filename):
     """
@@ -114,6 +139,20 @@ def update_cf_standard_name(cube, field, filename):
                                      units=Unit('m'), attributes={'positive': 'up'})
                         cube.add_aux_coord(heightAx)                        
             # end of if ccm:
+        if (cube.standard_name, varSTASH) in fix_timeaxis_of_regional_acc_avg_cubes:
+            # fix the time axis varying reference_time problem which occurs in NCUM_Regional model.
+            forecast_reference_time = cube.coords('forecast_reference_time')[0]
+            fpoint = forecast_reference_time.points[0]
+            # get floating point remainder
+            freminder = fpoint % 1
+            if freminder:
+                # yes, forecast_reference_time has minutes/float values. So lets make it as hour/int.
+                forecast_reference_time.points = array([float(int(fpoint))])
+                # add the minutes values to the forecast_period and its bounds.
+                forecast_period = cube.coords('forecast_period')[0]
+                forecast_period.points = array([round(forecast_period.points[0]+freminder, 3)])
+                forecast_period.bounds = array([[round(forecast_period.bounds[0][0]+freminder, 3), 
+                                            round(forecast_period.bounds[0][1]+freminder, 3)]])
         # end of if varSTASH in ncumSTASH_Vs_cf:
     elif isinstance(field, GribWrapper):
         # loading from grib file
