@@ -1259,64 +1259,64 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
     ##### IMDAA FORECAST FILE BEGIN #######
     elif  fname.startswith('pp3'):             # pp3
         varNamesSTASH = [    
-                    ('stratiform_snowfall_rate', ' m01s04i204'),   
-                    ('soil_evaporation_rate', ' m01s03i296'),   
-                    ('canopy_evaporation_rate', ' m01s03i297'),   
-                    ('direct_surface_shortwave_flux_in_air', ' m01s01i215'),   
-                    ('surface_downwelling_longwave_flux_assuming_clear_sky', ' m01s02i208'),   
-                    ('open_sea_evaporation_rate', ' m01s03i232'),   
-                    ('very_low_type_cloud_area_fraction', ' m01s09i202'),   
-                    ('cloud_area_fraction_assuming_random_overlap', ' m01s09i216'),   
-                    ('direct_uv_flux_in_air', ' m01s01i212'),   
-                    ('air_pressure_at_sea_level', ' m01s16i222'),   
-                    ('air_temperature', ' m01s03i236'),   
-                    ('atmosphere_boundary_layer_thickness', ' m01s00i025'),   
-                    ('cloud_base_altitude', ' m01s09i219'),   
-                    ('convective_rainfall_amount', ' m01s05i201'),   
-                    ('convective_rainfall_rate', ' m01s05i205'),   
-                    ('convective_snowfall_amount', ' m01s05i202'),   
-                    ('convective_snowfall_flux', ' m01s05i206'),   
-                    ('downward_heat_flux_in_soil', ' m01s03i202'),   
-                    ('high_type_cloud_area_fraction', ' m01s09i205'),   
-                    ('land_binary_mask', ' m01s00i030'),   
-                    ('low_type_cloud_area_fraction', ' m01s09i203'),   
-                    ('medium_type_cloud_area_fraction', ' m01s09i204'),   
-                    ('moisture_content_of_soil_layer', ' m01s08i223'),   
-                    ('precipitation_amount', ' m01s05i226'),   
-                    ('relative_humidity', ' m01s03i245'),   
-                    ('relative_humidity', ' m01s09i229'),   
-                    ('snowfall_amount', ' m01s00i023'),   
-                    ('soil_temperature', ' m01s08i225'),   
-                    ('stratiform_rainfall_amount', ' m01s04i201'),   
-                    ('stratiform_rainfall_rate', ' m01s04i203'),   
-                    ('stratiform_snowfall_amount', ' m01s04i202'),   
-                    ('subsurface_runoff_flux', ' m01s08i235'),   
-                    ('surface_air_pressure', ' m01s00i409'),   
-                    ('surface_diffuse_downwelling_shortwave_flux_in_air', ' m01s01i216'),   
-                    ('surface_downwelling_longwave_flux', ' m01s02i207'),   
-                    ('surface_downwelling_shortwave_flux_in_air', ' m01s01i235'),   
-                    ('surface_downwelling_shortwave_flux_in_air_assuming_clear_sky', ' m01s01i210'),   
-                    ('surface_net_downward_longwave_flux', ' m01s02i201'),   
-                    ('surface_net_downward_shortwave_flux', ' m01s01i201'),   
-                    ('surface_net_downward_shortwave_flux', ' m01s01i202'),   
-                    ('surface_roughness_length', ' m01s00i026'),   
-                    ('surface_runoff_flux', ' m01s08i234'),   
-                    ('surface_temperature', ' m01s00i024'),   
-                    ('surface_upward_latent_heat_flux', ' m01s03i234'),   
-                    ('surface_upward_sensible_heat_flux', ' m01s03i217'),   
-                    ('surface_upward_water_flux', ' m01s03i223'),   
-                    ('surface_upwelling_shortwave_flux_in_air_assuming_clear_sky', ' m01s01i211'),   
-                    ('toa_incoming_shortwave_flux', ' m01s01i207'),   
-                    ('toa_outgoing_longwave_flux', ' m01s02i205'),   
-                    ('toa_outgoing_longwave_flux_assuming_clear_sky', ' m01s02i206'),   
-                    ('toa_outgoing_shortwave_flux', ' m01s01i205'),   
-                    ('toa_outgoing_shortwave_flux_assuming_clear_sky', ' m01s01i209'),   
-                    ('visibility_in_air', ' m01s03i247'),   
-                    ('wind_speed_of_gust', ' m01s03i463'),   
-                    ('x_wind', ' m01s03i225'),   
-                    ('x_wind', ' m01s15i212'),   
-                    ('y_wind', ' m01s03i226'),   
-                    ('y_wind', ' m01s15i213'),] 
+                    ('stratiform_snowfall_rate', 'm01s04i204'),   
+                    ('soil_evaporation_rate', 'm01s03i296'),   
+                    ('canopy_evaporation_rate', 'm01s03i297'),   
+                    ('direct_surface_shortwave_flux_in_air', 'm01s01i215'),   
+                    ('surface_downwelling_longwave_flux_assuming_clear_sky', 'm01s02i208'),   
+                    ('open_sea_evaporation_rate', 'm01s03i232'),   
+                    ('very_low_type_cloud_area_fraction', 'm01s09i202'),   
+                    ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),   
+                    ('direct_uv_flux_in_air', 'm01s01i212'),   
+                    ('air_pressure_at_sea_level', 'm01s16i222'),   
+                    ('air_temperature', 'm01s03i236'),   
+                    ('atmosphere_boundary_layer_thickness', 'm01s00i025'),   
+                    ('cloud_base_altitude', 'm01s09i219'),   
+                    ('convective_rainfall_amount', 'm01s05i201'),   
+                    ('convective_rainfall_rate', 'm01s05i205'),   
+                    ('convective_snowfall_amount', 'm01s05i202'),   
+                    ('convective_snowfall_flux', 'm01s05i206'),   
+                    ('downward_heat_flux_in_soil', 'm01s03i202'),   
+                    ('high_type_cloud_area_fraction', 'm01s09i205'),   
+                    ('land_binary_mask', 'm01s00i030'),   
+                    ('low_type_cloud_area_fraction', 'm01s09i203'),   
+                    ('medium_type_cloud_area_fraction', 'm01s09i204'),   
+                    ('moisture_content_of_soil_layer', 'm01s08i223'),   
+                    ('precipitation_amount', 'm01s05i226'),   
+                    ('relative_humidity', 'm01s03i245'),   
+                    ('relative_humidity', 'm01s09i229'),   
+                    ('snowfall_amount', 'm01s00i023'),   
+                    ('soil_temperature', 'm01s08i225'),   
+                    ('stratiform_rainfall_amount', 'm01s04i201'),   
+                    ('stratiform_rainfall_rate', 'm01s04i203'),   
+                    ('stratiform_snowfall_amount', 'm01s04i202'),   
+                    ('subsurface_runoff_flux', 'm01s08i235'),   
+                    ('surface_air_pressure', 'm01s00i409'),   
+                    ('surface_diffuse_downwelling_shortwave_flux_in_air', 'm01s01i216'),   
+                    ('surface_downwelling_longwave_flux', 'm01s02i207'),   
+                    ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'),   
+                    ('surface_downwelling_shortwave_flux_in_air_assuming_clear_sky', 'm01s01i210'),   
+                    ('surface_net_downward_longwave_flux', 'm01s02i201'),   
+                    ('surface_net_downward_shortwave_flux', 'm01s01i201'),   
+                    ('surface_net_downward_shortwave_flux', 'm01s01i202'),   
+                    ('surface_roughness_length', 'm01s00i026'),   
+                    ('surface_runoff_flux', 'm01s08i234'),   
+                    ('surface_temperature', 'm01s00i024'),   
+                    ('surface_upward_latent_heat_flux', 'm01s03i234'),   
+                    ('surface_upward_sensible_heat_flux', 'm01s03i217'),   
+                    ('surface_upward_water_flux', 'm01s03i223'),   
+                    ('surface_upwelling_shortwave_flux_in_air_assuming_clear_sky', 'm01s01i211'),   
+                    ('toa_incoming_shortwave_flux', 'm01s01i207'),   
+                    ('toa_outgoing_longwave_flux', 'm01s02i205'),   
+                    ('toa_outgoing_longwave_flux_assuming_clear_sky', 'm01s02i206'),   
+                    ('toa_outgoing_shortwave_flux', 'm01s01i205'),   
+                    ('toa_outgoing_shortwave_flux_assuming_clear_sky', 'm01s01i209'),   
+                    ('visibility_in_air', 'm01s03i247'),   
+                    ('wind_speed_of_gust', 'm01s03i463'),   
+                    ('x_wind', 'm01s03i225'),   
+                    ('x_wind', 'm01s15i212'),   
+                    ('y_wind', 'm01s03i226'),   
+                    ('y_wind', 'm01s15i213'),] 
         # Just convert pp/ff file to grib2/nc file. So no need to extract 
         # individual fcst hours.
         fcstHours = [None]
@@ -1325,21 +1325,21 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
     elif  fname.startswith('pp5'):             # pp5
 
         varNamesSTASH = [
-                    ('density_r_r_in_air', ' m01s00i253'),   
-                    ('cloud_volume_fraction_in_atmosphere_layer', ' m01s00i266'),   
-                    ('liquid_cloud_volume_fraction_in_atmosphere_layer', ' m01s00i267'),   
-                    ('ice_cloud_volume_fraction_in_atmosphere_layer', ' m01s00i268'),   
-                    ('air_potential_temperature', ' m01s00i004'),   
-                    ('air_pressure', ' m01s00i408'),   
-                    ('dimensionless_exner_function', ' m01s00i255'),   
-                    ('mass_fraction_of_cloud_ice_in_air', ' m01s00i012'),   
-                    ('mass_fraction_of_cloud_liquid_water_in_air', ' m01s00i254'),   
-                    ('potential_vorticity_of_atmosphere_layer', ' m01s15i217'),   
-                    ('specific_humidity', ' m01s00i010'),   
-                    ('surface_altitude', ' m01s00i033'),   
-                    ('upward_air_velocity', ' m01s00i150'),   
-                    ('x_wind', ' m01s00i002'),   
-                    ('y_wind', ' m01s00i003'),]
+                    ('density_r_r_in_air', 'm01s00i253'),   
+                    ('cloud_volume_fraction_in_atmosphere_layer', 'm01s00i266'),   
+                    ('liquid_cloud_volume_fraction_in_atmosphere_layer', 'm01s00i267'),   
+                    ('ice_cloud_volume_fraction_in_atmosphere_layer', 'm01s00i268'),   
+                    ('air_potential_temperature', 'm01s00i004'),   
+                    ('air_pressure', 'm01s00i408'),   
+                    ('dimensionless_exner_function', 'm01s00i255'),   
+                    ('mass_fraction_of_cloud_ice_in_air', 'm01s00i012'),   
+                    ('mass_fraction_of_cloud_liquid_water_in_air', 'm01s00i254'),   
+                    ('potential_vorticity_of_atmosphere_layer', 'm01s15i217'),   
+                    ('specific_humidity', 'm01s00i010'),   
+                    ('surface_altitude', 'm01s00i033'),   
+                    ('upward_air_velocity', 'm01s00i150'),   
+                    ('x_wind', 'm01s00i002'),   
+                    ('y_wind', 'm01s00i003'),]
         # Just convert pp/ff file to grib2/nc file. So no need to extract 
         # individual fcst hours.
         fcstHours = [None]
@@ -1968,7 +1968,7 @@ def regridAnlFcstFiles(arg):
                 # do not apply regrid. this is temporary fix. 
                 regdCube = tmpCube
             # end of if _doRegrid_:
-
+            
             if _reverseLatitude_:
                 # Need to reverse latitude from SN to NS
                 rcsh = len(regdCube.data.shape)
@@ -2037,11 +2037,9 @@ def regridAnlFcstFiles(arg):
                     regdCube.data = numpy.ma.masked_array(regdCube.data.filled(__fillFullyMaskedVars__), 
                                                         fill_value=9.999e+20)
             # end of if __fillFullyMaskedVars__ and ...:
-            
             print "regrid done"
             print "after regrid", varName, regdCube.data.min(), regdCube.data.max() 
             if __LPRINT__: print "To shape", regdCube.shape  
-                
             regdCube.attributes = tmpCube.attributes
             if __LPRINT__: print "set the attributes back to regdCube"              
             if __LPRINT__: print "regdCube => ", regdCube
@@ -2049,8 +2047,7 @@ def regridAnlFcstFiles(arg):
             stdNm, stash, fcstTm, refTm, lat1, lon1 = getCubeAttr(regdCube)
             if __LPRINT__: print "Got attributes from regdCube"
             # save the cube in append mode as a grib2 file       
-             
-            if dtype == 'rea':
+            if __UMReanalysis__:
                 hr = '00'
             elif fcstTm.bounds is not None:
                 # (need this for pf files)
@@ -2071,7 +2068,6 @@ def regridAnlFcstFiles(arg):
                     # this is needed for forecast 00th simulated_hr
                     # get the last hour from bounds
                     hr = str(int(fcstTm.bounds[-1][-1]))
-                                             
                     if (varName, varSTASH) in _accumulationVars_ and __fcst_step_hour__ == 24:
                         # just subtract 3 hour. so that file name will be consistent with other 
                         # variable, file names.
@@ -2084,7 +2080,6 @@ def regridAnlFcstFiles(arg):
                 hr = str(int(fcstTm.points))
                 if __LPRINT__: print "points comes in ", hr, fileName 
             # end of if fcstTm.bounds:
-            
             #if dtype == 'ana':
             #    hr = str(int(hr) + int(__utc__))
             # generate the out file name based on actual informations                                 
@@ -2095,7 +2090,15 @@ def regridAnlFcstFiles(arg):
             # of writing intermediate nc files
             ofname = outFn.split(fileExtension)[0]                    
             ncfile = False
-            if regdCube.coords('soil_model_level_number') or regdCube.coords('depth'):
+            if regdCube.coords('soil_model_level_number') and __UMReanalysis__:
+                if (varName, varSTASH) == ('downward_heat_flux_in_soil', 'm01s03i202'):
+                    if len(regdCube.coords('soil_model_level_number')[0].points) == 1:
+                        # just remove this single 0th level coords
+                        # reason : couldnt write back properly.
+                        regdCube.remove_coord('soil_model_level_number')
+                        
+            if regdCube.coords('soil_model_level_number') or \
+                    regdCube.coords('depth') and not __UMReanalysis__:
                 # NOTE : THIS SECTION WILL WORKS ONLY FOR SOIL MOISTURE AND
                 # SOIL TEMPERATUE AT 4 LAYERS, NOT FOR SINGLE LAYER OR 
                 # NOT FOR Root zone Soil Moisture Content !!!
@@ -2132,7 +2135,8 @@ def regridAnlFcstFiles(arg):
                 ncfile = True
             # end of if regdCube.coords('soil_model_level_number'):
             
-            if (varName, varSTASH) == ('soil_moisture_content', 'm01s08i208'):
+            if (varName, varSTASH) == ('soil_moisture_content', 'm01s08i208') \
+                                                    and not __UMReanalysis__:
                 # NOTE : THIS SECTION WILL WORKS ONLY FOR SINGLE LAYERED 
                 # Root zone Soil Moisture Content, NOT FOR 4 LAYERS.
                 
@@ -2166,23 +2170,32 @@ def regridAnlFcstFiles(arg):
             # generate complete outfile path 
             outFn = os.path.join(_opPath_, outFn)
             print "Going to be save into ", outFn
-                        
-            try:                
-                # _lock_ other threads / processors from being access same file 
-                # to write other variables
-                _lock_.acquire() 
-                if ncfile:
-                    # save nc file 
-                    iris.fileformats.netcdf.save(regdCube, outFn)  
-                else:
+            print "regfCube =====", regdCube
+            if ncfile:
+                try:
+                    # save nc files . writing individual nc files with stash name in paralelly. 
+                    # so no need to lock the file.
+                    iris.fileformats.netcdf.save(regdCube, outFn,netcdf_format="NETCDF4")            
+                except Exception as e:
+                    print "ALERT !!! Error while saving!! %s" % str(e)
+                    print " So skipping this without saving data"
+                    continue            
+
+            else:
+                try:                
+                    # _lock_ other threads / processors from being access same file 
+                    # to write other variables
+                    _lock_.acquire() 
                     iris.fileformats.grib.save_grib2(regdCube, outFn, append=True) # save grib2 file 
-                # release the _lock_, let other threads/processors access this file.
-                _lock_.release()
-            except Exception as e:
-                print "ALERT !!! Error while saving!! %s" % str(e)
-                print " So skipping this without saving data"
-                continue
-            # end of try:
+                except Exception as e:
+                    print "ALERT !!! Error while saving!! %s" % str(e)
+                    print " So skipping this without saving data"
+                    continue
+                finally:
+                    # release the _lock_, let other threads/processors access this file.
+                    _lock_.release()
+                # end of try:
+            # end of if ncfile:
             print "saved"            
             # make memory free 
             del regdCube, tmpCube
@@ -2716,9 +2729,8 @@ def doShuffleVarsInOrder(fpath):
     if _write2NetcdfFile_:
         ## lets save into compressed netcdf4 file 
         try:
-            iris.fileformats.netcdf.save(orderedVars, ncfilepath, 
-                    netcdf_format="NETCDF4_CLASSIC", zlib=True, shuffle=True, 
-                    least_significant_digit=6) 
+            iris.fileformats.netcdf.save(orderedVars, ncfilepath, netcdf_format="NETCDF4", 
+                                       zlib=True, shuffle=True, least_significant_digit=6) 
         except Exception as e:
             print "ALERT !!! Error while saving orderd variables into nc!! %s" % str(e)
             print " So skipping this without saving data"
