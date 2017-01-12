@@ -51,6 +51,10 @@ inPath = cdic.get('inPath', None)
 outPath = cdic.get('outPath', None)
 tmpPath = cdic.get('tmpPath', None)
 
+inPath = os.environ.get('UMRIDER_INPATH', inPath).strip()
+outPath = os.environ.get('UMRIDER_OUTPATH', outPath).strip()
+tmpPath = os.environ.get('UMRIDER_TMPPATH', tmpPath).strip()
+
 UMtype = cdic.get('UMtype', 'global')
 UMReanalysis = eval(cdic.get('UMReanalysis', 'False'))
 UMInAnlFiles = eval(cdic.get('UMInAnlFiles', 'None'))
