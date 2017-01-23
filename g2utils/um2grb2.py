@@ -425,9 +425,11 @@ def getYdayStr(today):
 
 def __getTodayOrYesterdayInfile__(ipath, fname):
     
+    global __utc__, _current_date_
+    
     ipath = ipath.split('/')
-    hr = ipath[-1]
-    today_date = ipath[-2]
+    hr = str(__utc__).zfill(2) 
+    today_date = _current_date_        
     
     if hr in ['06', '12', '18']:
         hr = str(int(hr) - 6).zfill(2)
@@ -442,14 +444,26 @@ def __getTodayOrYesterdayInfile__(ipath, fname):
         raise ValueError("hour %s method not implemented" % hr)
     # end of if hr in ['06', '12', '18']:            
         
-    ## update the hour, date 
-    ipath[-1] = hr
-    ipath[-2] = today_date
+    ## update the hour, date for 20170107/06 style
+    if ipath[-1].isdigit():
+        ipath[-1] = hr
+        ipath[-2] = today_date        
+    else:
+        ## update the hour, date for 20170107T0600Z style
+        for i, ip in enumerate(ipath[:]):
+            if ip.startswith( _current_date_):
+                ip = ip.split(_current_date_)
+                ip = ip[0] + today_date + ip[-1]
+                ip = ip.split('T'+__utc__)
+                ip = ip[0] + 'T' + hr + ip[-1]
+                ipath[i] = ip 
+        # end of for i, ip in enumerate(ipath[:]):
+    
     ipath = os.path.join('/', *ipath)
     # infile path (it could be current date and past 6 hour for 06,12,18 hours.  
     # but it set yesterday date and past 6 hour for 00 hour)
     infile = os.path.join(ipath, fname)  
-    return infile
+    return infile, hr
 # end of def __getTodayOrYesterdayInfile__(ipath):
 
 def __getAnlFcstFileNameIndecies__(fileNameStructure):
@@ -605,9 +619,10 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
     Updated : 10-12-2015
     """
     global __anl_step_hour__, __fcst_step_hour__, _requiredPressureLevels_, \
-           __outFileType__
+           __outFileType__, __utc__
     
     hr = int(hr)
+    simulated_hr = int(__utc__)
     
     infile = os.path.join(inDataPath, fname)    
     
@@ -802,13 +817,13 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
             doMultiHourlyMean = False
         elif __anl_step_hour__ == 6:       
             # applicable only for 6 hour average or accumutated.
-            fcstHours = numpy.array([(1, 5)])
+            fcstHours = numpy.array([(1, 5)])                   
             # model produced 3 hourly average or accumutated. So we must 
             # need to do 6 hourly average/accumulation explicitly.
             doMultiHourlyMean = True
         
         # get the updated infile w.r.t analysis 00 simulated_hr or 06,12,18hr
-        infile = __getTodayOrYesterdayInfile__(inDataPath, fname)
+        infile, simulated_hr = __getTodayOrYesterdayInfile__(inDataPath, fname)
         
     elif fname.startswith('umglca_pi'):         # umglca_pi
         # vars (these vars will be created as 6-hourly averaged)
@@ -851,7 +866,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # needed for atmosphere_optical_thickness_due_to_dust_ambient_aerosol,
         # but for soil_temperature and moisture_content_of_soil_layer we need 
         # to get current simulated_hr. WE FIXED THAT before extract it!
-        infile = __getTodayOrYesterdayInfile__(inDataPath, fname)
+        infile, simulated_hr = __getTodayOrYesterdayInfile__(inDataPath, fname)
         
     ##### ANALYSIS FILE END
     
@@ -1361,7 +1376,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         raise ValueError("Filename not implemented yet!")
     # end if-loop
 
-    return varNamesSTASH, fcstHours, doMultiHourlyMean, infile
+    return varNamesSTASH, fcstHours, doMultiHourlyMean, infile, simulated_hr
 # end of definition #2
 
 # start definition #3
@@ -1619,8 +1634,7 @@ def regridAnlFcstFiles(arg):
     inDataPathHour = _inDataPath_.split('/')[-1]  
     inDataPathHour = inDataPathHour if inDataPathHour.isdigit() else None
     # call definition to get variable indices
-    varNamesSTASH, fcstHours, doMultiHourlyMean, infile = getVarInOutFilesDetails(_inDataPath_,
-                                                                               fileName, hr)
+    varNamesSTASH, fcstHours, doMultiHourlyMean, infile, simulated_hr = getVarInOutFilesDetails(_inDataPath_, fileName, hr)
     
     if not os.path.isfile(fname): 
         print "The file doesn't exists: %s.. \n" %fname
@@ -1649,7 +1663,6 @@ def regridAnlFcstFiles(arg):
     
     # call definition to get cube data
     cubes = getCubeData(infile)
-    simulated_hr = int(__utc__) # lets store the simulated_hr
     nVars = len(cubes)
         
     if fpname.startswith(('umglaa', 'umnsaa')) or __outFileType__ == 'fcst':
@@ -1817,10 +1830,9 @@ def regridAnlFcstFiles(arg):
                     # but we need to make only every 6th hourly accumutated.
                     fcstHours = numpy.array([(0, 1, 2, 3, 4, 5)]) + 0.5 # required since NCUM 10.2 onwards
                     if __UMtype__ != 'regional':
-                        ana_precip_infile = __getTodayOrYesterdayInfile__(_inDataPath_, fileName)    
+                        ana_precip_infile, simulated_hr = __getTodayOrYesterdayInfile__(_inDataPath_, fileName)    
                         if ana_precip_infile != infile: 
-                            cubes = getCubeData(ana_precip_infile)   
-                            simulated_hr = int(ana_precip_infile.split('/')[-2])
+                            cubes = getCubeData(ana_precip_infile)
                             print varName, "loaded from file, ", ana_precip_infile
                             print "simulated_hr = ", simulated_hr
                     # end of if ana_infile != infile:               
@@ -1828,7 +1840,7 @@ def regridAnlFcstFiles(arg):
         # end of if __UMReanalysis__:
         print "simulated_hr----", simulated_hr        
         # define (simulated_hr) forecast_reference_time constraint
-        fcstRefTimeConstraint = iris.Constraint(forecast_reference_time=PartialDateTime(hour=simulated_hr))
+        fcstRefTimeConstraint = iris.Constraint(forecast_reference_time=PartialDateTime(hour=int(simulated_hr)))
         if __LPRINT__: print fcstRefTimeConstraint
         for fhr in fcstHours:
             # loop-2 -- runs through the selected time slices - synop hours                        
@@ -1849,7 +1861,9 @@ def regridAnlFcstFiles(arg):
                     # these vars taken already from qwqg00.pp0 file. 
                     continue                    
             # end of if __anl_step_hour__ == 3 and fhr == 0:
-            if fhr:
+            
+            if fhr is not None:
+                # make forecast_period constraint
                 fpConstraint = iris.Constraint(forecast_period=fhr)
             if __anl_step_hour__ == 3 and fhr == 1.5:
                 # Load from current date instead of yesterday date 
@@ -1872,7 +1886,7 @@ def regridAnlFcstFiles(arg):
                                     fcstRefTimeConstraint & fpConstraint &
                                     latConstraint & lonConstraint)
             # end of if __anl_step_hour__ == 3 and fhr == 1.5:
-            
+            print varConstraint , STASHConstraint ,  fcstRefTimeConstraint , fpConstraint ,       latConstraint , lonConstraint
             if not tmpCube: raise ValueError("unable to extract variable %s %s %s %s" % (varName, varSTASH, str(fhr), infile))
             # Got variable successfully!    
             tmpCube = tmpCube[0]
@@ -2983,7 +2997,7 @@ def doAnlConvert(fname):
     hr = '000'
     if __UMReanalysis__:
         # call definition to get variable indices
-        varNamesSTASH, _, _, _ = getVarInOutFilesDetails(_inDataPath_, fname, hr)
+        varNamesSTASH, _, _, _, _ = getVarInOutFilesDetails(_inDataPath_, fname, hr)
         if _convertVars_:
             # load only needed variables from this file !
             varNamesSTASH = [vns for vns in varNamesSTASH if vns in _convertVars_]    
@@ -3279,7 +3293,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
             hr = utc.zfill(3)
             ### if fileName has some extension, then do not add hr to it.
             fileName = fpname + hr if not '.' in fpname else fpname
-            varNamesSTASH, _, _, _ = getVarInOutFilesDetails(_inDataPath_, fileName, hr)
+            varNamesSTASH, _, _, _, _ = getVarInOutFilesDetails(_inDataPath_, fileName, hr)
             # check either user requires this file or not!
             if not set(varNamesSTASH).intersection(convertVars):
                 # remove the fpname from fcst_fnames, because user didn't 
@@ -3516,7 +3530,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
             else:
                 ### if fileName has some extension, then do not add hr to it.
                 fileName = fpname + hr if not '.' in fpname else fpname
-            varNamesSTASH, _, _, _ = getVarInOutFilesDetails(_inDataPath_, fileName, hr)
+            varNamesSTASH, _, _, _, _ = getVarInOutFilesDetails(_inDataPath_, fileName, hr)
             # check either user requires this file or not!
             if not set(varNamesSTASH).intersection(convertVars):
                 # remove the fpname from fcst_fnames, because user didn't 
