@@ -117,6 +117,7 @@ __grib1FilesNameSuffix__ = '.grib1'
 __removeGrib2FilesAfterGrib1FilesCreated__ = False
 # fill fully masked vars with this value.
 __fillFullyMaskedVars__ = None
+_ensemble_count_ = 44
 
 # Defining default out grib2 file name structure for analysis 
 __anlFileNameStructure__ = ('um_ana', '_', '*HHH*', 'hr', '_', 
@@ -152,6 +153,8 @@ __setGrib2TableParameters__ = None
 __wgrib2Arguments__ = None
 _extraPolateMethod_ = 'auto'
 __UMtype__ = 'global'
+_ncfilesVars_ = []
+__outg2files__ = []
 # By default __soilFirstSecondFixedSurfaceUnit__ takes as 'cm', suggested for
 # WRF-Noah model. 
 __soilFirstSecondFixedSurfaceUnit__ = 'cm'
@@ -979,7 +982,7 @@ def save_tigge_tweaked_messages(cubeList):
            _accumulationVars_, _total_cummulativeVars_
     
     for cube in cubeList:
-        for cube, grib_message in iris.fileformats.grib.save_pairs_from_cube(cube):
+        for cube, grib_message in iris.fileformats.grib.as_pairs(cube): #save_pairs_from_cube(cube):
             print "Tweaking begin ", cube.standard_name
             # post process the GRIB2 message, prior to saving
             gribapi.grib_set_long(grib_message, "centre", 29) # RMC of India
@@ -993,18 +996,51 @@ def save_tigge_tweaked_messages(cubeList):
             # 5 for TIGGE-NCMRWF Test data
             gribapi.grib_set_long(grib_message, "productionStatusOfProcessedData", 5)
             
-            if cube.coord("forecast_period").bounds is not None:        
-                # if we set bounds[0][0] = 0, wgrib2 gives error for 0 fcst time.
-                # so we need to set proper time intervals 
-                # (typeOfTimeIncrement) as 2 as per below table.
-                # http://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_table4-11.shtml
-                # fileformats/grib/_save_rules.py-> set_forecast_time() ->
-                # _non_missing_forecast_period() returns 'fp' as bounds[0][0]. 
-                # but mean while lets fix by setting typeOfTimeIncrement=2.
-                # http://www.cosmo-model.org/content/model/documentation/grib/pdtemplate_4.11.htm 
-                gribapi.grib_set(grib_message, "typeOfTimeIncrement", 2)           
-                print 'reset typeOfTimeIncrement as 2 for', cube.standard_name
-            # end of if cube.coord("forecast_period").bounds is not None:
+            if cube.coord("realization"):
+                # ensembles tweak 
+                # http://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_table4-3.shtml 
+                # 4 points ensemble forecast
+                gribapi.grib_set_long(grib_message, "typeOfGeneratingProcess", 4)
+                if cube.coord("forecast_period").bounds is None:       
+                    #http://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_table4-0.shtml 
+                    # template 01 would be better
+                    gribapi.grib_set(grib_message, "productDefinitionTemplateNumber", 1)
+                else:
+                    # template 11 would be better
+                    gribapi.grib_set(grib_message, "productDefinitionTemplateNumber", 11)
+                    # if we set bounds[0][0] = 0, wgrib2 gives error for 0 fcst time.
+                    # so we need to set proper time intervals 
+                    # (typeOfTimeIncrement) as 2 as per below table.
+                    # http://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_table4-11.shtml
+                    # fileformats/grib/_save_rules.py-> set_forecast_time() ->
+                    # _non_missing_forecast_period() returns 'fp' as bounds[0][0]. 
+                    # but mean while lets fix by setting typeOfTimeIncrement=2.
+                    # http://www.cosmo-model.org/content/model/documentation/grib/pdtemplate_4.11.htm 
+                    gribapi.grib_set(grib_message, "typeOfTimeIncrement", 2)           
+                # end of if cube.coord("forecast_period").bounds is None:          
+                # setting ensemble no   
+                gribapi.grib_set(grib_message, "perturbationNumber",
+                             int(cube.coord('realization').points[0]))
+                # no encoding at present in Iris, set to missing
+                gribapi.grib_set(grib_message, "numberOfForecastsInEnsemble", 255)
+                # http://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_table4-6.shtml 
+                # 3 would be better, since we keep on increasing ensmble points 
+                # from 0 to 44
+                gribapi.grib_set(grib_message, "typeOfEnsembleForecast", 3)
+                # ensembles tweak end
+            else:
+                if cube.coord("forecast_period").bounds is not None:  
+                    # if we set bounds[0][0] = 0, wgrib2 gives error for 0 fcst time.
+                    # so we need to set proper time intervals 
+                    # (typeOfTimeIncrement) as 2 as per below table.
+                    # http://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_table4-11.shtml
+                    # fileformats/grib/_save_rules.py-> set_forecast_time() ->
+                    # _non_missing_forecast_period() returns 'fp' as bounds[0][0]. 
+                    # but mean while lets fix by setting typeOfTimeIncrement=2.
+                    # http://www.cosmo-model.org/content/model/documentation/grib/pdtemplate_4.11.htm 
+                    gribapi.grib_set(grib_message, "typeOfTimeIncrement", 2)
+            # end of if cube.coord("realization"):
+            
             if cube.coords('depth_below_land_surface') or cube.coords('depth'):                
                 if __soilFirstSecondFixedSurfaceUnit__ == 'cm':
                     # scaleFactorOfFirstFixedSurface as 2, equivalent to divide
@@ -1250,6 +1286,8 @@ def _checkInFilesStatus(path, ftype, pfnames):
             fhrs = [str(hr).zfill(3) for hr in range(start_fcst_hour, __end_long_fcst_hour__, 24)]
         elif __UMtype__ == 'regional':
             fhrs = [str(hr).zfill(2) for hr in range(6, __end_long_fcst_hour__, 6)]
+        elif __UMtype__ == 'ensemble':
+            fhrs = [str(hr).zfill(3) for hr in range(0, __end_long_fcst_hour__, 6)]
         # end of if __UMtype__ == 'global':
     # end of if ftype in ['ana', 'anl']:
     
@@ -1262,7 +1300,9 @@ def _checkInFilesStatus(path, ftype, pfnames):
                 fname = pfname if '.' in pfname else pfname + fhr
             elif __UMtype__ == 'regional':
                 # generate filenames like 'umnsaa_pb000', 'umnsaa_pb006', etc
-                fname = pfname if '.' in pfname else pfname + fhr.zfill(3)                
+                fname = pfname if '.' in pfname else pfname + fhr.zfill(3)  
+            elif __UMtype__ == 'ensemble':
+                fname = pfname if '.' in pfname else pfname + fhr              
             # end of if __UMtype__ == 'global':
             fpath = os.path.join(path, fname)
             if not os.path.isfile(fpath): fileNotExistList.append(fpath)
@@ -1769,78 +1809,724 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     # end of if callBackScript:
 # end of def convertAnlFiles(...):
 
+#################################### EPS STUFF ###############################
+def packEnsembles(arg, **kwarg):
+    
+    global _targetGrid_, _targetGridRes_,  _startT_, _inDataPath_, _opPath_, \
+            _preExtension_, _ncfilesVars_, _requiredLat_, _requiredLon_, \
+            _doRegrid_, __utc__, _requiredPressureLevels_, __LPRINT__, \
+            __outg2files__, _lock_, _accumulationVars_, __fcst_step_hour__, \
+            _targetGridFile_, _extraPolateMethod_, _current_date_, \
+             _reverseLatitude_, _precipVars_, _maskOverOceanVars_
 
-#def packEnsemblesInParallel(arg):
+   
+    
+    infiles, varNamesSTASHFcstHour = arg
+    varName, varSTASH, fhr = varNamesSTASHFcstHour
+    # update function for tweaking grib messages
+    
+    if (varName, varSTASH) in _accumulationVars_:
+        # update the forecast hour, since precipitation_amount is accumulated
+        # var, not instantaneous one.
+        fhr -= 3
+    # end of if (varName, varSTASH) in [('precipitation_amount', 'm01s05i226')]:
+    
+    simulated_hr = __utc__
+    # define variable name constraint
+    varConstraint = iris.Constraint(name=varName)
+    # define varibale stash code constraint
+    STASHConstraint = iris.AttributeConstraint(STASH=varSTASH)    
+    # 
+    forecast_period_constraint = iris.Constraint(forecast_period=fhr)            
+     # define (simulated_hr) forecast_reference_time constraint
+    fcstRefTimeConstraint = iris.Constraint(forecast_reference_time=PartialDateTime(hour=simulated_hr))
+    # Define default lat, lon, pressure contraint (None just bring model global data)
+    latConstraint, lonConstraint, pressureConstraint = None, None, None
+    if _requiredLat_: 
+        # make constraint of required latitude
+        latConstraint = iris.Constraint(latitude=lambda cell: 
+                                _requiredLat_[0] <= cell <= _requiredLat_[-1])
+    if _requiredLon_:
+        # make constraint of required longitude
+        lonConstraint = iris.Constraint(longitude=lambda cell: 
+                                _requiredLon_[0] <= cell <= _requiredLon_[-1])
+    
+    if _requiredPressureLevels_:
+        # make constraint of required pressure 
+        # To slice out particular pressure levels (like 850, 200, 1000 alone)
+        # then the following way is essential.       
+        pressureConstraint = iris.Constraint(pressure=lambda cell: 
+                                int(cell.point) in _requiredPressureLevels_)
+    
+    # make load constraints together
+    loadConstraints = varConstraint & STASHConstraint & forecast_period_constraint & latConstraint & lonConstraint
+    # initialize 
+    ensembleData, ensCube, dshape = None, None, None
+    print "packEnsembles Started using", infiles
+    for idx, infile in enumerate(infiles):
+        print "extracting ensemble data", infile
+        # load ensemble cube with all constraints
+        ensCube = getCubeData(infile, constraints=loadConstraints)
+        if not ensCube: raise ValueError("unable to extract variable %s %s %d from %s" % (varName, varSTASH, fhr, infile))
+        # Got variable successfully!    
+        ensCube = ensCube[0]        
+        # extract pressure levels
+        if pressureConstraint and ensCube.coords('pressure'): 
+            ensCube = ensCube.extract(pressureConstraint)
+        # ene of if pressureConstraint and tmpCube.coords('pressure'): 
 
-#    global  _startT_, _inDataPath_, __fcst_step_hour__, __LPRINT__, \
-#            _opPath_, _ensemble_count_, __outg2files__, __start_long_fcst_hour__
-#   
-#    fpname, hr = arg 
+        if ensCube.has_lazy_data():
+            print "Loaded", ensCube.standard_name, "into memory",
+            ## By accessing tmpCube.data (even for printing), the full 
+            ## data has been loaded into memory instead of being lazy 
+            ## data. Especially for dust aod, we must make it as fully 
+            ## loaded otherwise full data will be treated as zeros only 
+            ## instead of 6 pseudo_level data.
+            print "- min", ensCube.data.min(), "max", ensCube.data.max(),
+            print "has_lazy_data =", ensCube.has_lazy_data()
+        # end of if ensCube.has_lazy_data():        
+        exmode = None # required, when user didnt do any regrid
+        # interpolate it as per targetGridResolution deg resolution by 
+        # setting up sample points based on coord 
+        if _doRegrid_:
+            if __LPRINT__: print "From shape", ensCube.shape                    
+            if (varName, varSTASH) in _precipVars_:
+                # DO NOT APPLY iris.analysis.Linear(extrapolation_mode='mask'), 
+                # which writes nan every where for the snowfall_flux,  
+                # rainfall_flux, precipitation_flux. So donot apply that.         
+                exmode = 'linear'
+            else:
+                # In general all the other variables should not be 
+                # extrapolated over masked grid points.
+                exmode = 'mask'
+            # end of if (...):
+            # However, if user specified custom method do that!                
+            exmode = _extraPolateMethod_ if _extraPolateMethod_ != 'auto' else exmode
+            # but make sure that soil variables (or whichever variables do not have values over ocean)
+            # do not extrapolate over ocean/masked regions. Otherwise, it will write only nan.
+            exmode = 'mask' if varName in _maskOverOceanVars_ else exmode
+                
+            if os.path.isfile(_targetGridFile_):
+                print "\n Regridding data to %s degree spatial resolution based on file %s\n" % (_targetGrid_.shape, _targetGridFile_) 
+                # Do regrid based on user specfied target grid file.
+                scheme = iris.analysis.Linear(extrapolation_mode=exmode)
+                regdCube = ensCube.regrid(_targetGrid_, scheme)
+                print "regrid data shape", regdCube.shape 
+            else:           
+                # Do regrid based on user specfied target grid resolution number.
+                print "\n Regridding data to %sx%s degree spatial resolution \n" % (_targetGridRes_, _targetGridRes_)                    
+                try:
+                    # This lienar interpolate will do extra polate over ocean even 
+                    # though original data doesnt have values over ocean and wise versa.
+                    # So lets be aware of this.                    
+                    regdCube = ensCube.interpolate(_targetGrid_, iris.analysis.Linear(extrapolation_mode=exmode))
+                except Exception as e:
+                    print "ALERT !!! Error while regridding!! %s" % str(e)
+                    print " So skipping this without saving data"
+                    continue
+                # end of try:      
+        else:
+            # do not apply regrid. this is temporary fix. 
+            regdCube = ensCube
+        # end of if _doRegrid_:
 
-#    step_fcst_hour = __fcst_step_hour__    
-#    ensembleFiles_allConstraints_list = []
-#    
-#    fexthr = hr if int(hr) else '1' 
-#    ensembleFiles = [os.path.join(_inDataPath_, str(ens).zfill(3)+'_'+fpname+fexthr) 
-#                                            for ens in range(0, _ensemble_count_+1, 1)]
-#    fileName = '000_' + fpname + '1'  # sample file to get the variabels name.
-#    
-#    fname = os.path.join(_inDataPath_, fileName)
-#    # get variable indices
-#    varNamesSTASH, fcstHours, doMultiHourlyMean, infile = getVarInOutFilesDetails(_inDataPath_,
-#                                                                                 fileName, hr)
-#    
-#    for fname in ensembleFiles:
-#        if not os.path.isfile(fname): 
-#            print "The file doesn't exists: %s.. \n" %fname
-#            return  
-#        # end of if not os.path.isfile(fname): 
-#    # end of for fname in ensembleFiles:
-#    
-#    if _convertVars_:
-#        # load only needed variables from this file as well sort as per user specified ordered vars!
-#        varNamesSTASH = [vns for vns in _convertVars_ if vns in varNamesSTASH]
-#    
-#    if not varNamesSTASH:
-#        print "No varibale selected to load from the file '%s' " % fname
-#        if __LPRINT__: 
-#            print "Because global variable _convertVars_ doesn't contain any one of the following variables"
-#            print "\n".join([str(i+1)+' : ' + str(tu) for i, tu in enumerate(varNamesSTASH)])
-#        return None
-#    else:
-#        print "The following variables are going to be converted from file ", fname
-#        print "\n".join([str(i+1)+' : ' + str(tu) for i, tu in enumerate(varNamesSTASH)])
-#    # end of if not varNamesSTASH:
-#    
-#    for varName, varSTASH in varNamesSTASH:        
-#        for fhr in fcstHours:            
-#            allConstraints = [varName, varSTASH, fhr]     
-#            ensembleFiles_allConstraints_list.append((ensembleFiles, allConstraints))
-#    # end of for varName, varSTASH in varNamesSTASH:      
-#    
-#    print "Started Processing the file:  \n" 
-#                                                
-#    ## get the no of childs process to create fcst ensemble files  
-#    nchild = len(ensembleFiles_allConstraints_list)     
-#    maxprocess = mp.cpu_count()
-#    if nchild > maxprocess: nchild = maxprocess
-#    # create the no of child parallel processes
-#    inner_pool = mp.Pool(processes=nchild)
-#    print "Creating %i (daemon) workers and jobs in child." % nchild
+        if _reverseLatitude_:
+            # Need to reverse latitude from SN to NS
+            rcsh = len(regdCube.data.shape)
+            if rcsh == 3:
+                regdCube.data = regdCube.data[:,::-1,:]
+            elif rcsh == 2:
+                regdCube.data = regdCube.data[::-1,:]
+            lat = regdCube.coords('latitude')[0]
+            lat.points = lat.points[::-1]
+        # end of if _reverseLatitude_:
+        
+        if (varName, varSTASH) in _precipVars_:
+            # Since we are not using 'mask' option for extrapolate while 
+            # doing linear regrid, which bring -ve values after regrid in 
+            # extrapolated grids. So lets make it as 0 as minimum value.
+            regdCube.data[regdCube.data < 0.0] = 0.0
+        # end of if (varName, varSTASH) in _precipVars_:
+        
+        if (varName, varSTASH) in [('land_binary_mask', 'm01s00i030')]:
+            regdCube.data[regdCube.data > 0] = 1
+            # trying to keep values either 0 or 1. Not fraction!
+            regdCube.data = numpy.ma.array(regdCube.data, dtype=numpy.int)            
+        # end of if (varName, varSTASH) in [('land_binary_mask', 'm01s00i030')]:
+        
+        if exmode == 'mask':
+            # For the above set of variables we shouldnot convert into 
+            # masked array. Otherwise its full data goes as nan.                
+            # convert data into masked array
+            regdCube.data = numpy.ma.masked_array(regdCube.data, 
+                                dtype=numpy.float64, fill_value=9.999e+20) 
+            
+            if (varName, varSTASH) in [('moisture_content_of_soil_layer', 'm01s08i223'),
+                                       ('sea_ice_area_fraction', 'm01s00i031'),
+                                       ('sea_ice_thickness', 'm01s00i032'),]:
+                    # We should assign 0 instead 1e-15 only for this var!
+                    regdCube.data[regdCube.data <= 1e-15] = 0.0
+            elif (varName, varSTASH) == ('soil_temperature', 'm01s03i238'):
+                # We should assign min instead 1e-15 only for this var!
+                # because 0 will not make sense when temperature unit is Kelvin
+                nmin = numpy.ma.masked_less_equal(regdCube.data, 1e-15).min()
+                regdCube.data[regdCube.data <= 1e-15] = nmin
+            # http://www.cpc.ncep.noaa.gov/products/wesley/g2grb.html
+            # Says that 9.999e+20 value indicates as missingValue in grib2
+            # by default g2ctl.pl generate "undefr 9.999e+20", so we must 
+            # keep the fill_value / missingValue as 9.999e+20 only.
+            numpy.ma.set_fill_value(regdCube.data, 9.999e+20)    
+        # end of if exmode == 'mask':
+                    
+        if __fillFullyMaskedVars__ is not None and isinstance(regdCube.data, numpy.ma.masked_array):
+            # yes, it is ma array
+            if regdCube.data.mask.all():
+                # Now data is fully masked. So lets fill with user passed value.
+                # And still create ma array
+                regdCube.data = regdCube.data.filled(__fillFullyMaskedVars__)
+                print "filled masked vars", regdCube.data
+                regdCube.data = numpy.ma.masked_array(regdCube.data.filled(__fillFullyMaskedVars__),
+                                                     fill_value=9.999e+20) 
+            elif regdCube.data.min() == regdCube.data.max():
+                # Both min and max are same value. But its mask is not fully True.
+                # So previous condition not executed, anyhow lets set 
+                # fully the value of fillFullyMaskedVars.
+                print "Both min and max are same. So lets fillFullyMaskedVars as", __fillFullyMaskedVars__ 
+                regdCube.data = numpy.ma.masked_array(regdCube.data.filled(__fillFullyMaskedVars__), 
+                                                    fill_value=9.999e+20)
+        # end of if __fillFullyMaskedVars__ and ...:            
+        print "regrid done"        
 
-#    print "parallel ensemble begins for", varName, varSTASH
-#    # pass the (ensemblefileslist, allConstraints, pressureConstraint) as 
-#    # argument to take one fcst ensemble file per process / core to regrid it.
-#    results = inner_pool.map(packEnsembles, ensembleFiles_allConstraints_list)
-#    # closing and joining child pools      
-#    inner_pool.close() 
-#    inner_pool.join()
-#    # parallel end
-#    # end of if __fcst_step_hour__ == 6:
-#              
-#    print "Time taken to convert the file: %8.5f seconds \n" %(time.time()-_startT_)
-#    print "Finished converting file: %s into grib2 format for fcst file: %s \n" %(fpname, hr)
-## end of def packEnsemblesInParallel(arg):
+        # introduce ensemble dimension at first axis 
+        dshape = list(regdCube.data.shape)
+        dshape.insert(0, 1)    
+        ensembleData = regdCube.data.reshape(dshape)
+            
+        print "taken into memory of all ensembles", ensembleData.shape 
+        # convert data into masked array
+        ensembleData = numpy.ma.masked_array(ensembleData, dtype=numpy.float64)
+        if (varName, varSTASH) in [('precipitation_amount', 'm01s05i226'),]:
+            # precipitation should not go less than 0.
+            ensembleData.data[ensembleData.data < 0] = 0.0
+        # end of if ...:
+        
+        # http://www.cpc.ncep.noaa.gov/products/wesley/g2grb.html
+        # Says that 9.999e+20 value indicates as missingValue in grib2
+        # by default g2ctl.pl generate "undefr 9.999e+20", so we must 
+        # keep the fill_value / missingValue as 9.999e+20 only.
+        numpy.ma.set_fill_value(ensembleData, 9.999e+20)
+            
+        totEns = len(ensembleData)
+        member = int(infile.split('/')[-1].split('_')[0]) # get member number
+        # create ensemble coordinate
+        enscoord = iris.coords.DimCoord(numpy.array(member, dtype=numpy.int32), 
+                             standard_name='realization', units=Unit('no_unit'), 
+                                                    long_name='ensemble_member')
+                                                                                                
+        # get list of dimension coordinates
+        dim_coords = list(regdCube.dim_coords)
+        # insert ensemble dimension at first axis 
+        dim_coords.insert(0, enscoord)
+        # generate list of tuples contain index and coordinate
+        dim_coords = [(coord, i) for i,coord in enumerate(dim_coords)]
+        # get all other dimensions
+        aux_coords = list(regdCube.aux_coords)
+        aux_factories = regdCube.aux_factories
+        t = regdCube.coords('time')[0]
+        fp = regdCube.coords('forecast_period')[0]
+        ft = regdCube.coords('forecast_reference_time')[0]
+        # create ensemble packed cubes 
+        ensembleData = iris.cube.Cube(ensembleData, regdCube.standard_name, 
+                                 regdCube.long_name, regdCube.var_name,
+                                   regdCube.units, regdCube.attributes, 
+                                       regdCube.cell_methods, dim_coords)
+        # add all time coordinates
+        print "setting aux_coords to", ensembleData.shape, varName, fhr 
+        ensembleData.add_aux_coord(fp)
+        ensembleData.add_aux_coord(ft)
+        ensembleData.add_aux_coord(t)
+        # create cell method for ensembles
+        cm = iris.coords.CellMethod('realization', ('realization',), 
+                               intervals=('1',), comments=(' ENS',))
+        # add cell_methods to the ensembleData                        
+        if regdCube.cell_methods:
+            if (varName, varSTASH) in _accumulationVars_:
+                # The following variables cell_methods should show accumulated/sum, but 
+                # UM pp code doesnt support for accumulation. So lets fix it here ! 
+                cm1 = iris.coords.CellMethod('sum', ('time',), 
+                               intervals=('1 hour',), comments=('6 hour accumulation',))
+                ensembleData.cell_methods = (cm, cm1)
+            else:             
+                ensembleData.cell_methods = (cm, regdCube.cell_methods[0])
+        else:
+            ensembleData.cell_methods = (cm,)
+        print ensembleData
+        # make memory free 
+        del regdCube  
+    
+        print "To ensembleData shape", ensembleData.shape  
+
+#        # get the regridded ensembles meta data 
+#        varName, varSTASH, fcstTm, refTm, lat1, lon1 = getCubeAttr(ensembleData)
+#        
+#        if fcstTm.bounds is not None:                
+#            # this is needed for forecast 00th simulated_hr
+#            # get the last hour from bounds
+#            hr = str(int(fcstTm.bounds[-1][-1]))
+#            if __LPRINT__: print "Bounds comes in ", hr, fcstTm.bounds                        
+#        else:
+#            # get the fcst time point 
+#            # this is needed for analysis/forecast 00th simulated_hr
+#            hr = str(int(fcstTm.points))
+#            if __LPRINT__: print "points comes in ", hr 
+#        # end of if fcstTm.bounds:
+        
+#        outFileNameStructure = __fcstFileNameStructure__
+#        # get the out fileName Structure based on pre / user defined indecies                       
+#        outFnIndecies = __getAnlFcstFileNameIndecies__(outFileNameStructure)
+
+#        # get the file name extension
+#        fileExtension = outFileNameStructure[-1]  
+        
+#        if __fcst_step_hour__ == 24:
+#            # make unique file name becase we are running in parallel            
+#            if varName == 'air_temperature_maximum':
+#                outFn = varSTASH + '-max_'+ outFn
+#            elif varName == 'air_temperature_minimum':
+#                outFn = varSTASH + '-min_'+ outFn
+#            else:
+#                outFn = varSTASH + '_'+ outFn  # suits for all other vars
+#        # end of if __fcst_step_hour__ == 24:
+                           
+        ncfile = False
+               
+        # append out grib2 files for the purpose of creating ctl files.
+        
+        print ensembleData
+        
+        try:                
+            save_tigge_tweaked_messages([ensembleData])                
+        except Exception as e:
+            print "ALERT !!! Error while saving!! %s" % str(e)
+            print " So skipping this without saving data"
+            continue
+        # end of try:
+        
+        print "saved!"
+        print ensembleData.standard_name, ensembleData.data.min(), ensembleData.data.max()
+        print ensembleData
+        # make memory free 
+        del ensembleData
+#     end of for idx, infile in enumerate(infiles):
+# end of def packEnsembles(arg):                     
+
+
+def packEnsemblesInParallel(arg):
+
+    global  _startT_, _inDataPath_, __fcst_step_hour__, __LPRINT__, \
+            _opPath_, _ensemble_count_, __outg2files__, __start_long_fcst_hour__, \
+            _current_date_
+                                    
+    fpname, hr = arg 
+
+    step_fcst_hour = __fcst_step_hour__    
+    ensembleFiles_allConstraints_list = []
+    
+    fexthr = hr if int(hr) else '000' 
+    ensembleFiles = [os.path.join(_inDataPath_, str(ens).zfill(3)+'_'+fpname+fexthr) 
+                                            for ens in range(0, _ensemble_count_+1, 1)]
+    fileName = '000_' + fpname + '000'  # sample file to get the variabels name.    
+    fname = os.path.join(_inDataPath_, fileName)
+    # get variable indices
+    varNamesSTASH, fcstHours, doMultiHourlyMean, infile = umeps.getVarInOutFilesDetails(_inDataPath_,
+                                                                                 fileName, hr)
+    
+    for fname in ensembleFiles:
+        if not os.path.isfile(fname): 
+            print "The file doesn't exists: %s.. \n" %fname
+            return  
+        # end of if not os.path.isfile(fname): 
+    # end of for fname in ensembleFiles:
+    
+    if _convertVars_:
+        # load only needed variables from this file as well sort as per user specified ordered vars!
+        varNamesSTASH = [vns for vns in _convertVars_ if vns in varNamesSTASH]
+    
+    if not varNamesSTASH:
+        print "No varibale selected to load from the file '%s' " % fname
+        if __LPRINT__: 
+            print "Because global variable _convertVars_ doesn't contain any one of the following variables"
+            print "\n".join([str(i+1)+' : ' + str(tu) for i, tu in enumerate(varNamesSTASH)])
+        return None
+    else:
+        print "The following variables are going to be converted from file ", fname
+        print "\n".join([str(i+1)+' : ' + str(tu) for i, tu in enumerate(varNamesSTASH)])
+    # end of if not varNamesSTASH:
+    
+    for varName, varSTASH in varNamesSTASH:        
+        for fhr in fcstHours:            
+            allConstraints = [varName, varSTASH, fhr]     
+            ensembleFiles_allConstraints_list.append((ensembleFiles, allConstraints))
+    # end of for varName, varSTASH in varNamesSTASH:      
+    
+    print "Started Processing the file:  \n" 
+                                                
+    ## get the no of childs process to create fcst ensemble files  
+    nchild = len(ensembleFiles_allConstraints_list)     
+    maxprocess = mp.cpu_count()
+    if nchild > maxprocess: nchild = maxprocess
+    # create the no of child parallel processes
+    inner_pool = mp.Pool(processes=nchild)
+    print "Creating %i (daemon) workers and jobs in child." % nchild
+
+    print "parallel ensemble begins for", varName, varSTASH
+    # pass the (ensemblefileslist, allConstraints, pressureConstraint) as 
+    # argument to take one fcst ensemble file per process / core to regrid it.
+    results = inner_pool.map(packEnsembles, ensembleFiles_allConstraints_list)
+    # closing and joining child pools      
+    inner_pool.close() 
+    inner_pool.join()
+    # parallel end
+    # end of if __fcst_step_hour__ == 6:
+              
+    print "Time taken to convert the file: %8.5f seconds \n" %(time.time()-_startT_)
+    print "Finished converting file: %s into grib2 format for fcst file: %s \n" %(fpname, hr)
+# end of def packEnsemblesInParallel(arg):
+
+
+# Start the convertFilesInParallel function
+def convertEPSFilesInParallel(fnames, ftype):
+    """
+    convertFilesInParallel function calling all the sub-functions
+    :param fnames: a simple filename as argument in a string format
+    """
+    
+    global _startT_, _tmpDir_, _opPath_, __end_long_fcst_hour__,\
+           __fcst_step_hour__, _createGrib2CtlIdxFiles_, \
+           __start_long_fcst_hour__, _current_date_
+    
+    # calculate start hour of long fcst in multiple of days.
+#    start_fcst_hour = __start_long_fcst_hour__ / 24
+#    end_fcst_hour = __end_long_fcst_hour__ / 24
+    fcst_times = [str(hr).zfill(3) for hr in range(__start_long_fcst_hour__, __end_long_fcst_hour__+1, 6)]
+    fcst_filenames = [(fname, hr) for fname in fnames for hr in fcst_times]
+    ## get the no of files and 
+    nprocesses = len(fcst_filenames) 
+    maxprocess = mp.cpu_count()
+    if nprocesses > maxprocess: nprocesses = maxprocess
+    # lets create no of parallel process w.r.t no of files.
+    
+    # parallel begin - 1 
+    pool = _MyPool(nprocesses)
+    print "Creating %d (non-daemon) workers and jobs in convertFilesInParallel process." % nprocesses        
+    if ftype in ['fcst', 'forecast']:        
+        results = pool.map(packEnsemblesInParallel, fcst_filenames)
+    else:
+        raise ValueError("Unknown file type !")
+    # end of if ftype in ['anl', 'analysis']:    
+
+    # closing and joining master pools
+    pool.close()     
+    pool.join()
+    # parallel end - 1     
+    print "Total time taken to convert %d files was: %8.5f seconds \n" %(len(fcst_filenames),(time.time()-_startT_))
+    
+    return
+# end of def convertFilesInParallel(fnames):
+
+def convertEPSFcstFiles(inPath, outPath, tmpPath, **kwarg):
+           
+    global _targetGrid_, _targetGridRes_, _current_date_, _startT_, _tmpDir_, \
+       _inDataPath_, _opPath_, _doRegrid_, _convertVars_, _requiredLat_, \
+       _requiredLon_, _createGrib2CtlIdxFiles_, _createGrib1CtlIdxFiles_, \
+       _convertGrib2FilestoGrib1Files_, __fcstFileNameStructure__, \
+       __LPRINT__, __utc__, __fcst_step_hour__, __start_long_fcst_hour__, \
+       __end_long_fcst_hour__, __outFileType__, __grib1FilesNameSuffix__, \
+       __removeGrib2FilesAfterGrib1FilesCreated__, _depedendantVars_, \
+       _removeVars_, _requiredPressureLevels_, __setGrib2TableParameters__, \
+        __outg2files__, __start_long_fcst_hour__, __wgrib2Arguments__, \
+        __UMtype__, _preExtension_, _extraPolateMethod_, _targetGridFile_, \
+       __fillFullyMaskedVars__, _reverseLatitude_, epsMeanVars
+     
+    # load key word arguments
+    UMtype = kwarg.get('UMtype', 'ensemble')
+    targetGridResolution = kwarg.get('targetGridResolution', None)
+    targetGridFile = kwarg.get('targetGridFile', '')
+    date = kwarg.get('date', time.strftime('%Y%m%d'))
+    utc = kwarg.get('utc', '00')
+    overwrite = kwarg.get('overwrite', False)
+    lprint = kwarg.get('lprint', False)
+    convertVars = kwarg.get('convertVars', None)
+    latitude = kwarg.get('latitude', None)
+    longitude = kwarg.get('longitude', None)
+    pressureLevels = kwarg.get('pressureLevels', None)
+    fillFullyMaskedVars = kwarg.get('fillFullyMaskedVars', None)
+    extraPolateMethod = kwarg.get('extraPolateMethod', 'auto')
+    fcst_step_hour = kwarg.get('fcst_step_hour', 6)
+    start_long_fcst_hour = kwarg.get('start_long_fcst_hour', 6)
+    end_long_fcst_hour = kwarg.get('end_long_fcst_hour', 240)
+    fcstFileNameStructure = kwarg.get('fcstFileNameStructure', None)
+    createGrib2CtlIdxFiles = kwarg.get('createGrib2CtlIdxFiles', True)
+    createGrib1CtlIdxFiles = kwarg.get('createGrib1CtlIdxFiles', False)
+    convertGrib2FilestoGrib1Files = kwarg.get('convertGrib2FilestoGrib1Files', False)
+    grib1FilesNameSuffix = kwarg.get('grib1FilesNameSuffix', '1')
+    removeGrib2FilesAfterGrib1FilesCreated = kwarg.get('removeGrib2FilesAfterGrib1FilesCreated', False)
+    callBackScript = kwarg.get('callBackScript', None)
+    setGrib2TableParameters = kwarg.get('setGrib2TableParameters', None)
+    wgrib2Arguments = kwarg.get('wgrib2Arguments', None)
+    
+    # assign out file type in global variable
+    __outFileType__ = 'fcst'
+    # assign the convert vars list of tuples to global variable
+    if convertVars: _convertVars_ = convertVars
+    # assign the analysis file name structure
+    if fcstFileNameStructure: __fcstFileNameStructure__ = fcstFileNameStructure
+    # set print variables details options
+    __LPRINT__ = lprint    
+    # update global variables
+    __UMtype__ = UMtype
+    __utc__ = utc
+    __fcst_step_hour__ = fcst_step_hour
+    __start_long_fcst_hour__ = start_long_fcst_hour
+    __end_long_fcst_hour__ = end_long_fcst_hour
+    __removeGrib2FilesAfterGrib1FilesCreated__ = removeGrib2FilesAfterGrib1FilesCreated
+    __grib1FilesNameSuffix__ = grib1FilesNameSuffix
+    _targetGridRes_ = str(targetGridResolution)
+    _targetGridFile_ = targetGridFile
+    _requiredLat_ = latitude
+    _requiredLon_ = longitude
+    _requiredPressureLevels_ = pressureLevels    
+    _extraPolateMethod_ = extraPolateMethod
+    __fillFullyMaskedVars__ = fillFullyMaskedVars
+    _createGrib2CtlIdxFiles_ = createGrib2CtlIdxFiles
+    _createGrib1CtlIdxFiles_ = createGrib1CtlIdxFiles
+    _convertGrib2FilestoGrib1Files_ = convertGrib2FilestoGrib1Files
+    __setGrib2TableParameters__ = setGrib2TableParameters
+    __wgrib2Arguments__ = wgrib2Arguments
+    # forecast filenames partial name
+
+    fcst_fnames = ['pd', 'pg']
+    
+        
+    # get the current date in YYYYMMDD format
+    _tmpDir_ = tmpPath
+    _current_date_ = date
+    print "\n _current_date_ is %s" % _current_date_
+    logpath = os.path.join(_tmpDir_, _current_date_)
+    createDirWhileParallelRacing(logpath)
+    logfile = 'um2grb2_fcst_stdout_'+ _current_date_ +'_' + utc +'Z.log'
+    sys.stdout = myLog(os.path.join(logpath, logfile))
+    
+    # start the timer now
+    _startT_ = time.time()
+
+    # set-up base folders    
+    _inDataPath_ = os.path.join(inPath, _current_date_)
+    if not os.path.exists(_inDataPath_):
+        raise ValueError("In datapath does not exists %s" % _inDataPath_)
+    # end of if not os.path.exists(_inDataPath_):
+    
+    if convertVars:
+        # check either depedendant vars are need to be loaded 
+        for var, dvars in _depedendantVars_.iteritems():
+            if var in convertVars:
+                for dvar in dvars:
+                    if dvar not in convertVars:               
+                        _convertVars_.append(dvar)  # include depedendant var
+                        _removeVars_.append(dvar)   # remove depedendant var at last
+        # end of for var, dvar in _depedendantVars_.iteritems():
+        for fcst_fname in fcst_fnames[:]:            
+            # load only required file names to avoid unnneccessary computations
+            # by cross checking with user defined variables list.
+            
+            hr = 0
+            ## if fileName has some extension, then do not add hr to it.
+            fileName = '000_' + fcst_fname + '1'
+            varNamesSTASH, _, _, _ = umeps.getVarInOutFilesDetails(_inDataPath_, fileName, hr)
+            print "varNamesSTASH", varNamesSTASH
+            print "convertVars", convertVars
+            # check either user requires this file or not!
+            if not set(varNamesSTASH).intersection(convertVars):
+                # remove the ext from fcst_fname, because user didn't 
+                # require variabels from this fcst_fnames file.
+                fcst_fnames.remove(fcst_fname)
+                print "removed %s from list of files" % fcst_fname             
+        # end of for fcst_fname in fcst_fnames:    
+        print "Final fname list :", fcst_fnames 
+    # end of if convertVars:    
+    
+    for fcst_fname in fcst_fnames:   
+        # check either infiles are exist or not!
+        status = umeps._checkInFilesStatus(_inDataPath_, 'prg', fcst_fname,         
+                             start_long_fcst_hour=__start_long_fcst_hour__,
+                                 end_long_fcst_hour=__end_long_fcst_hour__, 
+                                         fcst_step_hour=__fcst_step_hour__, 
+                                           ensemble_count=_ensemble_count_)
+        print "in status+++++++++++++++++++++++++++", status
+        if not status:
+            raise ValueError("In datapath does not contain the above valid infiles")
+        # end of if not instatus:
+    # end of for fcst_fname in fcst_fnames:
+    
+    _opPath_ = os.path.join(outPath, _current_date_)
+    createDirWhileParallelRacing(_opPath_) 
+        
+    # define default global lat start, lon end points
+    slat, elat = (-90., 90.)
+    # define default global lon start, lon end points 
+    slon, elon = (0., 360.)
+    # define user defined custom lat & lon start and end points
+    if latitude: 
+        (slat, elat) = latitude        
+        if slat > elat:
+            # just make sure while extracting south to north
+            slat, elat = elat, slat            
+            # and reverse while saving into grib2 file.
+            _reverseLatitude_ = True
+        # end of if slat > elat:
+        _requiredLat_ = (slat, elat)
+    # end of if latitude: 
+    
+    if os.path.isfile(_targetGridFile_):
+        # load target grid from user specfied file and make it as target grid.
+        _targetGrid_ = iris.load(_targetGridFile_)[0]
+        _doRegrid_ = True   
+    elif targetGridResolution is None:
+        _doRegrid_ = False
+        if longitude: (slon, elon) = longitude
+        # reduce one step if user passed / default lon is 360. If we write 
+        # longitude from 0 upto 360, wgrib2 reads it as 0 to 0. To avoid it, 
+        # just reduct one small step in longitude only incase of 360.
+        if int(elon) == 360: elon -= 0.0001
+        if longitude: _requiredLon_ = (slon, elon)
+    else:
+        if not isinstance(targetGridResolution, (int, float)):
+            raise ValueError("targetGridResolution must be either int or float")        
+        if longitude: (slon, elon) = longitude
+        # reduce one step if user passed / default lon is 360. If we write 
+        # longitude from 0 upto 360, wgrib2 reads it as 0 to 0. To avoid it, 
+        # just reduct one step in longitude only incase of 360.
+        if int(elon) == 360: elon -= targetGridResolution 
+        if longitude: _requiredLon_ = (slon, elon)
+        # target grid as 0.25 deg (default) resolution by setting up sample points 
+        # based on coord
+        # generate lat, lon values
+        latpoints = numpy.arange(slat, elat+targetGridResolution, targetGridResolution)
+        lonpoints = numpy.arange(slon, elon+targetGridResolution, targetGridResolution)
+        # correct lat, lon end points 
+        if latpoints[-1] > elat: latpoints = latpoints[:-1]
+        if lonpoints[-1] > elon: lonpoints = lonpoints[:-1]
+        # set target grid lat, lon values pair                   
+        _targetGrid_ = [('latitude', latpoints), ('longitude', lonpoints)]
+        _doRegrid_ = True        
+    # end of iif os.path.isfile(_targetGridFile_):
+    
+    # check either files are exists or not. delete the existing files in case
+    # of overwrite option is True, else return without re-converting files.
+    status = umeps._checkOutFilesStatus(_opPath_, 'prg', _current_date_, utc, overwrite)
+    if status is 'FilesExist': 
+        print "All files are already exists. So skipping convert Fcst files porcess"
+        return # return back without executing conversion process.
+    elif status in [None, 'FilesDoNotExist', 'FilesRemoved']:
+        print "Going to start convert Fcst files freshly"
+    # end of if status is 'FilesExists': 
+    
+    # do convert for forecast files  
+    convertEPSFilesInParallel(fcst_fnames, ftype='fcst')    
+    
+#    pwd = os.getcwd()
+#    os.chdir(_opPath_)  # change to our path
+#    if __fcst_step_hour__ == 6:
+#        outg2files = [inf for inf in os.listdir(_opPath_) if 'hr' in inf if _preExtension_ in inf]
+#        listOfInOutFiles = []
+#        for fname in outg2files:
+#            inFn = fname
+#            outFn = fname.replace(_preExtension_, '')
+#            listOfInOutFiles.append((inFn, outFn))
+#        # end of for fname in outg2files:
+#        
+#        ## get the no of childs process to create fcst ensemble files  
+#        nchild = len(listOfInOutFiles)     
+#        maxprocess = mp.cpu_count()
+#        if nchild > maxprocess: nchild = maxprocess
+#        # create the no of child parallel processes
+#        inner_pool = mp.Pool(processes=nchild)
+#        print "Creating %i (daemon) workers and jobs in child." % nchild
+#        # pass the (ensemblefileslist, allConstraints, pressureConstraint) as 
+#        # argument to take one fcst ensemble file per process / core to regrid it.
+#        results = inner_pool.map(doWgrib2cmd, listOfInOutFiles)
+#        # closing and joining child pools      
+#        inner_pool.close() 
+#        inner_pool.join()
+#        # parallel end  
+#                
+#        for (inFn, outFn) in listOfInOutFiles:
+#            print inFn, outFn
+#            # Lets create ctl and idx file. 
+#            createGrib2CtlIdxFilesFn(outFn, ftype='fcst')  
+#            # remove infile 
+#            os.remove(inFn)
+#        # end of for inFn, outFn in listOfInOutFiles:
+#                        
+#    elif __fcst_step_hour__ == 24:
+
+#        dy = 'day'+str(int(__start_long_fcst_hour__) / 24).zfill(2)
+#        outg2files = [inf for inf in os.listdir(_opPath_) if dy in inf if _preExtension_ in inf]
+#        fname = '_'.join(outg2files[0].split('_')[1:]) # remove STASH alone
+#        outFn = fname.replace(_preExtension_, '') # remove _preExtension_
+#        
+#        for varName, varSTASH in _convertVars_:
+#            # make unique file name becase we are running in parallel            
+#            if varName == 'air_temperature_maximum':
+#                inFn = [inf for inf in outg2files if inf.startswith(varSTASH+'-max')]
+#            elif varName == 'air_temperature_minimum':
+#                inFn = [inf for inf in outg2files if inf.startswith(varSTASH+'-min')]
+#            else:
+#                # Generic all other vars filter with simple varSTASH
+#                inFn = [inf for inf in outg2files if inf.startswith(varSTASH) if not '-' in inf]
+#            # end of if varName == 'air_temperature_maximum':            
+#            if not inFn: continue
+#            inFn = inFn[0]
+#            if __wgrib2Arguments__ is not None:
+#                # execute post wgrib2 command in parellel (-ncpu 4 Best speed compare to 32)
+#                cmd = "%s %s %s %s" % (wgrib2, inFn, __wgrib2Arguments__, outFn)
+#                print "wgrib2 merge cmd", cmd
+#                subprocess.call(cmd, shell=True)
+#            else:
+#                cubes = iris.load_cubes(inFn)
+#                iris.fileformats.grib.save_messages(tweaked_messages(cubes), 
+#                                                 outFn, append=True) # save grib2 file                
+#            # end of if __wgrib2Arguments__:
+#            time.sleep(15)
+#            if (varName, varSTASH) not in epsMeanVars: os.remove(inFn)
+#            ## epsMeanVars will be created through callback script. For that 
+#            ## purpose we should not delete those files, because
+#            ## it requires to create EPS MEAN VSDB INPUT. We have to load 
+#            ## this file only in Python-IRIS. Because IRIS able to read it 
+#            ## properly only for the simple compression algorithm not for the 
+#            ## complex2 (wgrib2) algorithm. IRIS read the values wrongly,
+#            ## if grib2 is written in complex2 algorithm. So... theses will 
+#            ## be used to read it to create EPS mean and then will be deleted.
+#            ## Dated : 05-Aug-2016.              
+#        # end of for varName, varSTASH in varNamesSTASH:   
+#        time.sleep(15)
+#        # Lets create ctl and idx file. 
+#        createGrib2CtlIdxFilesFn(outFn, ftype='fcst')       
+#    # end of if __fcst_step_hour__ == 6:     
+#    os.chdir(pwd) # Back to previous directory
+#    
+#    if callBackScript:
+#        callBackScript = os.path.abspath(callBackScript)
+#        if not os.path.exists(callBackScript): 
+#            print "callBackScript '%s' doesn't exist" % callBackScript
+#            return 
+#        kwargs = ' --date=%s --start_long_fcst_hour=%d --end_long_fcst_hour=%d --fcst_step_hour=%d' % (_current_date_, start_long_fcst_hour, end_long_fcst_hour, __fcst_step_hour__)
+#        scriptExecuteCmd = callBackScript + ' ' + kwargs
+#        # execute user defined call back script with keyword arguments
+#        subprocess.call(scriptExecuteCmd, shell=True)
+#    # end of if callBackScript:
+## end of def convertFcstFiles(...):
+
 
 
 #    
