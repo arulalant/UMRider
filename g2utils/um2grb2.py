@@ -3487,7 +3487,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
             
         if utc == '00':
             # pass user passed analysis in files valid for 00UTC otherwise pass proper infile.
-            anl_fnames = UMInAnlFiles + anl_fnames if UMInAnlFiles else anl_fnames.insert(0, 'qwqg00.pp0')
+            anl_fnames = UMInAnlFiles + anl_fnames if UMInAnlFiles else anl_fnames
     # end of if __UMtype__ == 'global':
     
     # get the current date in YYYYMMDD format
