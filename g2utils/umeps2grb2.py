@@ -1001,7 +1001,7 @@ def _checkInFilesStatus(path, ftype, pfname, **kwarg):
             for fhr in fhrs:
                 # construct the correct fileName from partial fileName and hours
                 # add hour only if doenst have any extension on partial filename.
-                fexthr = fhr if int(fhr) else '1'
+                fexthr = fhr #if int(fhr) else '1'
                 fname = str(ehr).zfill(3) + '_' + pfname + fexthr
                 # becase extension 1 file contains both 00 hr and 24 hour.
                 fpath = os.path.join(path, fname)
