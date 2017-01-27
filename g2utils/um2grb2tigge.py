@@ -701,12 +701,11 @@ def regridAnlFcstFiles(arg):
                                     fpConstraint &
                                     latConstraint & lonConstraint)
             # end of if __anl_step_hour__ == 3 and fhr == 1.5:
-            print tmpCube
+            print "tmpCube=", tmpCube
             if not tmpCube: raise ValueError("unable to extract variable %s %s %d" % varName, varSTASH, fhr)
             # Got variable successfully!    
             tmpCube = tmpCube[0]
-            print tmpCube[0]
-            print tmpCube[-1]
+            
             # extract pressure levels
             if pressureConstraint and tmpCube.coords('pressure'): 
                 tmpCube = tmpCube.extract(pressureConstraint)
@@ -996,7 +995,7 @@ def save_tigge_tweaked_messages(cubeList):
             # 5 for TIGGE-NCMRWF Test data
             gribapi.grib_set_long(grib_message, "productionStatusOfProcessedData", 5)
             
-            if cube.coord("realization"):
+            if cube.coords("realization"):
                 # ensembles tweak 
                 # http://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_table4-3.shtml 
                 # 4 points ensemble forecast
@@ -1019,16 +1018,22 @@ def save_tigge_tweaked_messages(cubeList):
                     gribapi.grib_set(grib_message, "typeOfTimeIncrement", 2)           
                 # end of if cube.coord("forecast_period").bounds is None:          
                 # setting ensemble no   
-                gribapi.grib_set(grib_message, "perturbationNumber",
-                             int(cube.coord('realization').points[0]))
+                ensno = int(cube.coord('realization').points[0])                
+                gribapi.grib_set(grib_message, "perturbationNumber", ensno)
                 # no encoding at present in Iris, set to missing
                 gribapi.grib_set(grib_message, "numberOfForecastsInEnsemble", 255)
-                # http://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_table4-6.shtml 
-                # 3 would be better, since we keep on increasing ensmble points 
-                # from 0 to 44
-                gribapi.grib_set(grib_message, "typeOfEnsembleForecast", 3)
+                if ensno:
+                    # http://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_table4-6.shtml 
+                    # 3 would be better, since we keep on increasing ensmble points 
+                    # from 1 to 44
+                    gribapi.grib_set(grib_message, "typeOfEnsembleForecast", 3)
+                else:
+                    # control forecast 
+                    # 1 would be better for control run 
+                    gribapi.grib_set(grib_message, "typeOfEnsembleForecast", 1)
                 # ensembles tweak end
             else:
+                # deterministic forecast 
                 if cube.coord("forecast_period").bounds is not None:  
                     # if we set bounds[0][0] = 0, wgrib2 gives error for 0 fcst time.
                     # so we need to set proper time intervals 
@@ -1148,14 +1153,15 @@ def save_tigge_tweaked_messages(cubeList):
     # end of for cube in cubeList:
 # end of def save_tigge_tweaked_messages(cube):
 
-def makeTotalCummulativeVars(svar, umfcstype):
+def makeTotalCummulativeVars(arg):
     
-    global _opPath_, _current_date_  
+    global _opPath_, _current_date_, __start_long_fcst_hour__, __end_long_fcst_hour__  
     
-    
+    svar, umfcstype, ens = arg 
     fname = 'z_tigge_c_dems_' +_current_date_+ '000000_glob_test_' 
-    fname += umfcstype+ '_sl_%s_000_0000_' + svar + '.nc' 
-    infiles = [os.path.join(_opPath_, fname % str(t).zfill(4)) for t in range(6, 241, 6)]
+    fname += umfcstype+ '_sl_%s_' + ens.zfill(3) + '_0000_' + svar + '.nc' 
+    infiles = [os.path.join(_opPath_, fname % str(t).zfill(4)) 
+                        for t in range(6, __end_long_fcst_hour__+1, 6)]
     cubes = iris.load(infiles)[0]
     # get the cummulated cubes generator
     outcubes = cubeCummulator(cubes, standard_name='None', 
@@ -1288,9 +1294,10 @@ def _checkInFilesStatus(path, ftype, pfnames):
             fhrs = [str(hr).zfill(2) for hr in range(6, __end_long_fcst_hour__, 6)]
         elif __UMtype__ == 'ensemble':
             fhrs = [str(hr).zfill(3) for hr in range(0, __end_long_fcst_hour__, 6)]
+            
         # end of if __UMtype__ == 'global':
     # end of if ftype in ['ana', 'anl']:
-    
+    print fhrs
     fileNotExistList = []
     for pfname in pfnames:
         for fhr in fhrs:
@@ -1583,7 +1590,9 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     # do convert for forecast files 
     convertFilesInParallel(fcst_fnames, ftype='fcst')   
     
-    makeTotalCummulativeVars(svar='tp', umfcstype='fc')
+    if ('precipitation_amount', 'm01s05i226') in convertVars:
+        makeTotalCummulativeVars(('tp', 'fc', '000'))
+    # end of if ('precipitation_amount', 'm01s05i226') in convertVars:
     
     if callBackScript:
         time.sleep(30)  # required few seconds sleep before further process starts  
@@ -1817,7 +1826,7 @@ def packEnsembles(arg, **kwarg):
             _doRegrid_, __utc__, _requiredPressureLevels_, __LPRINT__, \
             __outg2files__, _lock_, _accumulationVars_, __fcst_step_hour__, \
             _targetGridFile_, _extraPolateMethod_, _current_date_, \
-             _reverseLatitude_, _precipVars_, _maskOverOceanVars_
+             _reverseLatitude_, _precipVars_, _maskOverOceanVars_, __end_long_fcst_hour__
 
    
     
@@ -1827,8 +1836,8 @@ def packEnsembles(arg, **kwarg):
     
     if (varName, varSTASH) in _accumulationVars_:
         # update the forecast hour, since precipitation_amount is accumulated
-        # var, not instantaneous one.
-        fhr -= 3
+        # var, not instantaneous one.        
+        fhr = fhr-3 if fhr else fhr+3
     # end of if (varName, varSTASH) in [('precipitation_amount', 'm01s05i226')]:
     
     simulated_hr = __utc__
@@ -2208,7 +2217,7 @@ def convertEPSFilesInParallel(fnames, ftype):
     # calculate start hour of long fcst in multiple of days.
 #    start_fcst_hour = __start_long_fcst_hour__ / 24
 #    end_fcst_hour = __end_long_fcst_hour__ / 24
-    fcst_times = [str(hr).zfill(3) for hr in range(__start_long_fcst_hour__, __end_long_fcst_hour__+1, 6)]
+    fcst_times = [str(hr).zfill(3) for hr in range(__start_long_fcst_hour__, __end_long_fcst_hour__, 6)]
     fcst_filenames = [(fname, hr) for fname in fnames for hr in fcst_times]
     ## get the no of files and 
     nprocesses = len(fcst_filenames) 
@@ -2232,7 +2241,7 @@ def convertEPSFilesInParallel(fnames, ftype):
     print "Total time taken to convert %d files was: %8.5f seconds \n" %(len(fcst_filenames),(time.time()-_startT_))
     
     return
-# end of def convertFilesInParallel(fnames):
+# end of def convertEPSFilesInParallel(fnames):
 
 def convertEPSFcstFiles(inPath, outPath, tmpPath, **kwarg):
            
@@ -2432,7 +2441,29 @@ def convertEPSFcstFiles(inPath, outPath, tmpPath, **kwarg):
     # end of if status is 'FilesExists': 
     
     # do convert for forecast files  
-    convertEPSFilesInParallel(fcst_fnames, ftype='fcst')    
+    convertEPSFilesInParallel(fcst_fnames, ftype='fcst')
+    
+    if ('precipitation_amount', 'm01s05i226') in convertVars:
+        # do cummulative precipitation_amount calculate for control run and ensemble members in parallel
+        cummulated_ens = [('tp', 'pf', str(ensno)) for ensno in range(1, _ensemble_count_+1, 1)]
+        cummulated_ens.insert(0, ('tp', 'cf', '000'))
+        
+        ## get the no of files and 
+        nprocesses = len(cummulated_ens) 
+        maxprocess = mp.cpu_count()
+        if nprocesses > maxprocess: nprocesses = maxprocess
+        # lets create no of parallel process w.r.t no of files.
+        
+        # parallel begin - 1 
+        pool = _MyPool(nprocesses)
+        print "Creating %d (non-daemon) workers and jobs in convertFilesInParallel process." % nprocesses        
+        results = pool.map(makeTotalCummulativeVars, cummulated_ens)
+        # closing and joining master pools
+        pool.close()     
+        pool.join()
+    # end of if ('precipitation_amount', 'm01s05i226') in convertVars:
+    
+
     
 #    pwd = os.getcwd()
 #    os.chdir(_opPath_)  # change to our path
