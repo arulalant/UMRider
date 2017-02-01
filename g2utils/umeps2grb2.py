@@ -359,6 +359,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                         ('air_temperature_maximum', 'm01s03i236'),   
                         ('air_temperature_minimum', 'm01s03i236'),   
                         ('dew_point_temperature', 'm01s03i250'),   
+                        ('surface_temperature', 'm01s00i024'),   
                         ('land_binary_mask', 'm01s00i030'),   
                         ('moisture_content_of_soil_layer', 'm01s08i223'),
                         ('soil_temperature', 'm01s03i238'),    
@@ -367,18 +368,17 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                         ('specific_humidity', 'm01s03i237'),   
                         ('surface_air_pressure', 'm01s00i409'),   
                         ('surface_altitude', 'm01s00i033'),   
+                        ('x_wind', 'm01s03i209'),  
+                        ('y_wind', 'm01s03i210'),
                         ('surface_net_downward_shortwave_flux', 'm01s01i202'),
-                        ('surface_net_downward_longwave_flux', 'm01s02i201'),   
-                        ('surface_temperature', 'm01s00i024'),   
+                        ('surface_net_downward_longwave_flux', 'm01s02i201'), 
                         ('surface_upward_latent_heat_flux', 'm01s03i234'),   
                         ('surface_upward_sensible_heat_flux', 'm01s03i217'),   
-                        ('toa_outgoing_longwave_flux', 'm01s02i205'),   
-                        ('x_wind', 'm01s03i209'),  
-                        ('y_wind', 'm01s03i210'),]         
+                        ('toa_outgoing_longwave_flux', 'm01s02i205')]         
         # the cube contains accumulated/min/max data at every 24-hours.        
         
         if hr: 
-            fcstHours = numpy.array([hr+6])
+            fcstHours = numpy.array([hr+6])        
         else:
             fcstHours = numpy.array([0, 6])
 
@@ -887,7 +887,7 @@ def tweaked_messages(cubeList):
                     if cube.standard_name.startswith('air_pressure_at_sea_level'):
                         # we have to explicitly re-set the type of first fixed
                         # surfcae as Mean sea level (101)
-                        gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 101)                     
+                        gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 101)
                     # end of if cube.standard_name.startswith('tropopause'): 
                 # end of if cube.standard_name:
 
@@ -992,7 +992,7 @@ def _checkInFilesStatus(path, ftype, pfname, **kwarg):
             fhrs = [str(hr) for hr in range(start_fcst_hour, end_fcst_hour+1, 1)]
             pfiles = ['pa', 'pb', 'pc']
         elif fcst_step_hour == 6:
-            fhrs = [str(hr).zfill(3) for hr in range(start_long_fcst_hour, end_long_fcst_hour+1, 6)]
+            fhrs = [str(hr).zfill(3) for hr in range(start_long_fcst_hour, end_long_fcst_hour, 6)]
             pfiles = ['pd', 'pg']
     fileNotExistList = []
 
