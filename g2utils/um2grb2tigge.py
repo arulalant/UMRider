@@ -262,12 +262,26 @@ _precipVars_ = [('precipitation_amount', 'm01s05i226'),
 # vars, since those are averaged rain rate (kg m-2 s-1). 
 # But the following vars unit is (kg m-2), accumulated vars.  
 _accumulationVars_ = [('precipitation_amount', 'm01s05i226'),
-                      ('stratiform_snowfall_amount', 'm01s04i202'),
-                      ('convective_snowfall_amount', 'm01s05i202'),
-                      ('stratiform_rainfall_amount', 'm01s04i201'),
-                      ('convective_rainfall_amount', 'm01s05i201')]                    
+                      ('surface_net_downward_shortwave_flux', 'm01s01i202'),
+                      ('surface_net_downward_longwave_flux', 'm01s02i201'), 
+                      ('surface_upward_latent_heat_flux', 'm01s03i234'),   
+                      ('surface_upward_sensible_heat_flux', 'm01s03i217'),   
+                      ('toa_outgoing_longwave_flux', 'm01s02i205')]                    
 
-_total_cummulativeVars_ = ['precipitation_amount', ]
+# TIGGE's totoal time cummulated variables
+_total_cummulativeVars_ = ['precipitation_amount', 
+                           'surface_net_downward_shortwave_flux', 
+                           'surface_net_downward_longwave_flux', 
+                           'surface_upward_latent_heat_flux', 
+                           'surface_upward_sensible_heat_flux', 
+                           'toa_outgoing_longwave_flux',
+                           'time_cummulated_precipitation',
+                           'time_integrated_surface_net_downward_shortwave_flux', 
+                           'time_integrated_surface_net_downward_longwave_flux', 
+                           'time_integrated_surface_upward_latent_heat_flux', 
+                           'time_integrated_surface_upward_sensible_heat_flux', 
+                           'time_integrated_toa_outgoing_longwave_flux',] 
+
                  
 ## Define _ncmrGrib2LocalTableVars_
 ## the following variables need to be set localTableVersion no as 1 and
@@ -326,31 +340,50 @@ _depedendantVars_ = {
 }
 
 
-
 ncumSTASH_tiggeVars = {
 ######################## BEGIN OF TIGGE-VALID-VARS-IN-BOTH-NCUM-DETERMINISTIC-ENSEMBLES ################
 # PressureLevel Variables
 ('geopotential_height', 'm01s16i202'): ('geopotential_height', 'gh', None), # 'gpm'
 ('specific_humidity', 'm01s30i205'): ('specific_humidity', 'q', 'kg kg-1'),
 ('air_temperature', 'm01s16i203'): ('temperature', 't', 'K'),
-('x_wind', 'm01s15i201'): ('u_velocity', 'u', 'm s-1'),
-('y_wind', 'm01s15i202'): ('v_velocity', 'v', 'm s-1'),
+('x_wind', 'm01s15i243'): ('u_velocity', 'u', 'm s-1'),
+('y_wind', 'm01s15i244'): ('v_velocity', 'v', 'm s-1'),
+('x_wind', 'm01s15i201'): ('u_velocity', 'u', 'm s-1'), #deterministic
+('y_wind', 'm01s15i202'): ('v_velocity', 'v', 'm s-1'), #deterministic
+
 # SingleLevel Variables
-('x_wind', 'm01s03i225'): ('10_meter_u_velocity', '10u', 'm s-1'),
-('y_wind', 'm01s03i226'): ('10_meter_v_velocity', '10v', 'm s-1'),
+('x_wind', 'm01s03i209'): ('10_meter_u_velocity', '10u', 'm s-1'),
+('y_wind', 'm01s03i210'): ('10_meter_v_velocity', '10v', 'm s-1'),
+('x_wind', 'm01s03i225'): ('10_meter_u_velocity', '10u', 'm s-1'), #deterministic
+('y_wind', 'm01s03i226'): ('10_meter_v_velocity', '10v', 'm s-1'), #deterministic
 ('land_binary_mask', 'm01s00i030'): ('land_sea_mask', 'lsm', None), # Proportion
 ('air_pressure_at_sea_level', 'm01s16i222'): ('mean_sea_level_pressure', 'msl', 'Pa'), 
 ('surface_altitude', 'm01s00i033'): ('orography', 'orog', None), # 'gpm' 
 ('air_temperature', 'm01s03i236'): ('surface_air_temperature', '2t', 'K'),
+('air_temperature_maximum', 'm01s03i236'): ('surface_air_maximum_temperature', 'mx2t6', 'K'),   
+('air_temperature_minimum', 'm01s03i236'): ('surface_air_minimum_temperature', 'mn2t6', 'K'),
+('dew_point_temperature', 'm01s03i250'): ('surface_air_dew_point_temperature', '2d', 'K'),
+('surface_temperature', 'm01s00i024'): ('skin_temperature', 'skt', 'K'),
+('moisture_content_of_soil_layer', 'm01s08i223'): ('soil_moisture', 'sm', 'K'),
+('soil_temperature', 'm01s03i238'): ('soil_temperature', 'st', 'K'),                        
 ('surface_air_pressure', 'm01s00i409'): ('surface_pressure', 'sp', 'Pa'),
 ('precipitation_amount', 'm01s05i226'): ('total_precipitation', 'tp', 'kg m-2'), # intermediate file 
 ('time_cummulated_precipitation', 'None'): ('total_precipitation', 'tp', 'kg m-2'), 
 
-('surface_upward_latent_heat_flux', 'm01s03i234'): ('time_integrated_surface_latent_heat_flux', 'slhf', 'W m-2 s'),
-('surface_upward_sensible_heat_flux', 'm01s03i217'): ('time_integrated_surface_sensible_heat_flux', 'sshf', 'W m-2 s'),
-('surface_net_downward_longwave_flux', 'm01s02i201'): ('time_integrated_surface_net_thermal_radiation', 'str', 'W m-2 s'),
-('surface_net_downward_shortwave_flux', 'm01s01i202'): ('time_integrated_surface_net_solar_radiation', 'ssr', 'W m-2 s'),
-('toa_outgoing_longwave_flux', 'm01s02i205'): ('time_integrated_outgoing_long_wave_radiation', 'ttr', 'W m-2 s'),
+('surface_upward_latent_heat_flux', 'm01s03i234'): ('time_integrated_surface_latent_heat_flux', 'slhf', None), # intermediate file  
+('time_integrated_surface_upward_latent_heat_flux', 'm01s03i234'): ('time_integrated_surface_latent_heat_flux', 'slhf', 'W m-2 s'),
+
+('surface_upward_sensible_heat_flux', 'm01s03i217'): ('time_integrated_surface_sensible_heat_flux', 'sshf', None), # intermediate file 
+('time_integrated_surface_upward_sensible_heat_flux', 'm01s03i217'): ('time_integrated_surface_sensible_heat_flux', 'sshf', 'W m-2 s'),
+
+('surface_net_downward_longwave_flux', 'm01s02i201'): ('time_integrated_surface_net_thermal_radiation', 'str', None), # intermediate file 
+('time_integrated_surface_net_downward_longwave_flux', 'm01s02i201'): ('time_integrated_surface_net_thermal_radiation', 'str', 'W m-2 s'),
+
+('surface_net_downward_shortwave_flux', 'm01s01i202'): ('time_integrated_surface_net_solar_radiation', 'ssr', None), # intermediate file 
+('time_integrated_surface_net_downward_shortwave_flux', 'm01s01i202'): ('time_integrated_surface_net_solar_radiation', 'ssr', 'W m-2 s'),
+
+('toa_outgoing_longwave_flux', 'm01s02i205'): ('time_integrated_outgoing_long_wave_radiation', 'ttr', None), # intermediate file 
+('time_integrated_toa_outgoing_longwave_flux', 'm01s02i205'): ('time_integrated_outgoing_long_wave_radiation', 'ttr', 'W m-2 s'),
 
 ######################## END OF TIGGE-VALID-VARS-IN-BOTH-NCUM-DETERMINISTIC-ENSEMBLES ################
 
@@ -367,11 +400,11 @@ def getTiggeFileName(cube):
     # follows as per standard of tigge
     # https://software.ecmwf.int/wiki/display/TIGGE/TIGGE+Data+Exchange+Protocol
     # z_tigge_c_cccc_yyyymmddhhmmss_mmmm_vvvv_tt_ll_ssss_nnn_llll_param
-    
+
     prefix = 'z_tigge_c'
     cccc = 'dems' # DEMS Delhi Meteorological Station centre code (WMO Standard)
     mmmm = 'glob'
-    vvvv = 'test'
+    vvvv = 'test' # TIGGE TEST 
     cstash = None
     
     # get the cube time and make it as yyyymmddhhmmss
@@ -417,14 +450,14 @@ def getTiggeFileName(cube):
     # get the tigge standard short name
     cname = cube.standard_name if cube.standard_name else cube.long_name
     cstash = str(cube.attributes.get('STASH', 'None'))
-    tiggeName, tiggeParam, tiggeUnit = ncumSTASH_tiggeVars.get((cname, cstash), (None, None))
-
+    tiggeName, tiggeParam, tiggeUnit = ncumSTASH_tiggeVars.get((cname, cstash), (None, None, None))
+    
     # set tigge unit
     if tiggeUnit: cube.units = Unit(tiggeUnit)    
     # return the tigge standard file name of this cube.
     outfilename = '_'.join([prefix, cccc, yyyymmddhhmmss, mmmm, vvvv, 
                                         tt, ll, ssss, nnn, llll, tiggeParam])
-    return outfilename
+    return outfilename, tiggeParam
 # end of def getTiggeFileName(cube, datatype):
 
 # start definition #5
@@ -520,38 +553,6 @@ def regridAnlFcstFiles(arg):
     fcstpoint = 'cbound'            # TESTED, OK, on 05-01-2016
     timebound = True                # TESTED, OK, on 28-03-2016
     fcstbound = True                # TESTED, OK, on 28-03-2016
-#    if dtype == 'fcst':        
-#        ### But if we want to set access time point as per out file hour's
-#        ### ref time, then we can enable the following options. otherwise 
-#        ### disable it, because 'cbound' will works for ctl file.
-#        timepoint = 'rbound'        # TESTED, OK, on 05-01-2016
-#        fcstpoint = 'rbound'        # TESTED, OK, on 05-01-2016
-#    elif dtype == 'ana':        
-#        ### But if we want to set access time point as per out file hour's
-#        ### ref time, then we can enable the following options. otherwise 
-#        ### disable it, because 'cbound' will works for ctl file.
-#        if __anl_aavars_reference_time__ == 'shortforecast':
-#            timepoint = 'lbound'        # TESTED, OK, on 23-02-2016
-#            fcstpoint = 'lbound'        # TESTED, OK, on 23-02-2016
-#            ## g2ctl -verf option bring end forecast time bounds to set time in 
-#            ## ctl file. So we no need to pass options like -0 or -b.
-#            ## here lbound in both timepoint and fcstpoint will give correct 
-#            ## time reference and forecast time in both grib2 files and grads 
-#            ## control files.           # TESTED, OK, on 23-02-2016
-#        elif __anl_aavars_reference_time__ == 'analysis':
-#            timepoint = 'rbound'        # TESTED, OK, on 22-03-2016
-#            fcstpoint = 'lbound'        # TESTED, OK, on 22-03-2016
-#            ## In this option, we must pass -0 option to g2ctl and gribmap.
-#            ## Otherwise, it will make 2 time points in ctl file.
-#            if not __anl_aavars_time_bounds__: 
-#                # This option applicable only if __anl_aavars_reference_time__ 
-#                # option set as 'analysis'. This false will remove the time 
-#                # bounds and make the var as instantaneous one instead of 
-#                # average/accumulation.
-#                timebound = False
-#                fcstbound = False
-#            # end of if not __anl_aavars_time_bounds__: 
-#    # end of if dtype == 'fcst':
     
     # Note : if we are not correcting ana, fcst fcstpoint as above, in g2ctl
     # ctl file will has 2 time points. To avoid that we have to tell to g2ctl
@@ -808,6 +809,17 @@ def regridAnlFcstFiles(arg):
                 lat.points = lat.points[::-1]
             # end of if _reverseLatitude_:
             
+            unit = regdCube.units
+            if varName.endswith('_flux'):
+                # applicable only to TIGGE 
+                # converting flux unit from time average into time integrated
+                # by multiplying 60*60*6 = 21600 seconds in 6-hour 
+                regdCube.data *= 21600.0     
+                unit = Unit('W m-2 s') # changed unit from (W m-2) into (W m-2 s)           
+                print "Multiplied data with 60*60*6 seconds to make flux variable into time-intergrated"
+                print regdCube.data.min(), regdCube.data.max()
+            # end of if varName.endswith('_flux'):
+            
             if (varName, varSTASH) in _precipVars_:
                 # Since we are not using 'mask' option for extrapolate while 
                 # doing linear regrid, which bring -ve values after regrid in 
@@ -868,19 +880,50 @@ def regridAnlFcstFiles(arg):
                     regdCube.data = numpy.ma.masked_array(regdCube.data.filled(__fillFullyMaskedVars__), 
                                                         fill_value=9.999e+20)
             # end of if __fillFullyMaskedVars__ and ...:
+                        
+            # get all other dimensions
+            # generate list of tuples contain index and coordinate
+            dim_coords = [(coord, i) for i,coord in enumerate(list(regdCube.dim_coords))]
+            aux_factories = regdCube.aux_factories
+            t = regdCube.coords('time')[0]
+            fp = regdCube.coords('forecast_period')[0]
+            ft = regdCube.coords('forecast_reference_time')[0]
+            # create ensemble packed cubes 
+            regdData = iris.cube.Cube(regdCube.data, regdCube.standard_name, 
+                                     regdCube.long_name, regdCube.var_name,
+                                       unit, regdCube.attributes, 
+                                           regdCube.cell_methods, dim_coords)
+            # add all time coordinates
+            regdData.add_aux_coord(fp)
+            regdData.add_aux_coord(ft)
+            regdData.add_aux_coord(t)
+            
+#            # add cell_methods to the ensembleData                        
+#            if regdCube.cell_methods:
+#                if (varName, varSTASH) in _accumulationVars_:
+#                    # The following variables cell_methods should show accumulated/sum, but 
+#                    # UM pp code doesnt support for accumulation. So lets fix it here ! 
+#                    cm = iris.coords.CellMethod('sum', ('time',), 
+#                                   intervals=('1 hour',), comments=('6 hour accumulation',))
+#                    regdData.cell_methods = (cm)
+#                else:             
+#                    regdData.cell_methods = (regdCube.cell_methods[0])
+            
+            print regdData
+            # make memory free 
             
             print "regrid done"
-            print "after regrid", varName, regdCube.data.min(), regdCube.data.max() 
-            if __LPRINT__: print "To shape", regdCube.shape  
+            print "after regrid", varName, regdData.data.min(), regdData.data.max() 
+            if __LPRINT__: print "To shape", regdData.shape  
                 
-            regdCube.attributes = tmpCube.attributes
-            if __LPRINT__: print "set the attributes back to regdCube"              
-            if __LPRINT__: print "regdCube => ", regdCube
+            regdData.attributes = tmpCube.attributes
+            if __LPRINT__: print "set the attributes back to regdData"              
+            if __LPRINT__: print "regdData => ", regdData
             # get the regridded lat/lons
-            stdNm, stash, fcstTm, refTm, lat1, lon1 = umfcs.getCubeAttr(regdCube)
-            if __LPRINT__: print "Got attributes from regdCube"
+            stdNm, stash, fcstTm, refTm, lat1, lon1 = umfcs.getCubeAttr(regdData)
+            if __LPRINT__: print "Got attributes from regdData"
             # save the cube in append mode as a grib2 file       
-
+                                    
             if fcstTm.bounds is not None:
                 # (need this for pf files)
                 if dtype == 'ana':
@@ -919,7 +962,7 @@ def regridAnlFcstFiles(arg):
             # of writing intermediate nc files
             ofname = outFn.split(fileExtension)[0]                    
             ncfile = False
-            if regdCube.coords('soil_model_level_number'):
+            if regdData.coords('soil_model_level_number'):
                 # NOTE : THIS SECTION WILL WORKS ONLY FOR SOIL MOISTURE AND
                 # SOIL TEMPERATUE AT 4 LAYERS, NOT FOR SINGLE LAYER OR 
                 # NOT FOR Root zone Soil Moisture Content !!!
@@ -929,18 +972,18 @@ def regridAnlFcstFiles(arg):
                 # in the cube attributes. By default iris-1.9 will not 
                 # support to handle soil_model_level_number, so we need to 
                 # tweak it by following way.
-                depth_below_land_surface = regdCube.coords('soil_model_level_number')[0]
+                depth_below_land_surface = regdData.coords('soil_model_level_number')[0]
                 umfcs._updateDepthBelowLandSurfaceCoords4Levs(depth_below_land_surface)
                 if __LPRINT__: print "depth_below_land_surface", depth_below_land_surface
                 
-                if regdCube.standard_name == 'moisture_content_of_soil_layer':
+                if regdData.standard_name == 'moisture_content_of_soil_layer':
                     # pass the vertical layer depth in millimeter
-                    umfcs._convert2VolumetricMoisture(regdCube, 
+                    umfcs._convert2VolumetricMoisture(regdData, 
                                         levels=[100.0, 250.0, 650.0, 1000.0])
                     print "converted four layer soil moisture to volumetric"
-                # end of if regdCube.standard_name == 'moisture_content_of_soil_layer':                
+                # end of if regdData.standard_name == 'moisture_content_of_soil_layer':                
                                
-            # end of if regdCube.coords('soil_model_level_number'):
+            # end of if regdData.coords('soil_model_level_number'):
             
             if (varName, varSTASH) == ('soil_moisture_content', 'm01s08i208'):
                 # NOTE : THIS SECTION WILL WORKS ONLY FOR SINGLE LAYERED 
@@ -948,16 +991,16 @@ def regridAnlFcstFiles(arg):
                 
                 # By default this variable doesn't have any vertical coords 
                 # inforomation. So we must add explicitly by ourself.
-                umfcs._createDepthBelowLandSurfaceCoords1Lev(regdCube)
+                umfcs._createDepthBelowLandSurfaceCoords1Lev(regdData)
                 
                 # Convert this into volumetirc soil moisture. This varibale
                 # vertical level at 2meter in millimeter.
-                umfcs._convert2VolumetricMoisture(regdCube, levels=2000.0)
+                umfcs._convert2VolumetricMoisture(regdData, levels=2000.0)
                 print "converted single layer soil moisture to volumetric"                
             # end of if (varName, varSTASH) in (...):                       
                         
             try:                
-                save_tigge_tweaked_messages([regdCube])                
+                save_tigge_tweaked_messages([regdData])                
             except Exception as e:
                 print "ALERT !!! Error while saving!! %s" % str(e)
                 print " So skipping this without saving data"
@@ -965,7 +1008,7 @@ def regridAnlFcstFiles(arg):
             # end of try:
             print "saved"            
             # make memory free 
-            del regdCube, tmpCube
+            del regdCube, tmpCube, regdData
         # end of for fhr in fcstHours:
     # end of for varName, varSTASH in varNamesSTASH:
     # make memory free
@@ -981,8 +1024,8 @@ def save_tigge_tweaked_messages(cubeList):
            _accumulationVars_, _total_cummulativeVars_
     
     for cube in cubeList:
-        for cube, grib_message in iris.fileformats.grib.as_pairs(cube): #save_pairs_from_cube(cube):
-            print "Tweaking begin ", cube.standard_name
+        for cube, grib_message in iris.fileformats.grib.as_pairs(cube): #save_pairs_from_cube(cube): #
+            print "Tweaking begin ", cube.standard_name, cube.long_name
             # post process the GRIB2 message, prior to saving
             gribapi.grib_set_long(grib_message, "centre", 29) # RMC of India
             gribapi.grib_set_long(grib_message, "subCentre", 0) # No subcentre
@@ -1139,9 +1182,11 @@ def save_tigge_tweaked_messages(cubeList):
             print "Tweaking end ", cube.standard_name
                         
             # get tigge statndard filename 
-            outgname = getTiggeFileName(cube)
-            outgpath = os.path.join(_opPath_, outgname) # Join the outpath 
-            
+            outgname, sname = getTiggeFileName(cube)
+            outgdir = os.path.join(_opPath_, sname)
+            createDirWhileParallelRacing(outgdir)
+            outgpath = os.path.join(outgdir, outgname) # Join the outpath 
+            print "lets save into", outgpath
             cstash = str(cube.attributes.get('STASH', 'None'))
             if (cube.standard_name, cstash) in _accumulationVars_:
                 iris.fileformats.netcdf.save(cube, outgpath+'.nc')  # save nc file 
@@ -1157,16 +1202,29 @@ def makeTotalCummulativeVars(arg):
     
     global _opPath_, _current_date_, __start_long_fcst_hour__, __end_long_fcst_hour__  
     
-    svar, umfcstype, ens = arg 
-    fname = 'z_tigge_c_dems_' +_current_date_+ '000000_glob_test_' 
+    svar, sname, umfcstype, ens = arg 
+
+    if svar == 'tp':
+        lname = 'time_cummulated_precipitation'
+        rstash = True
+    else:
+        lname = 'time_integrated_' + sname 
+        rstash = False
+    
+    fname = 'z_tigge_c_dems_' +_current_date_+ '000000_glob_test_'  # TIGGE TEST 
     fname += umfcstype+ '_sl_%s_' + ens.zfill(3) + '_0000_' + svar + '.nc' 
-    infiles = [os.path.join(_opPath_, fname % str(t).zfill(4)) 
+    infiles = [os.path.join(*[_opPath_, svar, fname % str(t).zfill(4)]) 
                         for t in range(6, __end_long_fcst_hour__+1, 6)]
-    cubes = iris.load(infiles)[0]
+
+    try:
+        cubes = iris.load(infiles)[0]
+    except Exception as e:
+        raise ValueError("Unable to load files from %s - while makeTotalCummulativeVars" % str(infiles))
+    
     # get the cummulated cubes generator
-    outcubes = cubeCummulator(cubes, standard_name='None', 
-                    long_name='time_cummulated_precipitation', 
-                    addZerosFirstCube=True, removeSTASH=True)
+    outcubes = cubeCummulator(cubes, standard_name='None', long_name=lname, 
+                                addZerosFirstCube=True, removeSTASH=rstash)
+
     # save cummulated cubes into individual grib2 files
     for cube in outcubes: save_tigge_tweaked_messages([cube])        
     
@@ -1590,9 +1648,17 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     # do convert for forecast files 
     convertFilesInParallel(fcst_fnames, ftype='fcst')   
     
-    if ('precipitation_amount', 'm01s05i226') in convertVars:
-        makeTotalCummulativeVars(('tp', 'fc', '000'))
-    # end of if ('precipitation_amount', 'm01s05i226') in convertVars:
+    time.sleep(30)  
+    
+    # make total time cummulated variables    
+    for (TCV, TCVS, TCSVAR) in [('surface_net_downward_shortwave_flux', 'm01s01i202', 'ssr'),
+                        ('surface_net_downward_longwave_flux', 'm01s02i201', 'str'), 
+                        ('surface_upward_latent_heat_flux', 'm01s03i234', 'slhf'),   
+                        ('surface_upward_sensible_heat_flux', 'm01s03i217', 'sshf'),   
+                        ('toa_outgoing_longwave_flux', 'm01s02i205', 'ttr'),
+                        ('precipitation_amount', 'm01s05i226', 'tp')]:
+        if (TCV, TCVS) in convertVars: makeTotalCummulativeVars((TCSVAR, TCV, 'fc', '000'))
+    # end of for (TCV, TCVS, TCSVAR) ...:
     
     if callBackScript:
         time.sleep(30)  # required few seconds sleep before further process starts  
@@ -1950,6 +2016,17 @@ def packEnsembles(arg, **kwarg):
             lat.points = lat.points[::-1]
         # end of if _reverseLatitude_:
         
+        unit = regdCube.units
+        if varName.endswith('_flux'):
+            # applicable only to TIGGE 
+            # converting flux unit from time average into time integrated
+            # by multiplying 60*60*6 = 21600 seconds in 6-hour 
+            regdCube.data *= 21600.0            
+            unit = Unit('W m-2 s') # changed unit from (W m-2) into (W m-2 s)
+            print "Multiplied data with 60*60*6 seconds to make flux variable into time-intergrated"
+            print regdCube.data.min(), regdCube.data.max()
+        # end of if varName.endswith('_flux'):
+        
         if (varName, varSTASH) in _precipVars_:
             # Since we are not using 'mask' option for extrapolate while 
             # doing linear regrid, which bring -ve values after regrid in 
@@ -2039,7 +2116,6 @@ def packEnsembles(arg, **kwarg):
         # generate list of tuples contain index and coordinate
         dim_coords = [(coord, i) for i,coord in enumerate(dim_coords)]
         # get all other dimensions
-        aux_coords = list(regdCube.aux_coords)
         aux_factories = regdCube.aux_factories
         t = regdCube.coords('time')[0]
         fp = regdCube.coords('forecast_period')[0]
@@ -2047,7 +2123,7 @@ def packEnsembles(arg, **kwarg):
         # create ensemble packed cubes 
         ensembleData = iris.cube.Cube(ensembleData, regdCube.standard_name, 
                                  regdCube.long_name, regdCube.var_name,
-                                   regdCube.units, regdCube.attributes, 
+                                   unit, regdCube.attributes, 
                                        regdCube.cell_methods, dim_coords)
         # add all time coordinates
         print "setting aux_coords to", ensembleData.shape, varName, fhr 
@@ -2174,6 +2250,13 @@ def packEnsemblesInParallel(arg):
     
     for varName, varSTASH in varNamesSTASH:        
         for fhr in fcstHours:            
+            # the following vars doesnt have 0th time value, but it has 6th hour value.
+            if (varName, varSTASH) in [('moisture_content_of_soil_layer', 'm01s08i223'), 
+                                        ('soil_temperature', 'm01s03i238'),
+                                        ('air_temperature', 'm01s03i236'),
+                                        ('dew_point_temperature', 'm01s03i250'),
+                                        ('x_wind', 'm01s03i209'),  
+                                        ('y_wind', 'm01s03i210')] and not fhr: continue
             allConstraints = [varName, varSTASH, fhr]     
             ensembleFiles_allConstraints_list.append((ensembleFiles, allConstraints))
     # end of for varName, varSTASH in varNamesSTASH:      
@@ -2442,12 +2525,20 @@ def convertEPSFcstFiles(inPath, outPath, tmpPath, **kwarg):
     
     # do convert for forecast files  
     convertEPSFilesInParallel(fcst_fnames, ftype='fcst')
-    
-    if ('precipitation_amount', 'm01s05i226') in convertVars:
+    time.sleep(30)  
+    # make total time cummulated variables    
+    for (TCV, TCVS, TCSVAR) in [('surface_net_downward_shortwave_flux', 'm01s01i202', 'ssr'),
+                        ('surface_net_downward_longwave_flux', 'm01s02i201', 'str'), 
+                        ('surface_upward_latent_heat_flux', 'm01s03i234', 'slhf'),   
+                        ('surface_upward_sensible_heat_flux', 'm01s03i217', 'sshf'),   
+                        ('toa_outgoing_longwave_flux', 'm01s02i205', 'ttr'),
+                        ('precipitation_amount', 'm01s05i226', 'tp')]:
+        if (TCV, TCVS) not in convertVars: continue
+
         # do cummulative precipitation_amount calculate for control run and ensemble members in parallel
-        cummulated_ens = [('tp', 'pf', str(ensno)) for ensno in range(1, _ensemble_count_+1, 1)]
-        cummulated_ens.insert(0, ('tp', 'cf', '000'))
-        
+        cummulated_ens = [(TCSVAR, TCV, 'pf', str(ensno)) for ensno in range(1, _ensemble_count_+1, 1)]
+        cummulated_ens.insert(0, (TCSVAR, TCV, 'cf', '000'))
+
         ## get the no of files and 
         nprocesses = len(cummulated_ens) 
         maxprocess = mp.cpu_count()
@@ -2461,7 +2552,7 @@ def convertEPSFcstFiles(inPath, outPath, tmpPath, **kwarg):
         # closing and joining master pools
         pool.close()     
         pool.join()
-    # end of if ('precipitation_amount', 'm01s05i226') in convertVars:
+    # end of for (TCV, TCVS, TCSVAR) ...:
     
 
     
