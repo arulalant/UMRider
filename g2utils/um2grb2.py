@@ -2853,7 +2853,12 @@ def doShuffleVarsInOrder(fpath):
             # -0 will set the base reference time as analysis utc time. 
             tsahr = '-ts%dhr' %  int(__anl_step_hour__)
             subprocess.call([g2ctl, tsahr, '-0', g2filepath], stdout=ctlfile)
-            subprocess.call([gribmap, '-0', '-i', g2filepath+'.ctl'])   
+            subprocess.call([gribmap, '-0', '-i', g2filepath+'.ctl']) 
+        elif __outFileType__ in ['rea', 'reanalysis']:
+            # by default -verf as passed which takes end time of fcst bounds to set as base time.
+            tsfhr = '-ts%dhr' %  int(__anl_step_hour__)
+            subprocess.call([g2ctl, tsfhr, '-verf', g2filepath], stdout=ctlfile)
+            subprocess.call([gribmap, '-i', g2filepath+'.ctl'])                
         else:
             # by default -verf as passed which takes end time of fcst bounds to set as base time.
             tsfhr = '-ts%dhr' %  int(__fcst_step_hour__)
@@ -3426,8 +3431,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     fillFullyMaskedVars = kwarg.get('fillFullyMaskedVars', None)
     extraPolateMethod = kwarg.get('extraPolateMethod', 'auto')
     soilFirstSecondFixedSurfaceUnit = kwarg.get('soilFirstSecondFixedSurfaceUnit', 'cm')
-    anl_step_hour = kwarg.get('anl_step_hour', 6)
-    fcst_step_hour = kwarg.get('fcst_step_hour', 6)
+    anl_step_hour = kwarg.get('anl_step_hour', 6)    
     anl_aavars_reference_time = kwarg.get('anl_aavars_reference_time', 'shortforecast')
     anl_aavars_time_bounds = kwarg.get('anl_aavars_time_bounds', True)
     anlFileNameStructure = kwarg.get('anlFileNameStructure', None)    
@@ -3457,7 +3461,6 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     __LPRINT__ = lprint
     # update global variables
     __anl_step_hour__ = anl_step_hour
-    __fcst_step_hour__ = fcst_step_hour  # required for IMDAA
     __UMtype__ = UMtype
     __utc__ = utc    
     __anl_aavars_reference_time__ = anl_aavars_reference_time
