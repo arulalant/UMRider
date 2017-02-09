@@ -1334,7 +1334,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('y_wind', 'm01s15i213'),] 
         # Just convert pp/ff file to grib2/nc file. So no need to extract 
         # individual fcst hours.
-        fcstHours = [None]
+        fcstHours = [lambda cell: 0 <= cell <= 9.0] # extract from 0 to 9
         doMultiHourlyMean = False
         
     elif  fname.startswith('pp5'):             # pp5
@@ -1357,7 +1357,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('y_wind', 'm01s00i003'),]
         # Just convert pp/ff file to grib2/nc file. So no need to extract 
         # individual fcst hours.
-        fcstHours = [None]
+        fcstHours = [lambda cell: 0 <= cell <= 9.0] # extract from 0 to 9
         doMultiHourlyMean = False    
             
     elif  fname.startswith('pp6'):             # pp6
@@ -1369,7 +1369,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                          ('y_wind', 'm01s15i202'),]
         # Just convert pp/ff file to grib2/nc file. So no need to extract 
         # individual fcst hours.
-        fcstHours = [None]
+        fcstHours = [lambda cell: 0 <= cell <= 9.0] # extract from 0 to 9
         doMultiHourlyMean = False    
     ##### IMDAA FORECAST FILE END #######
     else:
@@ -2912,7 +2912,7 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
         # since ncum producing analysis files 00, 06, 12, 18 utc cycles and 
         # its forecast time starting from 0 and reference time based on utc.
         # so we should calculate correct hour as below.
-        for fcsthr in range(0+simulated_hr, 6+simulated_hr, __anl_step_hour__):            
+        for fcsthr in range(0+simulated_hr, 6+simulated_hr, 6):            
             # generate the out file name based on actual informations                                 
             outFn = __genAnlFcstOutFileName__(__anlFileNameStructure__, 
                                   outFnIndecies, _current_date_, fcsthr, 
@@ -3445,10 +3445,8 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     
     if UMReanalysis:
         __outFileType__ = 'rea' 
-        __anl_step_hour__ = 6 # 6 for cycle 00, 06, 12, 18 cycle step hour.
     else:
         __outFileType__ = 'ana' 
-        __anl_step_hour__ = anl_step_hour
         
     # assign the convert vars list of tuples to global variable
     if convertVars: _convertVars_ = convertVars
@@ -3457,6 +3455,7 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
     # set print variables details options
     __LPRINT__ = lprint
     # update global variables
+    __anl_step_hour__ = anl_step_hour
     __UMtype__ = UMtype
     __utc__ = utc    
     __anl_aavars_reference_time__ = anl_aavars_reference_time
