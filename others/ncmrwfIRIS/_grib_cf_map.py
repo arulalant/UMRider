@@ -383,8 +383,8 @@ CF_TO_GRIB2 = {
     CFName(None, 'atmosphere_precipitable_water_content', 'kg m-2'): G2Param(2, 0, 1, 3),
     
     #WMO need to set surface level type as toa (Nominal top of the atmosphere, 8)
-    CFName('toa_outgoing_longwave_flux', None, 'W m-2'): G2Param(2, 0, 5, 4, 8),  # WMO
-    CFName('toa_outgoing_shortwave_flux', None, 'W m-2'): G2Param(2, 0, 4, 8, 8), # WMO    
+    CFName('toa_outgoing_longwave_flux', None, 'W m-2'): G2Param(2, 0, 5, 5, 8),  # WMO
+    CFName('toa_outgoing_shortwave_flux', None, 'W m-2'): G2Param(2, 0, 4, 9, 8), # WMO    
     CFName('toa_outgoing_shortwave_flux_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 4, 11, 8), #WMO    
     CFName('toa_outgoing_shortwave_flux_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 4, 198), # NCMRWF Local
     CFName('toa_outgoing_longwave_flux_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 5, 195), # NCMRWF Local
