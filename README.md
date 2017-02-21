@@ -4,7 +4,7 @@ National Centre for Medium Range Weather Forecasting, India running UK MetOffice
 
 This module aims to convert UM outputs from fieldsfiles/pp format to grib2 files, using Iris.
 
-UMRider is an in-house open source developement of NCUMRWF!
+UMRider is an in-house open source developement of NCMRWF!
 
 ## License 
 You have to accept [GPLv2](https://github.com/NCMRWF/UMRider/blob/master/LICENSE) to use and redistribute under the same free open source software license. 
