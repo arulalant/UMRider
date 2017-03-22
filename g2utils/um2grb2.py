@@ -1413,7 +1413,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('y_wind', 'm01s15i213'),] 
         # Just convert pp/ff file to grib2/nc file. So no need to extract 
         # individual fcst hours.
-        fcstHours = [lambda cell: 0 <= cell <= 9.0] # extract from 0 to 9
+        fcstHours = [lambda cell: 0 <= cell <= 5.0] # extract from 0 to 9
         doMultiHourlyMean = False
         
     elif  fname.startswith('pp5'):             # pp5
@@ -1436,7 +1436,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('y_wind', 'm01s00i003'),]
         # Just convert pp/ff file to grib2/nc file. So no need to extract 
         # individual fcst hours.
-        fcstHours = [lambda cell: 0 <= cell <= 9.0] # extract from 0 to 9
+        fcstHours = [lambda cell: 0 <= cell <= 5.0] # extract from 0 to 9
         doMultiHourlyMean = False    
             
     elif  fname.startswith('pp6'):             # pp6
@@ -1448,7 +1448,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                          ('y_wind', 'm01s15i202'),]
         # Just convert pp/ff file to grib2/nc file. So no need to extract 
         # individual fcst hours.
-        fcstHours = [lambda cell: 0 <= cell <= 9.0] # extract from 0 to 9
+        fcstHours = [lambda cell: 0 <= cell <= 5.0] # extract from 0 to 9
         doMultiHourlyMean = False    
     ##### IMDAA FORECAST FILE END #######
     else:
@@ -1944,6 +1944,16 @@ def regridAnlFcstFiles(arg):
             if fhr is not None:
                 # make forecast_period constraint
                 fpConstraint = iris.Constraint(forecast_period=fhr)
+                # IMDAA requirements
+                if __UMReanalysis__:
+                    if 'flux' in varName and not varName == 'convective_snowfall_flux':
+                        umrfhr = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]
+                        fpConstraint = iris.Constraint(forecast_period=umrfhr)
+                    if 'amount' in varName or varName == 'convective_snowfall_flux':
+                        umrfhr = lambda cell: 0 <= cell <= 6.0
+                        fpConstraint = iris.Constraint(forecast_period=umrfhr)
+                # end of if __UMReanalysis__:
+                       
             if __anl_step_hour__ == 3 and fhr == 1.5:
                 # Load from current date instead of yesterday date 
                 ana_today_infile = os.path.join(_inDataPath_, fileName)                 
@@ -2174,8 +2184,7 @@ def regridAnlFcstFiles(arg):
                 hr = str(int(fcstTm.points))
                 if __LPRINT__: print "points comes in ", hr, fileName 
             # end of if fcstTm.bounds:
-            #if dtype == 'ana':
-            #    hr = str(int(hr) + int(__utc__))
+            if dtype == 'ana': hr = str(int(hr) + int(__utc__))   # IMPORTANT
             # generate the out file name based on actual informations                                 
             outFn = __genAnlFcstOutFileName__(outFileNameStructure, 
                                  outFnIndecies, _current_date_, hr, 
