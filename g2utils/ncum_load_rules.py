@@ -35,7 +35,7 @@ ncumSTASH_Vs_cf = {
 'm01s03i296': (None, 'soil_evaporation_rate', 'kg m-2 s-1', None),
 'm01s03i297': (None, 'canopy_evaporation_rate', 'kg m-2 s-1', None),
 'm01s03i232': (None, 'open_sea_evaporation_rate', 'kg m-2 s-1', None), 
-'m01s01i202': (None, 'surface_net_downward_shortwave_flux_corrected', 'W m-2', None), 
+#'m01s01i202': (None, 'surface_net_downward_shortwave_flux_corrected', 'W m-2', None), # This required only for IMDAA
 }
 
 duplicateSTASH_vs_cf = {
@@ -144,6 +144,7 @@ def update_cf_standard_name(cube, field, filename):
                                      units=Unit('m'), attributes={'positive': 'up'})
                         cube.add_aux_coord(heightAx)                        
             # end of if ccm:
+        # end of if varSTASH in ncumSTASH_Vs_cf:
         if (cube.standard_name, varSTASH) in fix_timeaxis_of_regional_acc_avg_cubes:
             # fix the time axis varying reference_time problem which occurs in NCUM_Regional model.
             forecast_reference_time = cube.coords('forecast_reference_time')[0]
@@ -158,7 +159,17 @@ def update_cf_standard_name(cube, field, filename):
                 forecast_period.points = array([round(forecast_period.points[0]+freminder, 3)])
                 forecast_period.bounds = array([[round(forecast_period.bounds[0][0]+freminder, 3), 
                                             round(forecast_period.bounds[0][1]+freminder, 3)]])
-        # end of if varSTASH in ncumSTASH_Vs_cf:
+        
+        # get input filename 
+        fname = filename.split('/')[-1] if '/' in filename else filename
+        if fname == '000_pg000': # update NEPS Control file's first record alone. 
+             forecast_period = cube.coords('forecast_period')[0]             
+             if forecast_period.points[0] == 0.19999999925494194: # equivalent to 12th minutes
+                ## update first time step of control run of NEPS for purpose of TIGGE.
+                forecast_period.points = array([0.0]) # change to 0 instead of 12th minutes
+                time = cube.coords('time')[0]
+                time.points = array([float(int(time.points[0]))]) # update time also.
+        
     elif isinstance(field, GribWrapper):
         # loading from grib file
         if field.editionNumber == 2 and (field.parameterNumber > 191 or 
