@@ -298,7 +298,6 @@ _accumulationVars_ = [('precipitation_amount', 'm01s05i226'),
 ## followed by storing into grib2 file. All because we need to write variables
 ## in the way we need (i.e. ordered always)!!
 _ncfilesVars_ = [
-('moisture_content_of_soil_layer', 'm01s08i223'),
 ('volumetric_moisture_of_soil_layer', 'm01s08i223'), 
 # 'moisture_content_of_soil_layer' renamed as  
 # 'volumetric_moisture_of_soil_layer', but same STASH m01s08i223 code.
@@ -1949,8 +1948,11 @@ def regridAnlFcstFiles(arg):
                     if 'flux' in varName and not varName == 'convective_snowfall_flux':
                         umrfhr = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]
                         fpConstraint = iris.Constraint(forecast_period=umrfhr)
-                    if 'amount' in varName or varName == 'convective_snowfall_flux':
+                    if 'amount' in varName:
                         umrfhr = lambda cell: 0 <= cell <= 6.0
+                        fpConstraint = iris.Constraint(forecast_period=umrfhr)
+                    if varName in ['convective_snowfall_flux', 'snowfall_amount']:
+                        umrfhr = [1., 2., 3., 4., 5., 6.]
                         fpConstraint = iris.Constraint(forecast_period=umrfhr)
                 # end of if __UMReanalysis__:
                        
@@ -1997,15 +1999,16 @@ def regridAnlFcstFiles(arg):
                 print "- min", tmpCube.data.min(), "max", tmpCube.data.max(),
                 print "has_lazy_data =", tmpCube.has_lazy_data()
             # end of if tmpCube.has_lazy_data():
-                        
-            if (varName, varSTASH) == ('snowfall_amount', 'm01s00i023'):
-                # the snowfall_amount need to be changed as 
-                # liquid_water_content_of_surface_snow by convert it into
-                # water equivalent of snow amount.                    
-                _convert2WEASD(tmpCube)
-            # end of if (varName, varSTASH) == ('snowfall_amount', 'm01s00i023'):
             
-            if not __UMReanalysis__:
+            if not __UMReanalysis__:            
+                if (varName, varSTASH) == ('snowfall_amount', 'm01s00i023'):
+                    # the snowfall_amount need to be changed as 
+                    # liquid_water_content_of_surface_snow by convert it into
+                    # water equivalent of snow amount.                    
+                    _convert2WEASD(tmpCube)
+                # end of if (varName, varSTASH) == ('snowfall_amount', 'm01s00i023'):
+            
+            
                 if doMultiHourlyMean and (tmpCube.coords('forecast_period')[0].shape[0] > 1):              
                     # grab the variable which is f(t,z,y,x)
                     # tmpCube corresponds to each variable for the SYNOP hours from
@@ -2218,24 +2221,23 @@ def regridAnlFcstFiles(arg):
                 _updateDepthBelowLandSurfaceCoords4Levs(depth_below_land_surface)
                 if __LPRINT__: print "depth_below_land_surface", depth_below_land_surface
                 
-                if (regdCube.standard_name == 'moisture_content_of_soil_layer') and \
-                    ('volumetric_moisture_of_soil_layer', 'm01s08i223') in _convertVars_:
+                if (regdCube.standard_name == 'moisture_content_of_soil_layer') and not __UMReanalysis__:
                     # pass the vertical layer depth in millimeter
                     _convert2VolumetricMoisture(regdCube, 
                                         levels=[100.0, 250.0, 650.0, 2000.0])
-                    print "converted four layer soil moisture to volumetric"
+                    print "converted four layer soil moisture to volumetric"                
+                    # We need to save this variable into nc file, why because
+                    # if we saved into grib2 and then re-read it while re-ordering
+                    # variables, iris couldnt load variables with 
+                    # depth_below_land_surfacer properly. We need to touch the 
+                    # _load_rules. So for timebeing, we saved it as seperate nc 
+                    # file. In iris-1.9 we couldnt append more variables into 
+                    # nc file. so we saved into muliple individual nc files, only
+                    # those who have depth_below_land_surface and will be deleted
+                    # after inserted properly into orderd grib2 files.
+                    ncfile = True
                 # end of if regdCube.standard_name == 'moisture_content_of_soil_layer':                
                 print "after soil_model_level_number", regdCube.data 
-                # We need to save this variable into nc file, why because
-                # if we saved into grib2 and then re-read it while re-ordering
-                # variables, iris couldnt load variables with 
-                # depth_below_land_surfacer properly. We need to touch the 
-                # _load_rules. So for timebeing, we saved it as seperate nc 
-                # file. In iris-1.9 we couldnt append more variables into 
-                # nc file. so we saved into muliple individual nc files, only
-                # those who have depth_below_land_surface and will be deleted
-                # after inserted properly into orderd grib2 files.
-                ncfile = True
             # end of if regdCube.coords('soil_model_level_number'):
             
             if (varName, varSTASH) == ('soil_moisture_content', 'm01s08i208'):
@@ -2245,12 +2247,12 @@ def regridAnlFcstFiles(arg):
                 # By default this variable doesn't have any vertical coords 
                 # inforomation. So we must add explicitly by ourself.
                 _createDepthBelowLandSurfaceCoords1Lev(regdCube)
-                if ('volumetric_soil_moisture_of_layer', 'm01s08i208') in _convertVars_:
+                if not __UMReanalysis__:
                     # Convert this into volumetirc soil moisture. This varibale
                     # vertical level at 2meter in millimeter.
                     _convert2VolumetricMoisture(regdCube, levels=3000.0)
                     print "converted single layer soil moisture to volumetric"
-                ncfile = True
+                    ncfile = True
             # end of if (varName, varSTASH) in (...):
             
             if (varName, varSTASH) in [('convective_rainfall_amount', 'm01s05i201'),
