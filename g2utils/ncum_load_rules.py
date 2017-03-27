@@ -156,7 +156,7 @@ def update_cf_standard_name(cube, field, filename):
                 time = cube.coords('time')[0]
                 time.points = array([float(int(time.points[0]))]) # update time also.
 
-        if fname.startswith('umnsaa'):
+        if fname.startswith('umnsa'):
             # regional model produces wrong reference_time for avg/acc variables. Lets fix it here.
             # fix the time axis varying reference_time problem which occurs in NCUM_Regional model.
             forecast_reference_time = cube.coords('forecast_reference_time')[0]
