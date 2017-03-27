@@ -141,10 +141,10 @@ def cubeAddSubtractor(cube, otherCube, action='add', standard_name=None,
     sname = standard_name if standard_name else cube.standard_name
     cm = cube.cell_methods[0] if cube.cell_methods else None 
     unit = cube.units 
-    if action in ['add', 'sum']:
+    if action in ['add', 'sum', 'addition']:
         # do the simple addition
         resultant = cube.data - otherCube.data
-    elif action in ['sub', 'remove']:
+    elif action in ['sub', 'remove', 'subtraction']:
         # do the simple substraction
         resultant = cube.data - otherCube.data
     # set fill_value 
