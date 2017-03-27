@@ -69,7 +69,7 @@ import multiprocessing.pool as mppool
 # by the top-level multiprocessing module.
 import datetime
 from iris.time import PartialDateTime
-from cubeutils import cubeAverager, cubeSubtractor
+from cubeutils import cubeAverager, cubeAddSubtractor
 from ncum_load_rules import update_cf_standard_name
 # End of importing business
 
@@ -226,6 +226,7 @@ _orderedVars_ = {'PressureLevel': [
 ('land_binary_mask', 'm01s00i030'),
 ('sea_ice_area_fraction', 'm01s00i031'),
 ('sea_ice_thickness', 'm01s00i032'),
+('snowfall_amount', 'm01s00i023'),
 # the snowfall_amount might be changed as 
 # liquid_water_content_of_surface_snow by convert it into
 # water equivalent of snow amount, before re-ordering itself.
@@ -241,7 +242,6 @@ _orderedVars_ = {'PressureLevel': [
 ('cloud_base_altitude', 'm01s09i219'),
 ('convective_rainfall_rate', 'm01s05i205'),
 ('convective_snowfall_flux', 'm01s05i206'),
-('snowfall_amount', 'm01s00i023'),
 ('stratiform_rainfall_rate', 'm01s04i203'),
 ('subsurface_runoff_flux', 'm01s08i235'),
 ('surface_diffuse_downwelling_shortwave_flux_in_air', 'm01s01i216'),
@@ -1225,6 +1225,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('y_wind', 'm01s15i202'), # 8 pressure levels
                     ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),
                     ('cloud_area_fraction_assuming_maximum_random_overlap', 'm01s09i217'),
+                    ('water_evaporation_flux_from_soil', 'm01s03i229'),
                     # The precipitation_amount, *snowfall_amount, and
                     # *rainfall_amount variable must be at the last
                     # in this list. we will have to do 6 hourly accumulation
@@ -1239,7 +1240,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('stratiform_snowfall_amount', 'm01s04i202'),
                     ('stratiform_rainfall_amount', 'm01s04i201'),]
                     
-        if set(_requiredPressureLevels_).issubset([925., 960., 975., 980., 985., 990., 995., 1000.]):
+        if _requiredPressureLevels_ and set(_requiredPressureLevels_).issubset([925., 960., 975., 980., 985., 990., 995., 1000.]):
             # same stash available in pd file also. so include only incase of chosen pressure level 
             # applicable to this pe file.
             varNamesSTASH.append(('geopotential_height', 'm01s16i202')) # 8 pressure levels            
@@ -2761,7 +2762,7 @@ def doShuffleVarsInOrder(fpath):
             raise ValueError("Can not calculate surface_upwelling_shortwave_flux, because unable to load surface_downwelling_shortwave_flux")
         # calculate 'surface_upwelling_shortwave_flux' by subtract 'surface_net_downward_shortwave_flux'
         # from 'surface_downwelling_shortwave_flux'       
-        surface_upwelling_shortwave_flux = cubeSubtractor(surface_downwelling_shortwave_flux[0], 
+        surface_upwelling_shortwave_flux = cubeAddSubtractor(surface_downwelling_shortwave_flux[0], 
                                            surface_net_downward_shortwave_flux[0], 
                        standard_name='surface_upwelling_shortwave_flux_in_air',
                                                               removeSTASH=True)
@@ -2788,14 +2789,45 @@ def doShuffleVarsInOrder(fpath):
             raise ValueError("Can not calculate surface_upwelling_longwave_flux, because unable to load surface_downwelling_shortwave_flux")
         # calculate 'surface_upwelling_longwave_flux' by subtract 'surface_net_downward_longwave_flux'
         # from 'surface_downwelling_longwave_flux'       
-        surface_upwelling_longwave_flux = cubeSubtractor(surface_downwelling_longwave_flux[0], 
+        surface_upwelling_longwave_flux = cubeAddSubtractor(surface_downwelling_longwave_flux[0], 
                                            surface_net_downward_longwave_flux[0], 
+                                           action='sub',
                        standard_name='surface_upwelling_longwave_flux_in_air',
                                                               removeSTASH=True)
         # store the 'surface_upwelling_longwave_flux' into orderedVars
         orderedVars.insert(idx, surface_upwelling_longwave_flux)
     # end of if ('surface_upwelling_longwave_flux_in_air', 'None') in _convertVars_:
-
+    
+    if ('precipitation_amount', 'None') in _convertVars_:
+        print "Calculating, ('precipitation_amount', 'None')"
+        # find the index in _convertVars_
+        idx = _convertVars_.index(('precipitation_amount', 'None'))
+        # adjust the current index by subtract 1, because in previous insertion 
+        # causes order index increased by 1.
+        idx = idx-1 if (idx and oidx is None) else idx
+        oidx = idx
+        # store the stratiform_snowfall_amount data into temporary variable
+        stratiform_snowfall_amount = [var for var in orderedVars 
+               if var.standard_name == 'stratiform_snowfall_amount'] 
+        if not stratiform_snowfall_amount:
+            raise ValueError("Can not calculate precipitation_amount (regional), because unable to load stratiform_snowfall_amount")           
+        # store the stratiform_rainfall_amount data into temporary variable
+        stratiform_rainfall_amount = [var for var in orderedVars 
+               if var.standard_name == 'stratiform_rainfall_amount']
+        if not stratiform_rainfall_amount:
+            raise ValueError("Can not calculate precipitation_amount (regional), because unable to load stratiform_rainfall_amount")
+        # calculate 'precipitation_amount' by adding 'stratiform_rainfall_amount'
+        # and 'stratiform_snowfall_amount' together.      
+        precipitation_amount = cubeAddSubtractor(stratiform_rainfall_amount[0], 
+                                           stratiform_snowfall_amount[0], 
+                                           action='add',
+                                           standard_name='precipitation_amount',
+                                                              removeSTASH=True)
+        # store the 'precipitation_amount' into orderedVars
+        orderedVars.insert(idx, precipitation_amount)
+        print precipitation_amount.data.min(), precipitation_amount.data.max()
+    # end of if ('precipitation_amount', 'None') in _convertVars_:    
+    
     if ('atmosphere_precipitable_water_content', 'None') in _convertVars_:
 
         # find the index in _convertVars_
@@ -2832,21 +2864,24 @@ def doShuffleVarsInOrder(fpath):
         # [4] 'atmosphere_cloud_ice_content'
         
         # Lets do first subtraction,  out = [1] - [2],        
-        atmosphere_precipitable_water_content = cubeSubtractor(atmosphere_mass_content_of_water[0], 
+        atmosphere_precipitable_water_content = cubeAddSubtractor(atmosphere_mass_content_of_water[0], 
                             atmosphere_mass_content_of_dust_dry_aerosol_particles[0], 
+                            action='sub',
                             long_name='atmosphere_precipitable_water_content',        
                                                              removeSTASH=True)
         # Lets make sure that standard_name is None for this variable.
         atmosphere_precipitable_water_content.standard_name = None
         # Lets do second subtraction,  out = out - [3],     
-        atmosphere_precipitable_water_content = cubeSubtractor(atmosphere_precipitable_water_content,               
-                                     atmosphere_cloud_liquid_water_content[0],                              
+        atmosphere_precipitable_water_content = cubeAddSubtractor(atmosphere_precipitable_water_content,
+                                     atmosphere_cloud_liquid_water_content[0],
+                                     action='sub',
                             long_name='atmosphere_precipitable_water_content',
                                                              removeSTASH=True) 
 
         # Lets do third / last subtraction,  out = out - [4],
-        atmosphere_precipitable_water_content = cubeSubtractor(atmosphere_precipitable_water_content,               
-                                              atmosphere_cloud_ice_content[0],                               
+        atmosphere_precipitable_water_content = cubeAddSubtractor(atmosphere_precipitable_water_content,
+                                              atmosphere_cloud_ice_content[0],
+                                              action='sub',
                             long_name='atmosphere_precipitable_water_content', 
                                                              removeSTASH=True)
 
