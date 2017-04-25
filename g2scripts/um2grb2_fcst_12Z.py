@@ -21,7 +21,7 @@ from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                    removeGrib2FilesAfterGrib1FilesCreated, pressureLevels, \
                    callBackScript, setGrib2TableParameters, wgrib2Arguments, \
                    soilFirstSecondFixedSurfaceUnit, UMtype, targetGridFile, \
-                   UMInLongFcstFiles, fillFullyMaskedVars, extraPolateMethod, 
+                   UMInLongFcstFiles, fillFullyMaskedVars, extraPolateMethod, \
                    write2NetcdfFile
 
 if loadg2utils == 'system':
