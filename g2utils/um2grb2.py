@@ -1647,7 +1647,7 @@ def _convert2VolumetricMoisture(cube, levels=[100.0, 250.0, 650.0, 2000.0]):
     # And either we should do mask grid points < 0.005 or replace with 0.0051.
     # Here we are replacing with 0.0051 since soil moisture masking will not 
     # make proper sense!. so replace the values less than 0.005 with 0.0051.
-    cube.data[numpy.ma.logical_and(cube.data > 0.0, cube.data < 0.01)] = 0.0101
+    cube.data[numpy.ma.logical_and(cube.data > 0.0, cube.data < 0.005)] = 0.0051
     
     # update the units as m3 / m3
     cube.units = Unit('m3 m-3')
@@ -1837,7 +1837,7 @@ def regridAnlFcstFiles(arg):
         STASHConstraint = iris.AttributeConstraint(STASH=varSTASH)
         
         if not cubes.extract(varConstraint & STASHConstraint): 
-            raise ValueError("unable to extract variable %s %s" % (varName, varSTASH))
+            raise ValueError("unable to extract variable %s %s %s" % (varName, varSTASH, infile))
         
         # get the standard_name of variable 
         stdNm = cubes.extract(varConstraint & STASHConstraint)[0].standard_name
@@ -2101,10 +2101,7 @@ def regridAnlFcstFiles(arg):
             # end of if (varName, varSTASH) in _precipVars_:
             
             if (varName, varSTASH) in [('land_binary_mask', 'm01s00i030')]:
-                regdCube.data[regdCube.data < 0] = 1
-                # trying to keep values either 0 or 1. Not -ve! 
-                # Sometimes model writes -1 instead of 1. Lets fix this in above cmd.
-                regdCube.data = numpy.ma.array(regdCube.data, dtype=numpy.int)            
+                regdCube.data[regdCube.data > 0] = 1                
             # end of if (varName, varSTASH) in [('land_binary_mask', 'm01s00i030')]:
             
             if exmode == 'mask':
@@ -2123,10 +2120,9 @@ def regridAnlFcstFiles(arg):
                         regdCube.data[regdCube.data < 0.0] = 0.0
                 elif (varName, varSTASH) in [('soil_temperature', 'm01s03i238'), 
                                        ('soil_temperature', 'm01s08i225')]:
-                    # We should assign min instead 1e-15 only for this var!
+                    # We should mask 1e-15 only for this var!
                     # because 0 will not make sense when temperature unit is Kelvin
-                    nmin = numpy.ma.masked_less_equal(regdCube.data, 1e-15).min()
-                    regdCube.data[regdCube.data <= 1e-15] = nmin
+                    regdCube.data = numpy.ma.masked_less_equal(regdCube.data, 1e-15)
                 # http://www.cpc.ncep.noaa.gov/products/wesley/g2grb.html
                 # Says that 9.999e+20 value indicates as missingValue in grib2
                 # by default g2ctl.pl generate "undefr 9.999e+20", so we must 
@@ -2679,7 +2675,7 @@ def doShuffleVarsInOrder(fpath):
                 print "before resetting ", vname, var_60S_60N.data.min(), var_60S_60N.data.max()
                 if vname == 'volumetric_moisture_of_soil_layer':
                     # reset the minimum values as 0.01
-                    var_60S_60N.data[var_60S_60N.data < 0.01] = 0.0101
+                    var_60S_60N.data[var_60S_60N.data < 0.005] = 0.0051
                     print "resetting min of volumetric_moisture_of_soil_layer as ", var_60S_60N.data.min()
                 elif vname == 'soil_temperature':
                     # We should assign min of extra tropical band !
@@ -3345,7 +3341,9 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
         # end of for ext in ['', '.ctl', '.idx']:
     # end of for fhr in fhrs:
     
-    ifiles = [fname for fname in os.listdir(path) if _preExtension_ in fname]
+    ifiles1 = [fname for fname in os.listdir(path) if _preExtension_ in fname]
+    ifiles2 = [fname for fname in os.listdir(path) if '_Ordered' in fname]
+    ifiles = ifiles1 + ifiles2
     if ifiles:        
         print "Intermediate files are exists in the outdirectory.", path
         for ifile in ifiles:        
