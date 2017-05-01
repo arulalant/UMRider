@@ -2765,7 +2765,8 @@ def doShuffleVarsInOrder(fpath):
         # calculate 'surface_upwelling_shortwave_flux' by subtract 'surface_net_downward_shortwave_flux'
         # from 'surface_downwelling_shortwave_flux'       
         surface_upwelling_shortwave_flux = cubeAddSubtractor(surface_downwelling_shortwave_flux[0], 
-                                           surface_net_downward_shortwave_flux[0], 
+                                           surface_net_downward_shortwave_flux[0],
+                                           action='sub', 
                        standard_name='surface_upwelling_shortwave_flux_in_air',
                                                               removeSTASH=True)
         # store the 'surface_upwelling_shortwave_flux' into orderedVars
