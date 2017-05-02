@@ -1706,7 +1706,7 @@ def regridAnlFcstFiles(arg):
         fileName = fpname # keep filename for IMDAA reanalysis
     elif  __UMtype__ == 'global':
         ### if fileName has some extension, then do not add hr to it.
-        fileName = fpname + hr if not '.' in fpname else fpname
+        fileName = fpname + hr.zfill(3) if not '.' in fpname else fpname
     elif  __UMtype__ == 'regional':
         if '.' in fpname:
             fileName = fpname 
@@ -1722,7 +1722,7 @@ def regridAnlFcstFiles(arg):
     varNamesSTASH, fcstHours, doMultiHourlyMean, infile, simulated_hr = getVarInOutFilesDetails(_inDataPath_, fileName, hr)
     
     if not os.path.isfile(fname): 
-        print "The file doesn't exists: %s.. \n" %fname
+        print "Error : The file doesn't exists: %s .. \n" %fname
         return  
     # end of if not os.path.isfile(fname): 
     
@@ -3137,7 +3137,7 @@ def doFcstConvert(fname):
         # calculate start hour of long fcst in multiples of 24. Why?
         # 00 hr contains from 06 to 24 hours data.
         # 24 hr contains from 24 to 48 hours data, and so on.
-        start_fcst_hour = ((__start_long_fcst_hour__ / 24) - 1) * 24
+        start_fcst_hour = (__start_long_fcst_hour__ / 24) * 24
         # Here we are reducing one 24 because, 00 file contains upto 24 hour,
         # and 24 hour files contains upto 48 hour and so on.
             
@@ -3152,6 +3152,7 @@ def doFcstConvert(fname):
     # end of if __UMtype__ == 'global':
     
     fcst_filenames = [(fname, hr, None) for hr in fcst_times]
+    print "fcst_filenames = ", fcst_filenames
     nchild = len(fcst_times)
     if not nchild: raise ValueError("Got 0 fcst_times, couldn't make parallel !")
     # create the no of child parallel processes
