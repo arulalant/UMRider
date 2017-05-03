@@ -3148,7 +3148,8 @@ def doFcstConvert(fname):
         fcst_times = [str(hr).zfill(3) for hr in range(start_fcst_hour, __end_long_fcst_hour__, 24)]
         
     elif __UMtype__ == 'regional':
-        fcst_times = [str(hr).zfill(2) for hr in range(0, __end_long_fcst_hour__, 6)]
+        start_fcst_hour = (__start_long_fcst_hour__ / 6) * 6
+        fcst_times = [str(hr).zfill(2) for hr in range(start_fcst_hour, __end_long_fcst_hour__, 6)]
     # end of if __UMtype__ == 'global':
     
     fcst_filenames = [(fname, hr, None) for hr in fcst_times]
