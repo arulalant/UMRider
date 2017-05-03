@@ -123,7 +123,7 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour',
 # end of def cubeAverager(...):
 
 
-def cubeAddSubtractor(cube, otherCube, action='add', standard_name=None, 
+def cubeAddSubtractor(cube, otherCube, action, standard_name=None, 
                         long_name=None, removeSTASH=True):
     '''
     iris.analysis.maths.subtract doesnt serving out purpose.
