@@ -1103,6 +1103,12 @@ def save_tigge_tweaked_messages(cubeList):
                         gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 0)
                         gribapi.grib_set(grib_message, "scaledValueOfFirstFixedSurface", 2)
                         gribapi.grib_set(grib_message, "timeIncrementBetweenSuccessiveFields", 0)
+                    if 'toa' in cube.long_name:
+                        # we have to explicitly re-set the type of first surfcae
+                        # as Nominal top of the atmosphere i.e. 8 (WMO standard)
+                        gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 8) 
+                        gribapi.grib_set(grib_message, "typeOfSecondFixedSurface", 255) 
+                    # end of if cube.long_name.startswith('toa'): 
                     aod_name = _aod_pseudo_level_var_.keys()[0]
                     if cube.long_name.startswith(aod_name):
                         # we have to explicitly re-set the type of first surfcae
@@ -1141,7 +1147,19 @@ def save_tigge_tweaked_messages(cubeList):
                 
                 if (cube.standard_name in _total_cummulativeVars_ or \
                     cube.long_name in _total_cummulativeVars_):
+                    # set type of first fixed as surface by default for all variables
                     gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 1)
+                    if cube.long_name:
+                        if 'toa' in cube.long_name:
+                            # we have to explicitly re-set the type of first surfcae
+                            # as Nominal top of the atmosphere i.e. 8 (WMO standard)
+                            gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 8) 
+                    if cube.standard_name:
+                        if 'toa' in cube.standard_name:
+                            # we have to explicitly re-set the type of first surfcae
+                            # as Nominal top of the atmosphere i.e. 8 (WMO standard)
+                            gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 8) 
+                    # set other parameters
                     gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 255)
                     gribapi.grib_set(grib_message, "scaledValueOfFirstFixedSurface", -1)
                     gribapi.grib_set(grib_message, "timeIncrementBetweenSuccessiveFields", 0)
