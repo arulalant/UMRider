@@ -22,7 +22,6 @@ tigge_check = '/gpfs2/home/prasanna/SOFTWARE/GNU/grib_api-1.21.0-path/bin/tigge_
 
 filesCount = {'ttr': 41, 'lsm': 41, 'orog': 41, '10v': 41, 'tcc': 41, 'gh': 369, 'skt': 41, 'tp': 41, 'msl': 41, 'mx2t6': 40, '2d': 41, '10u': 41, 'mn2t6': 40, 'sshf': 41, 'slhf': 41, 'ssr': 41, '2t': 41, 'sp': 41, 'st': 41, 'q': 328, 'u': 328, 't': 328, 'str': 41, 'v': 328, 'sd': 41}
 
-
 def createTarBalls(path, today, member):    
     
     member = str(member).zfill(3)
@@ -69,51 +68,26 @@ def createTarBalls(path, today, member):
     #
     # create analysis files tar file in parallel # -m500 need to be include for pbzip2
     tg_files = '  '.join([' -C %s . ' % os.path.join(inpath, tgf) for tgf in os.listdir('.')])
+    
     cmd = "tar -c  %s | %s -v  -c -f -p32 > %s/%s" % (tg_files, pigz, tardir, tarfile)
     
     print cmd
     subprocess.call(cmd, shell=True)
-            
-    if member == '000':
-        tarpath = os.path.abspath(tardir)        
         
-        
-        # do scp the tar files to ftp_server
-        cmd = 'ssh ncmlogin3 "rsync  --update --ignore-existing -razt  %s  %s:/data/ftp/pub/outgoing/NCUM_TIGGE/"' % (tarpath, ftp_server)
+    # remove yesterday directory!!!
+    y4DayPath = os.path.join(path, '../../%s' % y4Day)
+    if os.path.exists(y4DayPath):    
+        cmd = "rm -rf %s" % y4DayPath
         print cmd
         subprocess.call(cmd, shell=True)
-        
-        # remove past 11th day tar ball from ftp_server 
-        cmd = 'ssh ncmlogin3 "ssh %s rm -rf /data/ftp/pub/outgoing/NCUM_TIGGE/%s"' % (ftp_server, y11Day)
-        print cmd
-        try:
-            subprocess.call(cmd, shell=True)
-        except Exception as e:
-            print "past 11th day tar ball has been removed from ftp_server, already", e   
-        
-        
-        # remove yesterday directory!!!
-        y4DayPath = os.path.join(path, '../../%s' % y4Day)
-        if os.path.exists(y4DayPath):    
-            cmd = "rm -rf %s" % y4DayPath
-            print cmd
-            subprocess.call(cmd, shell=True)
-        # end of if os.path.exists(y4DayPath):     
-        
-        # remove past 11th day tar file!!!
-        y11DayPath = os.path.join(path, '../../TarFiles/%s' % y11Day)
-        if os.path.exists(y11DayPath):    
-            cmd = "rm -rf %s" % y11DayPath
-            print cmd
-            subprocess.call(cmd, shell=True)
-        # end of if os.path.exists(y11DayPath):      
-    # end of if member == '000':
+    # end of if os.path.exists(y4DayPath):     
+     
     os.chdir(cdir)  
 # end of def createTarBalls(path, today, ...):
 
 if __name__ == '__main__':
 
-    ftp_server="prod@ftp"
+    ftp_server="arulalan@ftp"
     date = None
     member = '000'
     outpath = '/gpfs3/home/umeps/EPS/ShortJobs/NCUM_TIGGE/%s/'
