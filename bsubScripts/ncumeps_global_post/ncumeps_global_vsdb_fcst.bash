@@ -3,13 +3,14 @@
 #BSUB -a poe                  # set parallel operating environment
 ####### BSUB -J  umeps2vsdb job name 
 ####### Jobname and hours will be submitted in the model executing script itself.
+#BSUB -J vsdbeps[24-240:24]
 #BSUB -W 06:00                # wall-clock time (hrs:mins)
 #BSUB -n 16                  # number of tasks in job
 #BSUB -x
 #BSUB -R span[ptile=16]
-#BSUB -q ensemble             	  # queue
-#BSUB -e /gpfs3/home/umeps/UMRiderLogs/vsdb/bsub/umeps2grb2.vsdb.err.%J.%I.hybrid     # error file name in which %J is replaced by the job ID
-#BSUB -o /gpfs3/home/umeps/UMRiderLogs/vsdb/bsub/umeps2grb2.vsdb.out.%J.%I.hybrid     # output file name in which %J is replaced by the job ID
+#BSUB -q small             	  # queue
+#BSUB -e umeps2grb2.vsdb.err.%J.%I.hybrid     # error file name in which %J is replaced by the job ID
+#BSUB -o umeps2grb2.vsdb.out.%J.%I.hybrid     # output file name in which %J is replaced by the job ID
 
 
 # find out the directory of this bash script after submitted to bsub
@@ -26,6 +27,7 @@ echo "export GRIB2TABLE="$GRIB2TABLE
 epsMeanScript=$DIR/ncumeps_create_memavg_vsdb_input.py
 
 export SHELL=/bin/bash
+export UMRIDER_STARTDATE=20170406
 
 # get the hour to pass command line argument (from based on JOB index)
 hour=$(printf "%02d" ${LSB_JOBINDEX})     # 2-digit number starting with 0
