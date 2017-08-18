@@ -1209,10 +1209,21 @@ def makeTotalCummulativeVars(arg):
     fname += umfcstype+ '_sl_%s_' + ens + '_0000_' + svar + '.nc' 
     infiles = [os.path.join(*[_opPath_, ens, svar, fname % str(t).zfill(4)]) 
                         for t in range(6, __end_long_fcst_hour__+1, 6)]
-
+    
+    for infile in infiles:
+        if not os.path.isfile(infile):
+            print "Error: The infile '%s' doesnt exist to calculate makeTotalCummulativeVars"
+        else:
+            print "Exists: ", infile
+            try:  
+                cubes = iris.load(infile)[0]
+            except Exception as e:
+                print "Error : Unable to load file - ", infile
+    # end of for infile in infiles:
+    
     try:
         cubes = iris.load(infiles)[0]
-    except Exception as e:
+    except Exception as e:     
         raise ValueError("Unable to load files from %s - while makeTotalCummulativeVars" % str(infiles))
     
     # get the cummulated cubes generator
