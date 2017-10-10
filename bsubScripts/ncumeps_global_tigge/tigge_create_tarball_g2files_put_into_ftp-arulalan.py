@@ -53,7 +53,7 @@ def createTarBalls(path, today, member):
     os.chdir(inpath)
         
     for tgf in os.listdir('.'):
-        cmd = tigge_check + '-v -w %s/*' % tgf
+        cmd = tigge_check + '   -v -w %s/*' % tgf
         tigge_check_val = os.system(cmd)  # it should return 0 on pass 
         if tigge_check_val != 0 : 
             print "Error : While checking via tigge_check cmd got error!"
