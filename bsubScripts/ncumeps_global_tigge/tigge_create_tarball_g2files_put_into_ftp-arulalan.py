@@ -14,7 +14,7 @@
 ## Arulalan.T
 ## 04-Mar-2016.
 
-import os, subprocess, datetime, getopt, sys, glob
+import os, subprocess, datetime, getopt, sys, glob, time
 
 pbzip2 = '/gpfs1/home/Libs/GNU/ZIPUTIL/pbzip2'
 pigz = '/gpfs1/home/Libs/GNU/ZIPUTIL/pigz'
@@ -27,7 +27,7 @@ dirsOrder = [
     '2d', 'sp', 'msl', 'tp', 'ttr', 'lsm', 'tcc', 'slhf', 'ssr', 'sshf', 'str', 'sd', 'orog'
 ]
 # merge cmd into single grib2 of each members
-catcmd = ['%s/z_tigge_c_dems*{0000..0240..6}*' % d for d in dirsOrder]
+catcmd = ['%s/z_tigge_c_dems*%s' % (d,d) for d in dirsOrder]
 catcmd = '    '.join(catcmd)
 catcmd = 'cat %s ' % catcmd
 catcmd += '  > %s'
@@ -70,8 +70,9 @@ def createTarBalls(path, today, member):
     
     tardir = '../../TarFiles/%s' % today
     if not os.path.exists(tardir): os.makedirs(tardir)
-    tarfile = 'ncmrwf_tigge_%s_%s.tar.gz' % (today, member)
-    mergedg2filepath = 'ncmrwf_dems_tigge_%s_%s.grib2' % (today, member)
+#    tarfile = 'ncmrwf_tigge_%s_%s.tar.gz' % (today, member)
+    mergedg2file = 'ncmrwf_dems_tigge_%s_%s.grib2' % (today, member)
+    mergedg2filepath = os.path.join(tardir, mergedg2file)
     print "currnet path : ", os.getcwd()
     # normal "$ tar cvjf fcst_20160223.tar.bz2 *fcst*grb2" cmd takes 6 minutes 43 seconds.
     #
@@ -79,10 +80,13 @@ def createTarBalls(path, today, member):
     #    
         
     catcmd_out = catcmd % mergedg2filepath
+#    print "catcmd_out = ", catcmd_out
     subprocess.call(catcmd_out, shell=True)
     time.sleep(30)
     
-    gzip_cmd = '%s -9 -p 32 %s' % (pigz, mergedg2filepath)
+    os.chdir(tardir)
+    gzip_cmd = '%s -9 -p 32 %s' % (pigz, mergedg2file)
+    print "gzip_cmd = ", gzip_cmd
     subprocess.call(gzip_cmd, shell=True)
     time.sleep(5)
     
