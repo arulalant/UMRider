@@ -57,7 +57,7 @@ def createTarBalls(path, today, member):
         tigge_check_val = os.system(cmd)  # it should return 0 on pass 
         if tigge_check_val != 0 : 
             print "Error : While checking via tigge_check cmd got error!"
-            sys.exit(0)
+            #sys.exit(0)
     # end of for tgf in os.listdir('.'):
     
     tDay = datetime.datetime.strptime(today, "%Y%m%d")
