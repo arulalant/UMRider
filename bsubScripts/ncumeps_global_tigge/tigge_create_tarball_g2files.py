@@ -14,7 +14,7 @@
 ## Arulalan.T
 ## 04-Mar-2016.
 
-import os, subprocess, datetime, getopt, sys, glob, time 
+import os, subprocess, datetime, getopt, sys, glob, time
 
 pbzip2 = '/gpfs1/home/Libs/GNU/ZIPUTIL/pbzip2'
 pigz = '/gpfs1/home/Libs/GNU/ZIPUTIL/pigz'
@@ -84,15 +84,16 @@ def createTarBalls(path, today, member):
     print "gzip_cmd = ", gzip_cmd
     subprocess.call(gzip_cmd, shell=True)
     time.sleep(5)
-    
-    if member == '000':
-        # remove yesterday directory!!!
+    print os.getcwd(), member    
+    if member == '000':        
+        # remove today directory!!!
+        print "path",  path
         if os.path.exists(path):    
             cmd = "rm -rf %s" % path
             print cmd
             subprocess.call(cmd, shell=True)
-        # end of if os.path.exists(path): 
-     # end of if member == '000':
+         # end of if os.path.exists(yDayPath):     
+    # end of if member == '000': 
     os.chdir(cdir)  
 # end of def createTarBalls(path, today, ...):
 
