@@ -26,16 +26,23 @@ dirsOrder = [
     'gh', 'u', 'v', 'q', 't', '10u', '10v', '2t', 'mx2t6', 'mn2t6', 'skt', 'st', 
     '2d', 'sp', 'msl', 'tp', 'ttr', 'lsm', 'tcc', 'slhf', 'ssr', 'sshf', 'str', 'sd', 'orog'
 ]
-# merge cmd into single grib2 of each members
-catcmd = ['%s/z_tigge_c_dems*%s' % (d,d) for d in dirsOrder]
-catcmd = '    '.join(catcmd)
-catcmd = 'cat %s ' % catcmd
-catcmd += '  > %s'
+
 
 def createTarBalls(path, today, member):    
     
     member = str(member).zfill(3)
     inpath = os.path.join(path, member)
+    
+    if member == '000':
+        # merge cmd into single grib2 of each members
+        catcmd = ['%s/z_tigge_c_dems*%s' % (d,d) for d in dirsOrder]
+    else:
+        # merge cmd into single grib2 of each members except orography and land-sea mask
+        catcmd = ['%s/z_tigge_c_dems*%s' % (d,d) for d in dirsOrder if d not in ['lsm', 'orog']]
+    
+    catcmd = '    '.join(catcmd)
+    catcmd = 'cat %s ' % catcmd
+    catcmd += '  > %s'
     
     # check the filesCount
     for var, vlen in filesCount.iteritems():
@@ -69,7 +76,12 @@ def createTarBalls(path, today, member):
     y11Day = (tDay - datetime.timedelta(days=11)).strftime('%Y%m%d')
     
     tardir = '../../TarFiles/%s' % today
-    if not os.path.exists(tardir): os.makedirs(tardir)
+    if not os.path.exists(tardir): 
+        try:
+            os.makedirs(tardir)
+        except Exception as e:
+            print "parallel folder creation", e
+    # end of if not os.path.exists(tardir): 
     mergedg2file = 'ncmrwf_dems_tigge_%s_%s.grib2' % (today, member)
     mergedg2filepath = os.path.join(tardir, mergedg2file)
     print "currnet path : ", os.getcwd()
