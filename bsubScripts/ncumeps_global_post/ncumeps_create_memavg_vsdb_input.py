@@ -43,7 +43,7 @@ _reverseLatitude_ = True
 _preExtension_ = '_unOrdered'
 
 
-targetGridResolution = 2.5
+targetGridResolution = 1.0
 # define default global lat start, lon end points
 slat, elat = (-90., 90.)
 # define default global lon start, lon end points 
@@ -210,7 +210,7 @@ if __name__ == '__main__':
     oftype = 'forecast'
     utc = '00'
     inpath = '/gpfs3/home/umeps/EPS/long_fcst/post/'
-    outpath = '/gpfs3/home/umeps/EPS/ShortJobs/NCUM_EPS_VSDB_Input'
+    outpath = '/gpfs3/home/umeps/EPS/ShortJobs/NCUM_EPS_VSDB_Input/1x1'
   
     helpmsg = './ncumeps_create_memavg_vsdb_input.py --date=20160302 --start_long_fcst_hour=24 --end_long_fcst_hour=24'
     try:
