@@ -187,7 +187,7 @@ _orderedVars_ = {'PressureLevel': [
 ('cloud_area_fraction_assuming_maximum_random_overlap', 'm01s09i217'),
 ('x_wind', 'm01s03i225'), 
 ('y_wind', 'm01s03i226'), 
-('x_wind', 'm01s15i212'),  # 50meter B-Grid U component wind 
+('x_wind', ' m01s15i212'),  # 50meter B-Grid U component wind 
 ('y_wind', 'm01s15i213'),  # 50meter B-Grid V component wind     
 
 ('visibility_in_air', 'm01s03i247'),
