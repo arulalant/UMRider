@@ -18,8 +18,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[1]}" )" && pwd )"
 # get the absolute path of the script for forecast 00utc
 g2scripts_relative_dir="$DIR/"
 g2scripts_absolute_dir="$( cd "$g2scripts_relative_dir" && pwd )"
-#g2script=$g2scripts_absolute_dir/tigge_create_tarball_g2files_put_into_ftp-arulalan.py
-g2script=$g2scripts_absolute_dir/tigge_create_tarball_g2files.py
+g2script=$g2scripts_absolute_dir/tigge_create_tarball_g2files_put_into_ftp.py
 
 #export UMRIDER_STARTDATE=20170406
 
