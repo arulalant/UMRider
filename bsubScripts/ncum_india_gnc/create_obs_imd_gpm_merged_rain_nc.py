@@ -25,7 +25,7 @@ else:
     startdate = '20170220'
 
 ctltemplate = """*        ddmmyy
-DEST ^/gpfs3/home/prod/gfs/obs_rain/DATA/imd_msg_%s.grd
+DSET ^/gpfs3/home/prod/gfs/obs_rain/DATA/imd_msg_%s.grd
 *options template
 TITLE 0.25 degree normal grids
 UNDEF -999.0
