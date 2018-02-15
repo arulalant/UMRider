@@ -24,20 +24,18 @@ if os.environ.has_key('UMRIDER_STARTDATE'):
 else:
     startdate = '20170220'
 
-
 ctltemplate = """*        ddmmyy
 DEST ^/gpfs3/home/prod/gfs/obs_rain/DATA/imd_msg_%s.grd
-*options byteswapped
-TITLE 0.25 degranalyzed normal grids
+options template
+TITLE 0.25 degree normal grids
 UNDEF -999.0
 XDEF  241  LINEAR  50.0 0.25
 YDEF  281  LINEAR  -30.0 0.25
-ZDEF   1 linear 1 1
-TDEF 1 LINEAR %s 1DY 
+ZDEF   1 linear 1 1 
+TDEF 1 LINEAR 12feb2018 1DY
 VARS  1
-arf25 0 99 GRIDDED RAINFALL
+rf 0 99 GRIDDED RAINFALL
 ENDVARS"""
-
 
 def createObsRainfallData(today):
     
@@ -57,7 +55,7 @@ def createObsRainfallData(today):
     f.close()
 
     f = cdms2.open(ctlfilename)
-    rain = f('arf25', latitude=(5, 40), longitude=(65, 110))
+    rain = f('rf', latitude=(5, 40), longitude=(65, 110))
     rain.id = 'rainfall'
     rain.comments = 'IMD GPM Merged Rainfall on ' + today
 
