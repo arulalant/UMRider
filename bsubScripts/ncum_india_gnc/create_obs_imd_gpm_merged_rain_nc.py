@@ -26,7 +26,7 @@ else:
 
 
 ctltemplate = """*        ddmmyy
-DSET ^/gpfs4/home/akmitra/tmp/mrgdr/GPM%s.grd
+DEST ^/gpfs3/home/prod/gfs/obs_rain/DATA/imd_msg_%s.grd
 *options byteswapped
 TITLE 0.25 degranalyzed normal grids
 UNDEF -999.0
@@ -48,7 +48,7 @@ def createObsRainfallData(today):
     tDay = cDay.strftime('%d%m%Y')
     mDay = cDay.strftime('%d%b%Y').lower()
     
-    infile = '/gpfs4/home/akmitra/tmp/mrgdr/GPM%s.grd' % tDay
+    infile = '/gpfs3/home/prod/gfs/obs_rain/DATA/imd_msg_%s.grd' % tDay
     if not os.path.isfile(infile): return
     
     ctlfilename = 'IMDGPM_%s.ctl' % today
