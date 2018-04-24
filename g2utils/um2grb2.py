@@ -71,6 +71,8 @@ import datetime
 from iris.time import PartialDateTime
 from cubeutils import cubeAverager, cubeAddSubtractor
 from ncum_load_rules import update_cf_standard_name
+# global path variables
+from configpaths import g2ctl, grib2ctl, gribmap, cnvgrib, wgrib2
 # End of importing business
 
 # We have to make sure that strict_grib_load as False, since we have to 
@@ -83,14 +85,6 @@ iris.FUTURE.cell_datetime_objects = True
 # -- Start coding
 # create global _lock_ object
 _lock_ = mp.Lock()
-
-# global path variables
-g2ctl = "/gpfs2/home/umtid/Softwares/grib2ctl/g2ctl.pl"
-grib2ctl = "/gpfs2/home/umtid/Softwares/grib2ctl/grib2ctl.pl"
-gribmap = "/gpfs1/home/Libs/GNU/GRADS/grads-2.0.2.oga.1/Contents/gribmap"
-#cnvgrib = "/gpfs1/home/Libs/INTEL/CNVGRIB/CNVGRIB-1.4.1/cnvgrib-1.4.1/cnvgrib"
-cnvgrib = "/gpfs2/home/umtid/Softwares/cnvgrib/CNVGRIB-1.4.1/cnvgrib-1.4.1/cnvgrib"
-wgrib2 = "/gpfs1/home/Libs/GNU/WGRIB2/v2.0.4/wgrib2/wgrib2"
 
 # other global variables
 __LPRINT__ = True
