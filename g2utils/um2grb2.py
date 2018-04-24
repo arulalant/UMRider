@@ -3231,7 +3231,7 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
         # end of for fcsthr in range(...):
         ## get the no of created anl files  
         nprocesses = len(anlFiles)   
-        maxprocess = mp.cpu_count()
+        maxprocess = mp.cpu_count() - 1
         if nprocesses > maxprocess: nprocesses = maxprocess 
         # parallel begin - 3 # parallel analysis required for 3-hourly analysis files.
         pool = _MyPool(nprocesses)
@@ -3353,7 +3353,7 @@ def convertFilesInParallel(fnames, ftype):
     nprocesses = len(fnames)
     if not nprocesses: raise ValueError("Got 0 fnames, couldn't make parallel !")
     # lets create no of parallel process w.r.t no of files.
-    maxprocess = mp.cpu_count()
+    maxprocess = mp.cpu_count() - 1
     if nprocesses > maxprocess: nprocesses = maxprocess 
     # parallel begin - 1 
     pool = _MyPool(nprocesses)
