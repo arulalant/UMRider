@@ -1945,7 +1945,8 @@ def regridAnlFcstFiles(arg):
                             
                     elif __UMtype__ == 'regional':
                         fhr1 = int(fileName[-3:])
-                        fcstHours = numpy.arange(0., 6., 0.25).reshape(6, 4) + fhr1 + 0.125
+                        fcstHours = numpy.arange(0., 6., 0.25).reshape(6, 4) + fhr1 + 0.125  # UM10.6
+#                        fcstHours = numpy.arange(0., 6., 0.1).reshape(6, 4) + fhr1 + 0.125  # UM10.8
                     print varName, "fcstHours ", fcstHours, int(fileName[-3:])
                 elif dtype == 'ana':
                     # for analysis pe file, and this varibale we need to set the 
