@@ -332,6 +332,7 @@ _ncfilesVars_ = [
 ## support for the following variables. So we created our own local table.
 _ncmrGrib2LocalTableVars_ = [
         'fog_area_fraction',
+        'wet_bulb_potential_temperature',
         'soil_evaporation_rate', 
         'canopy_evaporation_rate', 
         'open_sea_evaporation_rate', 
