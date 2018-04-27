@@ -151,6 +151,13 @@ def update_cf_standard_name(cube, field, filename):
                         cube.add_aux_coord(heightAx)
             # end of if ccm:
         # end of if varSTASH in ncumSTASH_Vs_cf:
+        if fname == '000_pj000':  # update NEPS Control file's first record alone.
+            forecast_period = cube.coords('forecast_period')[0]
+            if forecast_period.points[0] == 0.0833333283662796:  # equivalent to 5th minutes
+                ## update first time step of control run of NEPS for purpose of TIGGE.
+                forecast_period.points = array([0.0])  # change to 0 instead of 5th minutes
+                time = cube.coords('time')[0]
+                time.points = array([float(int(time.points[0]))])  # update time also.
 
         if fname == '000_pg000': # update NEPS Control file's first record alone.
              forecast_period = cube.coords('forecast_period')[0]
