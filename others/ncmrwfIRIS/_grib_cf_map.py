@@ -191,7 +191,7 @@ GRIB2_TO_CF = {
     G2Param(2, 0, 0, 5): CFName(None, 'air_temperature_minimum', 'K'), # WMO deprecated
     G2Param(2, 0, 1, 69): CFName('atmosphere_cloud_liquid_water_content', None, 'kg m-2'), 
     G2Param(2, 0, 1, 70): CFName('atmosphere_cloud_ice_content', None, 'kg m-2'), 
-    
+    G2Param(2, 0, 0, 205): CFName(None, 'wet_bulb_potential_temperature', 'K'), # NCMRWF Local
     G2Param(2, 0, 1, 3): CFName(None, 'atmosphere_precipitable_water_content', 'kg m-2'),
     
     # G2Param(grib version, discipline, parameter category, parameter no, typeOfFirstFixedSurface):
@@ -403,7 +403,7 @@ CF_TO_GRIB2 = {
     CFName(None, 'air_temperature_minimum', 'K'): G2Param(2, 0, 0, 5), # WMO deprecated
     CFName('atmosphere_cloud_liquid_water_content', None, 'kg m-2'): G2Param(2, 0, 1, 69), 
     CFName('atmosphere_cloud_ice_content', None, 'kg m-2'): G2Param(2, 0, 1, 70), 
-    
+    CFName(None, 'wet_bulb_potential_temperature', 'K'): G2Param(2, 0, 0, 205), # NCMRWF Local
     CFName(None, 'atmosphere_precipitable_water_content', 'kg m-2'): G2Param(2, 0, 1, 3),
     
     #WMO need to set surface level type as toa (Nominal top of the atmosphere, 8)
